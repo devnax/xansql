@@ -1,0 +1,38 @@
+{
+   "name": "xansql",
+   "version": "1.0.0",
+   "main": "./index.js",
+   "module": "./esm/index.js",
+   "types": "./types/index.d.ts",
+   "description": "",
+   "keywords": [],
+   "exports": {
+      ".": {
+         "types": "./types/index.d.ts",
+         "require": "./cjs/index.js",
+         "import": "./index.js"
+      },
+      "./types/*": "./types/*.d.ts",
+      "./cjs/*": "./cjs/*.js",
+      "./*": {
+         "import": "./*.js",
+         "require": "./cjs/*.js"
+      }
+   },
+   "scripts": {
+      "start": "makepack start",
+      "build": "makepack build",
+      "build:publish": "makepack publish"
+   },
+   "dependencies": {},
+   "devDependencies": {
+      "makepack": "latest",
+      "react": "^19.0.0",
+      "react-dom": "^19.0.0",
+      "express": "latest",
+      "typescript": "^4.4.2",
+      "@types/react": "^19.0.2",
+      "@types/react-dom": "^19.0.2",
+      "@types/express": "latest"
+   }
+}
