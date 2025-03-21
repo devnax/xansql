@@ -1,38 +1,22 @@
-import Model from "./Model";
-import SchemaBuilder from "./SchemaBuilder";
-import { Models, TableName, XansqlConfig } from "./types";
-import "./Schema"
+import { ModelsType, XansqlConfig } from "./types";
+export * from "./schema";
 
 class xansql {
-  private factory: Models = new Map()
-  private config: XansqlConfig
-  constructor(config: XansqlConfig) {
-    this.config = config;
-  }
+   config: XansqlConfig;
+   models: ModelsType = new Map();
+   constructor(config: XansqlConfig) {
+      this.config = config;
+   }
 
-  check() {
-    console.log(this);
-  }
+   assignModel<M extends { new(arg: xansql): any }>(model: M): InstanceType<M> {
+      const m = new model(this);
+      this.models.set(m.table, m);
+      return m;
+   }
 
-  Model(table: string) {
-    const xansql = this;
-    const schema = new SchemaBuilder(table)
-    const model = Model(table, xansql);
-    const instance = new model();
+   migrate(force?: boolean) {
 
-    this.factory.set(table, {
-      model,
-      instance,
-      schema
-    })
-    return model;
-  }
-
-  sync(force?: boolean) {
-    this.factory.forEach(({ model }) => {
-      model.sync(force)
-    })
-  }
+   }
 }
 
 export default xansql

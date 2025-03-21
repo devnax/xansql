@@ -1,44 +1,24 @@
+import columnTypes from "./columnTypes";
 
-export type XansqlDataTypes =
-   | "integer"
-   | "bigInteger"
-   | "decimal"
-   | "float"
-   | "boolean"
-   | "tinyint"
+export type ReferenceValue = "CASCADE" | "SET NULL" | "SET DEFAULT" | "RESTRICT" | "NO ACTION";
 
-   | "string"
-   | "text"
-
-   | "date"
-   | "time"
-   | "datetime"
-   | "timestamp"
-
-   | "json"
-   | "jsonb"
-   | "binary"
-
-   | "uuid"
-   | "enum"
-
-
-export type DialectTypes = "mysql" | "postgres" | "sqlite" | "mssql"
-
-export type XansqlDataTypesMap = {
-   [key in XansqlDataTypes]: string
-}
 
 export type SQLConstraints = {
-   primary?: boolean;
-   references?: { table: string; column: string };
+   primaryKey?: boolean;
+   references?: { table: string; column: string } | null;
    unique?: boolean;
-   nullable?: boolean;
    notNull?: boolean;
    unsigned?: boolean;
-   default?: string;
+   default?: any;
    autoincrement?: boolean;
-   index?: string;
-   onDelete?: string;
-   onUpdate?: string;
+   index?: string | null;
+   onDelete?: ReferenceValue | null;
+   onUpdate?: "CURRENT_TIMESTAMP" | ReferenceValue | null;
+   check: string | null;
+   collate: string | null;
+   comment: string | null;
 }
+
+export type ColumnTypes = typeof columnTypes[number];
+
+export type ColumnValue = (string | number)[]

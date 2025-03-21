@@ -1,29 +1,18 @@
 import xansql from "./src"
-import { generateSQLQuery, bigInteger, string, integer, increments } from './src/sqltypes'
+import UserMetaModel from "./models/User"
 
-const db = new xansql({
+export const mysql = new xansql({
+   dialect: 'mysql',
+   host: 'localhost',
+})
+
+export const sqlite = new xansql({
    dialect: 'sqlite',
    host: 'localhost',
 })
 
-
-class User extends db.Model('users') {
-   schema() {
-      return {
-
-      }
-   }
-}
-
-// User.sync(true)
-
-const generate = generateSQLQuery("users", {
-   id: increments().primary(),
-   amount: bigInteger(),
-   name: string().notNull(),
-   age: integer().notNull(),
-})
-
+const MysqlUserMeta = mysql.assignModel(UserMetaModel)
+const SqliteUserMeta = sqlite.assignModel(UserMetaModel)
 
 const server = (app) => {
 

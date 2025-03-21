@@ -1,10 +1,9 @@
-import SchemaBuilder from "./SchemaBuilder";
-
-
-export type DBDialect = 'sqlite' | 'mysql' | 'postgres';
+import Model from "./Model";
+import Schema from "./schema";
+import { Dialects } from "./schema/types";
 
 export type XansqlConfig = {
-   dialect: DBDialect; // sqlite | mysql | postgres
+   dialect: Dialects;
    storage?: string;
    host: string;
 }
@@ -13,7 +12,5 @@ export type TableName = string;
 
 export type ModelValue = {
    model: any;
-   instance: any;
-   schema: SchemaBuilder
 }
-export type Models = Map<TableName, ModelValue>;
+export type ModelsType = Map<TableName, Model>;

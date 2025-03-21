@@ -1,81 +1,39 @@
-import Column from "./Column";
-import { DialectTypes } from "./Column/types";
-import { integer, bigInteger, tinyint, decimal, float, boolean, string, text, date, time, datetime, timestamp, json, jsonb, binary, uuid, enums, increments, id, unique, createdAt, updatedAt } from "./sqltypes";
-import MysqlDialect from "./Dialects/mysql";
+export * from './functions'
 
-/* 
-MySQL
-PostgreSQL
-SQLite3
-MSSQL (Microsoft SQL Server)
-Oracle
-MariaDB
-Amazon Redshift
-*/
-
-
-type Schemas = {
-   [key: string]: Column
-}
+import MssqlDialect from './dialects/MSSqlDialect';
+import MysqlDialect from './dialects/MysqlDialect';
+import PostgresDialect from './dialects/PostgresDialect';
+import SqliteDialect from './dialects/SqliteDialect';
+import { Dialects, SchemaMap } from "./types";
 
 class Schema {
-   table: string;
-   schemas: Schemas
-   constructor(table: string, schemas: Schemas) {
-      this.table = table;
-      this.schemas = schemas;
+   schema: SchemaMap;
+   tableName: string;
+
+   constructor(tableName: string, schema: SchemaMap) {
+      this.schema = schema;
+      this.tableName = tableName;
    }
 
-   toSql(dialect: DialectTypes = "mysql") {
-      const sqlmaker = new MysqlDialect(this.schemas);
-      return sqlmaker.toSql(this.table);
+   toSQL(dialect: Dialects): string {
+      switch (dialect) {
+         case "mysql":
+            return new MysqlDialect(this.schema).toSQL(this.tableName);
+         case "postgres":
+            return new PostgresDialect(this.schema).toSQL(this.tableName);
+         case "sqlite":
+            return new SqliteDialect(this.schema).toSQL(this.tableName);
+         case "mssql":
+            return new MssqlDialect(this.schema).toSQL(this.tableName);
+         default:
+            throw new Error(`Unsupported dialect: ${dialect}`);
+      }
    }
 
-   toJson() {
-      return JSON.stringify(this.schemas);
+   toJSON() {
+      return this.schema;
    }
 }
 
-
-const userSchema = new Schema("users", {
-   id: id(),
-   name: string(),
-   email: string(),
-   password: string(),
-   created_at: createdAt(),
-   updated_at: updatedAt(),
-})
-
-const userMetaSchema = new Schema("user_meta", {
-   increments: increments(),
-   bigInteger: bigInteger(),
-   tinyint: tinyint(),
-   decimal: decimal(),
-   float: float().default(0.0),
-   boolean: boolean().default(false),
-   string: string().default("welcome"),
-   text: text().unique().notNull(),
-   text1: text().unsigned(),
-   date: date(),
-   time: time(),
-   datetime: datetime(),
-   timestamp: timestamp(),
-   json: json(),
-   jsonb: jsonb(),
-   binary: binary(),
-   uuid: uuid(),
-   enums: enums(['a', 'b', 'c']),
-   unique: unique(),
-   createdAt: createdAt(),
-   updatedAt: createdAt(),
-
-   relation_id: id().references("users", "id").onDelete("CASCADE").onUpdate("CASCADE"),
-   index: string().index("name"),
-})
-
-const sql = userMetaSchema.toSql();
-console.log(sql);
-
-
-
+export default Schema;
 

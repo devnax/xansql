@@ -1,43 +1,38 @@
 import xansql from ".";
-import SchemaBuilder from "./SchemaBuilder";
+import Schema from "./schema";
+import { SchemaMap } from "./schema/types";
 import { TableName } from "./types";
 
-const Model = (table: TableName, xansql: xansql) => {
+class Model {
+   table: TableName | null = null;
+   private xansql: xansql;
+   constructor(xansql: xansql) {
+      this.table = this.table || this.constructor.name.toLowerCase();
+      this.xansql = xansql;
+   }
+   schema(): SchemaMap {
+      throw new Error("Method not implemented.");
+   }
 
-   return class Model {
-      static xansql = xansql
-      static table: TableName = table
+   async create(data: any) {
+      console.log(data)
+   }
 
-      static schema(schema: SchemaBuilder): void {
-         throw new Error("Method not implemented.");
-      }
+   async find() {
+      let sql = ""
 
-      static async sync(force?: boolean) {
-         const item = xansql.factory.get(table)
-         console.log(item);
+   }
 
-      }
+   async findOne() {
+      console.log('Find one')
+   }
 
-      static async create(data: any) {
-         console.log(data)
-      }
+   async update(data: any) {
+      console.log(data)
+   }
 
-      static async find() {
-         console.log('Find all')
-      }
-
-      static async findOne() {
-         console.log('Find one')
-      }
-
-      static async update(data: any) {
-         console.log(data)
-      }
-
-      static async delete() {
-         console.log('Delete')
-      }
-
+   async delete() {
+      console.log('Delete')
    }
 }
 
