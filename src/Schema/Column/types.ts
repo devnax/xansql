@@ -5,18 +5,18 @@ export type ReferenceValue = "CASCADE" | "SET NULL" | "SET DEFAULT" | "RESTRICT"
 
 export type SQLConstraints = {
    primaryKey?: boolean;
-   references?: { table: string; column: string } | null;
+   references?: { table: string; column: string }
    unique?: boolean;
    notNull?: boolean;
    unsigned?: boolean;
    default?: any;
    autoincrement?: boolean;
-   index?: string | null;
-   onDelete?: ReferenceValue | null;
-   onUpdate?: "CURRENT_TIMESTAMP" | ReferenceValue | null;
-   check: string | null;
-   collate: string | null;
-   comment: string | null;
+   index?: string;
+   onDelete?: ReferenceValue;
+   onUpdate?: "CURRENT_TIMESTAMP" | ReferenceValue;
+   check?: string;
+   collate?: string;
+   comment?: string;
 }
 
 export type ColumnTypes = typeof columnTypes[number];

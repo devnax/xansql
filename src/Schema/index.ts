@@ -29,10 +29,6 @@ class Schema {
             throw new Error(`Unsupported dialect: ${dialect}`);
       }
    }
-
-   toJSON() {
-      return this.schema;
-   }
 }
 
 export default Schema;

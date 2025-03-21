@@ -11,8 +11,8 @@ export const sqlite = new xansql({
    host: 'localhost',
 })
 
-const MysqlUserMeta = mysql.assignModel(UserMetaModel)
-const SqliteUserMeta = sqlite.assignModel(UserMetaModel)
+const MysqlUserMeta = mysql.registerModel(UserMetaModel)
+const SqliteUserMeta = sqlite.registerModel(UserMetaModel)
 
 const server = (app) => {
 

@@ -93,12 +93,16 @@ abstract class BaseDialect {
 
             break;
          case "sqlite":
-            constraints.comment = null;
-            constraints.onUpdate = null;
+            if (constraints.comment) {
+               delete constraints.comment
+            }
+            if (constraints.onUpdate) {
+               delete constraints.onUpdate
+            }
             break;
          case "postgres":
             if (constraints.onUpdate === 'CURRENT_TIMESTAMP') {
-               constraints.onUpdate = null;
+               delete constraints.onUpdate
 
                this.footer.push(`
                CREATE OR REPLACE FUNCTION update_${tableName}_${name}() 
@@ -118,7 +122,7 @@ abstract class BaseDialect {
             break;
          case "mssql":
             if (constraints.onUpdate === 'CURRENT_TIMESTAMP') {
-               constraints.onUpdate = null;
+               delete constraints.onUpdate
 
                this.footer.push(`
                   CREATE TRIGGER update_${tableName}_${name}
@@ -203,6 +207,7 @@ abstract class BaseDialect {
       sql += `\n);\n${this.footer.join("\n")}`;
       return sql;
    }
+
 }
 
 export default BaseDialect;

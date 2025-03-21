@@ -13,4 +13,9 @@ export type TableName = string;
 export type ModelValue = {
    model: any;
 }
-export type ModelsType = Map<TableName, Model>;
+export type ModelsType = Map<TableName, {
+   model: Model;
+   schema: Schema;
+   schemaSQL: string;
+   table: TableName;
+}>;

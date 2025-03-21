@@ -4,21 +4,7 @@ import { ColumnTypes, ColumnValue, ReferenceValue, SQLConstraints } from "./type
 class Column {
    type: ColumnTypes;
    value: ColumnValue = [];
-   constraints: SQLConstraints = {
-      autoincrement: false,
-      primaryKey: false,
-      unique: false,
-      notNull: false,
-      unsigned: false,
-      index: null,
-      default: null,
-      references: null,
-      onDelete: null,
-      onUpdate: null,
-      check: null,
-      collate: null,
-      comment: null,
-   };
+   constraints: SQLConstraints = {};
 
    constructor(type: ColumnTypes, value: ColumnValue = []) {
       this.type = type;

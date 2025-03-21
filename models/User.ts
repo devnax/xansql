@@ -2,8 +2,8 @@ import { increments, integer, string, timestamp } from "../src";
 import Model from "../src/Model";
 
 class UserMeta extends Model {
-   static table = 'user_meta'
-   static schema() {
+   table = 'user_meta'
+   schema() {
       return {
          id: increments(),
          user_id: integer().references('users', 'id').onCascade(),
@@ -13,6 +13,7 @@ class UserMeta extends Model {
          updated_at: timestamp().default('CURRENT_TIMESTAMP', true)
       }
    }
+
 }
 
 export default UserMeta
