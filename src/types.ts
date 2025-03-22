@@ -1,4 +1,4 @@
-import Model from "./Model";
+import Model from "./model";
 import Schema from "./schema";
 import { Dialects } from "./schema/types";
 

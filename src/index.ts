@@ -13,10 +13,13 @@ class xansql {
    registerModel<M extends { new(arg: xansql): any }>(Model: M): InstanceType<M> {
       const model = new Model(this);
       let schema = new Schema(model.table, model.schema())
+      const schemaSQL = schema.toSQL(this.config.dialect);
+      model.schemaSQL = schemaSQL
+
       this.models.set(model.table, {
          model,
          schema,
-         schemaSQL: schema.toSQL(this.config.dialect),
+         schemaSQL,
          table: model.table
       });
       return model;

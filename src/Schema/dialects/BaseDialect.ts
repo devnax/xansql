@@ -51,6 +51,12 @@ abstract class BaseDialect {
 
 
    constructor({ schema, types, dialect }: BaseConfig) {
+      if (!schema.id) throw new Error("Missing id column in schema");
+      if (schema.id instanceof Relation) throw new Error("id column must be a Column not a Relation");
+      if (!schema.id.constraints.primaryKey) throw new Error("id column must be a primary key");
+      if (!schema.id.constraints.autoincrement) throw new Error("id column must be autoincrement");
+      if (schema.id.constraints.notNull) throw new Error("id column must be not null");
+
       this.schema = schema;
       this.types = { ...this.types, ...types };
       this.dialect = dialect;
@@ -146,7 +152,7 @@ abstract class BaseDialect {
       if (constraints.notNull) sql += ' NOT NULL';
       if (constraints.unsigned) sql += ' UNSIGNED';
 
-      if (constraints.default !== null) {
+      if (constraints.default !== undefined) {
          if (constraints.default === 'CURRENT_TIMESTAMP') {
             sql += ` DEFAULT ${constraints.default}`;
          } else if (typeof constraints.default === 'string') {
@@ -195,10 +201,10 @@ abstract class BaseDialect {
          if (column instanceof Relation) return '';
          let type = this.getType(column);
          let sql = `${type} ${this.constraints(key, column, tableName)}`;
-         return `"${key}" ${sql}`;
+         return `${key} ${sql}`;
       }).filter(Boolean).join(",\n");
 
-      let sql = `CREATE TABLE "${tableName}" (\n${columns}`;
+      let sql = `CREATE TABLE ${tableName} (\n${columns}`;
 
       if (this.end.length) {
          sql += `,\n${this.end.join(",\n")}`;

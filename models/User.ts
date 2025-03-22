@@ -1,14 +1,23 @@
 import { increments, integer, string, timestamp } from "../src";
-import Model from "../src/Model";
+import Model from "../src/model";
 
-class UserMeta extends Model {
-   table = 'user_meta'
+export interface UserData {
+   id: number;
+   username: string;
+   email: string;
+   password: string;
+   created_at: Date;
+   updated_at: Date;
+}
+
+class User extends Model<UserData> {
+   table = 'users'
    schema() {
       return {
          id: increments(),
-         user_id: integer().references('users', 'id').onCascade(),
-         meta_key: string().notNull(),
-         meta_value: string().notNull(),
+         username: string().notNull(),
+         email: string().notNull(),
+         password: string().notNull(),
          created_at: timestamp().default('CURRENT_TIMESTAMP'),
          updated_at: timestamp().default('CURRENT_TIMESTAMP', true)
       }
@@ -16,4 +25,4 @@ class UserMeta extends Model {
 
 }
 
-export default UserMeta
+export default User

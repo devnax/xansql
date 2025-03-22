@@ -1,5 +1,6 @@
 import xansql from "./src"
-import UserMetaModel from "./models/User"
+import UserModel from "./models/User"
+import UserMetaModel from "./models/UserMeta"
 
 export const mysql = new xansql({
    dialect: 'mysql',
@@ -11,8 +12,22 @@ export const sqlite = new xansql({
    host: 'localhost',
 })
 
+const MysqlUser = mysql.registerModel(UserModel)
 const MysqlUserMeta = mysql.registerModel(UserMetaModel)
-const SqliteUserMeta = sqlite.registerModel(UserMetaModel)
+
+MysqlUserMeta.find({
+   where: {
+      meta_key: {
+         not: 'name',
+         in: ['name', 'age'],
+      },
+      meta_value: '',
+      user: {
+         id: 1,
+         name: 'John',
+      }
+   },
+})
 
 const server = (app) => {
 
