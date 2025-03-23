@@ -24,15 +24,20 @@
       "build": "makepack build",
       "build:publish": "makepack publish"
    },
-   "dependencies": {},
+   "dependencies": {
+      "mysql2": "^3.14.0",
+      "pg": "^8.14.1",
+      "sqlite": "^5.1.1",
+      "sqlite3": "^5.1.7"
+   },
    "devDependencies": {
+      "@types/express": "latest",
+      "@types/react": "^19.0.2",
+      "@types/react-dom": "^19.0.2",
+      "express": "latest",
       "makepack": "latest",
       "react": "^19.0.0",
       "react-dom": "^19.0.0",
-      "express": "latest",
-      "typescript": "^4.4.2",
-      "@types/react": "^19.0.2",
-      "@types/react-dom": "^19.0.2",
-      "@types/express": "latest"
+      "typescript": "^4.4.2"
    }
 }

@@ -50,11 +50,6 @@ export type DataClause = {
    [key: string]: string | number | boolean | Date | null | DataClause;
 }
 
-export type CreateOptions = {
-   data?: DataClause;
-   select?: SelectClause;
-}
-
 export type UpdateOptions = {
    data?: DataClause;
    where?: WhereCondition;
@@ -64,4 +59,21 @@ export type UpdateOptions = {
 export type DeleteOptions = {
    where?: WhereCondition;
    select?: SelectClause;
+}
+
+
+
+
+
+export type CreateArgValue = string | number | boolean | null
+
+export type CreateArgsData = {
+   [field: string]: CreateArgValue | CreateArgs;
+}
+
+export type CreateArgs = {
+   data: CreateArgsData | CreateArgsData[];
+   select?: {
+      [field: string]: boolean;
+   };
 }

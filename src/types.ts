@@ -3,9 +3,7 @@ import Schema from "./schema";
 import { Dialects } from "./schema/types";
 
 export type XansqlConfig = {
-   dialect: Dialects;
-   storage?: string;
-   host: string;
+   dialect?: Dialects;
 }
 
 export type TableName = string;

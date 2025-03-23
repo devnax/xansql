@@ -1,5 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
+import xansql from './src';
+export const mysql = new xansql()
 
 const App = () => {
   return (
@@ -15,6 +17,15 @@ const App = () => {
         Learn React
       </a>
       <div style={{ marginTop: "50px" }}>
+        <button
+          onClick={async () => {
+            const res = await mysql.excute("SELECT * FROM user");
+            console.log(res);
+          }}
+          style={{ padding: '10px 20px', fontSize: '16px', cursor: 'pointer' }}
+        >
+          Click Me
+        </button>
       </div>
     </div>
   );

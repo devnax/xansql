@@ -233,32 +233,32 @@ class SQLQueryBuilder {
       return this.buildDelete();
    }
 }
+export default SQLQueryBuilder;
+// // Example Usage
 
-// Example Usage
+// // SELECT Query
+// const selectQuery = new SQLQueryBuilder('users');
+// selectQuery
+//    .select('id', 'name', 'age')
+//    .where({ age: { gt: 18 }, status: { equals: 'active' } })
+//    .groupBy(['age'])
+//    .having({ age: { gte: 18 } })
+//    .orderBy(['age DESC'])
+//    .limit(10)
+//    .offset(5);
+// console.log(selectQuery.build()); // SELECT query
 
-// SELECT Query
-const selectQuery = new SQLQueryBuilder('users');
-selectQuery
-   .select('id', 'name', 'age')
-   .where({ age: { gt: 18 }, status: { equals: 'active' } })
-   .groupBy(['age'])
-   .having({ age: { gte: 18 } })
-   .orderBy(['age DESC'])
-   .limit(10)
-   .offset(5);
-console.log(selectQuery.build()); // SELECT query
+// // INSERT Query
+// const insertQuery = new SQLQueryBuilder('users');
+// insertQuery.insert({ name: 'John', age: 30, status: 'active' });
+// console.log(insertQuery.build()); // INSERT query
 
-// INSERT Query
-const insertQuery = new SQLQueryBuilder('users');
-insertQuery.insert({ name: 'John', age: 30, status: 'active' });
-console.log(insertQuery.build()); // INSERT query
+// // UPDATE Query
+// const updateQuery = new SQLQueryBuilder('users');
+// updateQuery.update({ status: 'inactive' }).where({ id: { equals: 1 } });
+// console.log(updateQuery.build()); // UPDATE query
 
-// UPDATE Query
-const updateQuery = new SQLQueryBuilder('users');
-updateQuery.update({ status: 'inactive' }).where({ id: { equals: 1 } });
-console.log(updateQuery.build()); // UPDATE query
-
-// DELETE Query
-const deleteQuery = new SQLQueryBuilder('users');
-deleteQuery.where({ id: { equals: 1 } });
-console.log(deleteQuery.build()); // DELETE query
+// // DELETE Query
+// const deleteQuery = new SQLQueryBuilder('users');
+// deleteQuery.where({ id: { equals: 1 } });
+// console.log(deleteQuery.build()); // DELETE query

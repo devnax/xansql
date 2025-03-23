@@ -2,39 +2,31 @@ import xansql from "./src"
 import UserModel from "./models/User"
 import UserMetaModel from "./models/UserMeta"
 
-export const mysql = new xansql({
-   dialect: 'mysql',
-   host: 'localhost',
-})
-
-export const sqlite = new xansql({
-   dialect: 'sqlite',
-   host: 'localhost',
-})
+export const mysql = new xansql("mysql://root:root@127.0.0.1:3306/xansql")
+export const sqlite = new xansql("sqlite://./db.sqlite")
 
 const MysqlUser = mysql.registerModel(UserModel)
 const MysqlUserMeta = mysql.registerModel(UserMetaModel)
 
-MysqlUserMeta.find({
-   where: {
-      meta_key: {
-         not: 'name',
-         in: ['name', 'age'],
-      },
-      meta_value: '',
-      user: {
-         id: 1,
-         name: 'John',
-      }
-   },
-})
 
-const server = (app) => {
+const SqliteUser = sqlite.registerModel(UserModel)
 
-   app.get('/', (req, res) => {
-      res.send('Hello World!');
-   });
-   app.get('/hello', (req, res) => {
+const server = async (app) => {
+
+   const sql = `
+   CREATE TABLE users (
+id INTEGER   PRIMARY KEY AUTOINCREMENT,
+username TEXT  ,
+email TEXT ,
+password TEXT,
+created_at TEXT  DEFAULT CURRENT_TIMESTAMP,
+updated_at TEXT  DEFAULT CURRENT_TIMESTAMP
+);
+   `
+   const res = await sqlite.excute("SELECT * FROM users");
+   console.log(res);
+
+   app.get('/hello', async (req, res) => {
       res.send('Hello Express!');
    });
    app.get('/user/:name', (req, res) => {
