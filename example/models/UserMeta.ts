@@ -1,5 +1,5 @@
-import { increments, integer, relation, string, timestamp } from "../src";
-import Model from "../src/model";
+import { id, integer, relation, string, timestamp } from "../../src";
+import Model from "../../src/Model";
 import { UserData } from "./User";
 
 export interface UserMetaData {
@@ -12,11 +12,11 @@ export interface UserMetaData {
    updated_at: Date;
 }
 
-class UserMeta extends Model<UserMetaData> {
+class UserMeta extends Model {
    table = 'user_metas'
    schema() {
       return {
-         id: increments(),
+         id: id(),
          user_id: integer().references('users', 'id').onCascade(),
          user: relation('user_id'),
          meta_key: string().notNull(),

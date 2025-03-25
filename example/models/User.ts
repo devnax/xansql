@@ -1,5 +1,5 @@
-import { increments, integer, relation, string, timestamp } from "../src";
-import Model from "../src/model";
+import { id, relation, string, timestamp } from "../../src";
+import Model from "../../src/Model";
 
 export interface UserData {
    id: number;
@@ -10,12 +10,12 @@ export interface UserData {
    updated_at: Date;
 }
 
-class User extends Model<UserData> {
+class User extends Model {
    table = 'users'
    schema() {
       return {
-         id: increments(),
-         username: string().notNull(),
+         id: id(),
+         name: string().notNull(),
          email: string().notNull(),
          password: string().notNull(),
          created_at: timestamp().default('CURRENT_TIMESTAMP'),

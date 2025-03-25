@@ -38,7 +38,7 @@ class xansql {
       this.config = config;
       this.dialects = {};
       this.models = {};
-      this.dialect = 'mysql'; // example
+      this.dialect = 'mysql'; // demo
    }
 
    registerDialect(dialect) {
@@ -86,7 +86,6 @@ class xansql {
 
 class Model {
    table = ""
-   database = ""
    xansql = null
    schema(schema) { }
    find(args) { }

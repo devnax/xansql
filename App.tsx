@@ -1,7 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import xansql from './src';
-export const mysql = new xansql()
+export const mysql = new xansql("")
 
 const App = () => {
   return (

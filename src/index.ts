@@ -1,74 +1,93 @@
-import Schema from "./schema";
-import { Dialects } from "./schema/types";
-import { ModelsType, XansqlConfig } from "./types";
-import { isBrowser } from "./utils";
-export * from "./schema";
+import Dialect from "./Dialect";
+import MysqlDialect from "./dialects/Mysql";
+import IDField from "./schema/core/IDField";
+import Model from "./Model";
+import { XansqlConfig, XansqlConfigOptions, XansqlDialectExcuteReturn, XansqlDialectsFactory, XansqlModelsFactory } from "./type";
+import { isServer } from "./utils";
+export * from './schema'
 
 class xansql {
-   private config: XansqlConfig = {};
-   dialect: Dialects = "mysql";
-   models: ModelsType = new Map();
-   databaseUrl: string = "";
-   private excuter: any;
+   private dialects: XansqlDialectsFactory = new Map()
+   private models: XansqlModelsFactory = new Map()
+   config: XansqlConfig;
+   dialect: string = "mysql";
 
-   constructor(databaseUrl?: string, config?: XansqlConfig) {
-      this.databaseUrl = databaseUrl || ''
-      if (!isBrowser) {
-         if (!databaseUrl) throw new Error("Database URL is required");
-         if (databaseUrl.startsWith("mysql")) {
-            this.dialect = "mysql";
-         } else if (databaseUrl.startsWith("sqlite")) {
-            this.dialect = "sqlite";
-         } else if (databaseUrl.startsWith("postgres")) {
-            this.dialect = "postgres";
-         } else if (databaseUrl.startsWith("mssql")) {
-            this.dialect = "mssql";
-         } else {
-            throw new Error("Unsupported database URL");
+   constructor(config: XansqlConfig) {
+      this.config = config;
+      this.registerDialect(MysqlDialect);
+   }
+
+   registerDialect(dialect: typeof Dialect) {
+      const instance = new dialect(this);
+      if (!instance.name) {
+         throw new Error(`Dialect must have a name in ${dialect.constructor.name}`);
+      }
+      this.dialects.set(instance.name, instance);
+   }
+
+   registerModel(model: typeof Model): Model {
+      const instance = new model(this);
+      if (!instance.table) {
+         throw new Error(`Model must have a table name in ${model.constructor.name}`);
+      }
+      const schema = instance.schema();
+      let hasId = false;
+      for (let field in schema) {
+         if (schema[field] instanceof IDField) {
+            hasId = true;
+            break;
          }
-         this.loadExcuter()
       }
 
-      this.config = config || {};
-      if (this.config.dialect) {
-         this.dialect = this.config.dialect;
+      if (!hasId) {
+         throw new Error(`Model ${model.constructor.name} must have an id field`);
       }
+
+      this.models.set(instance.table, instance);
+      return instance
    }
 
-   private async loadExcuter() {
-      if (this.excuter) return this.excuter;
-      if (isBrowser) {
-         const excuter = await import("./excute/client");
-         this.excuter = new excuter.default;
+   async getConfig(): Promise<XansqlConfigOptions> {
+      let config: XansqlConfigOptions = {
+         connection: ""
+      }
+      if (typeof this.config === "function") {
+         const conf = await this.config();
+         if (typeof conf === "string") {
+            config.connection = conf;
+         } else {
+            config = conf;
+         }
+      } else if (typeof this.config === "string") {
+         config.connection = this.config;
       } else {
-         const excuter = await import("./excute/server");
-         this.excuter = new excuter.default(this);
+         config = this.config;
       }
+
+      return config;
    }
 
-   registerModel<M extends { new(arg: xansql): any }>(Model: M): InstanceType<M> {
-      const model = new Model(this);
-      let schema = new Schema(model.table, model.schema())
-      const schemaSQL = schema.toSQL(this.dialect);
-      model.schemaSQL = schemaSQL
-
-      this.models.set(model.table, {
-         model,
-         schema,
-         schemaSQL,
-         table: model.table
-      });
-      return model;
+   getDialect() {
+      const dialect = this.dialects.get(this.dialect);
+      if (!dialect) {
+         throw new Error(`Dialect ${this.dialect} not registered`);
+      }
+      return dialect;
    }
 
-   async excute(sql: string) {
-      await this.loadExcuter();
-      const result = await this.excuter.excute(sql);
-      return result
+   buildSchema(model: Model) {
+      const dialect = this.getDialect();
+      return dialect.buildSchema(model);
    }
 
-   migrate(force?: boolean) {
-
+   async excute(sql: string): Promise<XansqlDialectExcuteReturn<any>> {
+      const dialect = this.getDialect();
+      if (isServer) {
+         const res = await dialect.excute(sql);
+         return res
+      } else {
+         throw new Error("Client excute not implemented yet");
+      }
    }
 }
 
