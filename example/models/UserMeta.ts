@@ -19,8 +19,8 @@ class UserMeta extends Model {
          id: id(),
          user_id: integer().references('users', 'id').onCascade(),
          user: relation('user_id'),
-         meta_key: string().notNull(),
-         meta_value: string().notNull(),
+         key: string().notNull(),
+         value: string().notNull(),
          created_at: timestamp().default('CURRENT_TIMESTAMP'),
          updated_at: timestamp().default('CURRENT_TIMESTAMP', true)
       }

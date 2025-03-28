@@ -3,10 +3,11 @@ import Model from "../../Model";
 import Column from "../../schema/core/Column";
 import IDField from "../../schema/core/IDField";
 import Relation from "../../schema/core/Relation";
+import { XansqlDialectDriver } from "../../type";
 import { isServer } from "../../utils";
 
 class MysqlDialect extends Dialect {
-   name = "mysql"
+   driver: XansqlDialectDriver = "mysql"
    private excuter: any;
    private footer: string[] = [];
 
@@ -77,8 +78,7 @@ class MysqlDialect extends Dialect {
          sql += `,\n${this.footer.join(",\n")}`;
       }
 
-      sql += `CREATE TABLE ${tableName} (\n${sql}\n);`;
-      return sql;
+      return `CREATE TABLE ${tableName} (\n${sql}\n);`;
    }
 
    async excute(sql: any) {

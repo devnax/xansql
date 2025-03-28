@@ -1,10 +1,9 @@
 import xansql from ".";
 import Model from "./Model";
-import { Schema } from "./schema/types";
-import { XansqlDialectExcuteReturn } from "./type";
+import { XansqlDialectDriver, XansqlDialectExcuteReturn } from "./type";
 
 class Dialect {
-   name!: string
+   driver!: XansqlDialectDriver
    xansql: xansql;
    types: { [key: string]: string } = {
       integer: "INT",
@@ -29,6 +28,7 @@ class Dialect {
       uuid: "CHAR(36)",
       enum: "ENUM",
    }
+
    typeAcceptValue: string[] = [
       'string',
       'enum'
@@ -39,11 +39,15 @@ class Dialect {
    }
 
    buildSchema(model: Model): string {
-      throw new Error(`buildSchema method not implemented in dialect ${this.name}`);
+      throw new Error(`buildSchema method not implemented in dialect ${this.driver}`);
+   }
+
+   buildQuery(option: any): string {
+      throw new Error("")
    }
 
    async excute(sql: any): Promise<XansqlDialectExcuteReturn<any>> {
-      throw new Error(`excute method not implemented in dialect ${this.name}`);
+      throw new Error(`excute method not implemented in dialect ${this.driver}`);
    }
 }
 

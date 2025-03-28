@@ -19,12 +19,12 @@ class Excuter {
       if (!connection) {
          throw new Error("Mysql database connection failed");
       }
-      const result: any = await connection.execute(query, params);
+      let [result, field]: any = await connection.execute(query, params) || {}
       await connection.end();
       return {
-         rows: result[0],
-         insertId: result[1].insertId,
-         affectedRows: result[1].affectedRows
+         result,
+         insertId: field?.insertId || 0,
+         affectedRows: field?.affectedRows || 0,
       }
    }
 }
