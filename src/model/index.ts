@@ -13,12 +13,8 @@ class Model extends ModelBase {
    }
 
    async find(args: FindArgs) {
-      const build = this.buildFind(args, this.schema(), this.table)
+      const build = this.buildFind(args, this.table)
       console.log(build);
-      const sql = `SELECT ${build.fields.join(', ')} FROM ${this.table} ${build.join.join(' ')}`
-      const where = build.where.length ? `WHERE ${build.where.join(' AND ')}` : ''
-      const orderBy = build.orderBy.length ? `ORDER BY ${build.orderBy.join(', ')}` : ''
-
 
    }
    async create(args: CreateArgs) { }

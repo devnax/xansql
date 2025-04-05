@@ -18,7 +18,7 @@ User.find({
          }
       }
    },
-   select: ["id", "name"],
+   select: ["id", "name", 'age'],
 })
 
 

@@ -8,7 +8,7 @@ import { FindArgs } from "../type";
 
 abstract class ModelBase {
    xansql: xansql;
-   table!: string
+   table!: string;
    constructor(xansql: xansql) {
       this.xansql = xansql
    }
@@ -20,7 +20,7 @@ abstract class ModelBase {
       switch (dialect.driver) {
          case "mysql":
             sql = `JSON_ARRAYAGG(JSON_OBJECT(
-                  ${select.map(f => `"${f}" VALUE ${alias}.${f}`).join(', ')}
+                  ${select.map(f => `"${f}", ${alias}.${f}`).join(', ')}
                )) as ${table}`
             break;
          case "sqlite":
@@ -35,15 +35,27 @@ abstract class ModelBase {
    }
 
 
-   protected buildFind(args: FindArgs, schema: Schema, table: string) {
-      const { take, skip, orderBy, where, select } = args;
+   protected getRelation(col: Relation) {
 
+   }
+
+
+   protected buildFind(args: FindArgs, table: string, isRoot = true) {
+      const { take, skip, orderBy, where, select } = args;
+      const model = this.xansql.getModel(table)
+      if (!model) throw new Error(`Invalid table name ${table}`)
+      const schema: Schema = model.schema()
       const alias = this.xansql.getAlias(table)
+
       let _build: any = {
-         fields: select?.length ? select.map(f => `${alias}.${f}`) : [],
+         fields: [],
          join: [],
          where: [],
          orderBy: [],
+      }
+
+      if (isRoot) {
+         _build.fields = select?.length ? select.map(f => `${alias}.${f}`) : [`${alias}.*`]
       }
 
       for (let field in where) {
@@ -73,14 +85,15 @@ abstract class ModelBase {
             } else {
 
             }
-
-
             let subalias = this.xansql.getAlias(tb)
+            _build.join.push(`JOIN ${tb} ${subalias} ON ${subalias}.${schemaField.column} = ${tb}.${schemaField.column}`)
+
             // _build.join.push(`JOIN ${tb} ${subalias} ON ${subalias}.${schemaField.column} = ${tb}.${schemaField.column}`)
 
             if (model) {
-               let v = this.buildFind(value, model.schema(), tb)
+               let v = this.buildFind(value, tb, false)
                _build.fields.push(...v.fields)
+               _build.join.push(...v.join)
             } else {
                throw new Error(`Invalid field ${field} in where clause`)
             }
