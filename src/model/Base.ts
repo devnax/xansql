@@ -1,30 +1,27 @@
-import xansql from ".";
-import Column from "./schema/core/Column";
-import IDField from "./schema/core/IDField";
-import Relation from "./schema/core/Relation";
-import { Schema } from "./schema/types";
-import { CreateArgs, DeleteArgs, FindArgs, JsonQueryOption, UpdateArgs } from "./type";
+import xansql from "..";
+import Column from "../schema/core/Column";
+import IDField from "../schema/core/IDField";
+import Relation from "../schema/core/Relation";
+import { Schema } from "../schema/types";
+import { FindArgs } from "../type";
 
-class Model {
-   xansql: xansql
+
+abstract class ModelBase {
+   xansql: xansql;
    table!: string
    constructor(xansql: xansql) {
-      this.xansql = xansql;
+      this.xansql = xansql
    }
 
-   schema(): Schema {
-      throw new Error(`schema method not implemented in model ${this.constructor.name}`);
-   }
-
-   private jsonQuery(table: string, select: string[]) {
+   protected jsonQuery(table: string, select: string[]) {
       const alias = this.xansql.getAlias(table)
       const dialect = this.xansql.getDialect()
       let sql = ``
       switch (dialect.driver) {
          case "mysql":
             sql = `JSON_ARRAYAGG(JSON_OBJECT(
-               ${select.map(f => `"${f}" VALUE ${alias}.${f}`).join(', ')}
-            )) as ${table}`
+                  ${select.map(f => `"${f}" VALUE ${alias}.${f}`).join(', ')}
+               )) as ${table}`
             break;
          case "sqlite":
 
@@ -37,7 +34,8 @@ class Model {
       return sql
    }
 
-   private buildFind(args: FindArgs, schema: Schema, table: string) {
+
+   protected buildFind(args: FindArgs, schema: Schema, table: string) {
       const { take, skip, orderBy, where, select } = args;
 
       const alias = this.xansql.getAlias(table)
@@ -67,7 +65,6 @@ class Model {
                model = this.xansql.getModel(rel.table as string)
                tb = rel.table as string
             }
-            console.log(value);
 
             if (value.select.length) {
                _build.fields.push(
@@ -94,23 +91,7 @@ class Model {
       return _build
    }
 
-   async find(args: FindArgs) {
-      const build = this.buildFind(args, this.schema(), this.table)
-      console.log(build);
-      const sql = `SELECT ${build.fields.join(', ')} FROM ${this.table} ${build.join.join(' ')}`
-      const where = build.where.length ? `WHERE ${build.where.join(' AND ')}` : ''
-      const orderBy = build.orderBy.length ? `ORDER BY ${build.orderBy.join(', ')}` : ''
 
-
-   }
-   async create(args: CreateArgs) { }
-   async update(args: UpdateArgs) { }
-   async delete(args: DeleteArgs) { }
-   async sync() {
-      const schema = this.xansql.buildSchema(this)
-   }
-   async drop() { }
 }
 
-
-export default Model
+export default ModelBase

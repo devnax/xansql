@@ -1,5 +1,5 @@
 import Dialect from "./Dialect";
-import Model from "./Model";
+import Model from "./model";
 
 export type XansqlConfigOptions = {
    dialect?: XansqlDialectDriver;

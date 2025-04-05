@@ -1,5 +1,5 @@
 import xansql from ".";
-import Model from "./Model";
+import Model from "./model";
 import { XansqlDialectDriver, XansqlDialectExcuteReturn } from "./type";
 
 class Dialect {

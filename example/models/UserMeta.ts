@@ -1,5 +1,5 @@
 import { id, integer, relation, string, timestamp } from "../../src";
-import Model from "../../src/Model";
+import Model from "../../src/model";
 import { UserData } from "./User";
 
 export interface UserMetaData {

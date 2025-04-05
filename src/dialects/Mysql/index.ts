@@ -1,5 +1,5 @@
 import Dialect from "../../Dialect";
-import Model from "../../Model";
+import Model from "../../model";
 import Column from "../../schema/core/Column";
 import IDField from "../../schema/core/IDField";
 import Relation from "../../schema/core/Relation";

@@ -1,7 +1,7 @@
 import Dialect from "./Dialect";
 import MysqlDialect from "./dialects/Mysql";
+import Model from "./model";
 import IDField from "./schema/core/IDField";
-import Model from "./Model";
 import { DialectDrivers, XansqlConfig, XansqlConfigOptions, XansqlDialectDriver, XansqlDialectExcuteReturn, XansqlDialectsFactory, XansqlModelsFactory } from "./type";
 import { isServer } from "./utils";
 export * from './schema'
