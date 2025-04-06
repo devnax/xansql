@@ -35,8 +35,25 @@ abstract class ModelBase {
    }
 
 
-   protected getRelation(col: Relation) {
+   protected getRelation(table: string, field: Relation) {
+      const model = this.xansql.getModel(table)
+      if (!model) throw new Error(`Invalid table name ${table}`)
+      const schema: Schema = model.schema()
 
+      let rel_table = field.table
+      let rel_column = field.column
+
+      if (rel_column && schema[rel_column]) {
+         const rel = schema[rel_column]
+         if (rel instanceof Relation) {
+            rel_table = rel.table
+            rel_column = rel.column
+         }
+      }
+
+      if (rel_table && rel_column) {
+
+      }
    }
 
 
@@ -69,6 +86,8 @@ abstract class ModelBase {
 
             }
          } else if (schemaField instanceof Relation) {
+            const v = this.getRelation(field, schemaField)
+
             let tb = field
             let model = this.xansql.getModel(tb)
             if (!model) {
