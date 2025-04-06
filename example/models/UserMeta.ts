@@ -22,7 +22,7 @@ class UserMeta extends Model {
          key: string().notNull(),
          value: string().notNull(),
          created_at: timestamp().default('CURRENT_TIMESTAMP'),
-         updated_at: timestamp().default('CURRENT_TIMESTAMP', true)
+         updated_at: timestamp().default('CURRENT_TIMESTAMP', true),
       }
    }
 

@@ -20,7 +20,7 @@ class User extends Model {
          password: string().notNull(),
          created_at: timestamp().default('CURRENT_TIMESTAMP'),
          updated_at: timestamp().default('CURRENT_TIMESTAMP', true),
-         user_metas: relation('user_metas', 'id'),
+         user_metas: relation('id', 'user_metas'),
       }
    }
 

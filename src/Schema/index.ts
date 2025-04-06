@@ -35,4 +35,4 @@ export const createdAt = () => timestamp().default('CURRENT_TIMESTAMP');
 export const updatedAt = () => timestamp().default('CURRENT_TIMESTAMP').onUpdateCurrentTimestamp();
 
 export const reference = (table: string, foreignKey: string) => integer().references(table, foreignKey);
-export const relation = (table_or_column: string, column?: string) => new Relation(table_or_column, column);
+export const relation = (column: string, table?: string,) => new Relation(column, table);

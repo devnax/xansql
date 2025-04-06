@@ -7,14 +7,31 @@ export const db = new xansql("mysql://root:root1234@127.0.0.1:3306/xansql")
 const User = db.register(UserModel)
 const UserMeta = db.register(UserMetaModel)
 
-// db.migrate()
-User.find({
+// // db.migrate()
+// User.find({
+//    where: {
+//       name: "hello",
+//       user_metas: {
+//          select: ["id", "key"],
+//          where: {
+//             key: "well"
+//          }
+//       }
+//    },
+//    select: ["id", "name", 'age'],
+// })
+
+UserMeta.find({
    where: {
-      name: "hello",
-      user_metas: {
-         select: ["id", "key"],
+      key: {
+         contains: "well"
+      },
+      user: {
+         orderBy: {
+            name: "asc",
+         },
          where: {
-            key: "well"
+            name: "hello",
          }
       }
    },
