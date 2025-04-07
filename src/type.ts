@@ -39,7 +39,7 @@ export type JsonQueryOption = {
 // QUERY
 
 interface WhereCondition {
-   [key: string]: string | number | boolean | WhereSubCondition | FindArgs;
+   [column: string]: string | number | boolean | WhereSubCondition | FindArgs;
 }
 
 interface WhereSubCondition {
@@ -74,14 +74,23 @@ export type FindArgs = {
    take?: number;
    skip?: number;
    orderBy?: {
-      [key: string]: "asc" | "desc";
+      [column: string]: "asc" | "desc";
    };
    where?: WhereCondition;
    select?: SelectClause;
 }
 
 export type DataClause = {
-   [key: string]: string | number | boolean | Date | null | DataClause;
+   [column: string]: string | number | boolean | Date | null;
+}
+
+export type CreateArgsData = {
+   [column: string]: DataClause | CreateArgs;
+}
+
+export type CreateArgs = {
+   data: CreateArgsData | CreateArgsData[];
+   select?: SelectClause;
 }
 
 export type UpdateArgs = {
@@ -95,15 +104,4 @@ export type DeleteArgs = {
    select?: SelectClause;
 }
 
-export type CreateArgValue = string | number | boolean | null
 
-export type CreateArgsData = {
-   [field: string]: CreateArgValue | CreateArgs;
-}
-
-export type CreateArgs = {
-   data: CreateArgsData | CreateArgsData[];
-   select?: {
-      [field: string]: boolean;
-   };
-}

@@ -56,10 +56,17 @@ abstract class ModelBase {
       if (!rel_column) throw new Error(`Invalid relation column name ${table}`)
 
       return {
-         table: rel_table,
-         column: rel_column,
-         single,
-         model: this.xansql.getModel(rel_table),
+         main: {
+            table: table,
+            column: rel.column,
+            alias: this.xansql.getModel(table).alias,
+         },
+         foregin: {
+            table: rel_table,
+            column: rel_column,
+            alias: this.xansql.getModel(rel_table).alias,
+         },
+         single
       }
    }
 
