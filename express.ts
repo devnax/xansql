@@ -22,28 +22,41 @@ const UserMeta = db.register(UserMetaModel)
 // })
 
 UserMeta.find({
+   limit: {
+      take: 10,
+      skip: 0,
+      user: {
+         take: 10,
+         skip: 0,
+      }
+   },
+   orderBy: {
+      id: "desc",
+      user: {
+         name: "asc",
+      }
+   },
    where: {
       value: "asd",
       key: {
          contains: "well"
       },
       user: {
-         select: ["id", "name"],
-         orderBy: {
-            name: "asc",
-         },
-         where: {
-            name: "hello",
-            user_metas: {
-               select: ["id", "key"],
-               where: {
-                  key: "well"
-               }
-            }
+         name: "hello",
+         user_metas: {
+            key: "well"
          }
       }
    },
-   select: ["id", "name", 'age'],
+   select: {
+      id: true,
+      key: true,
+      value: true,
+      user: {
+         id: true,
+         name: true,
+      }
+   },
 })
 
 

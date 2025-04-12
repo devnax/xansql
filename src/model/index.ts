@@ -1,7 +1,7 @@
 import xansql from "../";
 import Relation from "../schema/core/Relation";
 import { Schema } from "../schema/types";
-import { CreateArgs, DeleteArgs, FindArgs, UpdateArgs } from "../type";
+import { CreateArgs, DeleteArgs, FindArgs, UpdateArgs } from "./type";
 import { isArray, isObject } from "../utils";
 import ModelBase from "./Base";
 import buildFindArgs from "./builder/buildFindArgs";

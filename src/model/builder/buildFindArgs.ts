@@ -27,10 +27,8 @@ class buildFindArgs {
       const schema = model.schema()
 
       for (let column in args.where) {
-
          const value = args.where[column]
          const schemaValue = schema[column]
-         console.log(schemaValue, column);
          if (schemaValue instanceof Relation) {
             const relation = this.getRelation(model.table, column)
             const foregin = model.xansql.getModel(relation.main.table)
@@ -42,44 +40,40 @@ class buildFindArgs {
                this.where.push(`${model.alias}.${column} = ${value}`)
             }
          }
-
       }
-
    }
 
    private getRelation(table: string, column: string) {
       const model = this.model.xansql.getModel(table)
       if (!model) throw new Error(`Invalid table name ${table}`)
       const schema = model.schema()
-      const rel = schema[column]
+      const foregin = schema[column]
 
-      if (!(rel instanceof Relation)) throw new Error(`Invalid relation column ${table}.${column}`)
+      if (!(foregin instanceof Relation)) throw new Error(`Invalid relation column ${table}.${column}`)
 
-      let rel_table = rel.table
-      let rel_column = rel.column
       let single = false
 
-      if (!rel_table) {
-         const schemaCol: any = schema[rel.column]
-         rel_table = schemaCol.constraints.references.table
-         rel_column = schemaCol.constraints.references.column
+      if (!foregin.table) {
+         const reference: any = schema[foregin.column]
+         foregin.table = reference.constraints.references.table
+         foregin.column = reference.constraints.references.column
          single = true
       }
 
-      if (!rel_table) throw new Error(`Invalid relation table name ${table}`)
-      if (!rel_column) throw new Error(`Invalid relation column name ${table}`)
+      if (!foregin.table) throw new Error(`Invalid relation table name ${table}`)
+      if (!foregin.column) throw new Error(`Invalid relation column name ${table}`)
 
       return {
          single,
          main: {
             table,
-            column: rel.column,
+            column,
             alias: model.alias,
          },
          foregin: {
-            table: rel_table,
-            column: rel_column,
-            alias: this.model.xansql.getModel(rel_table).alias,
+            table: foregin.table,
+            column: foregin.column,
+            alias: this.model.xansql.getModel(foregin.table).alias,
          }
       }
    }
