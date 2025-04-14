@@ -4,60 +4,54 @@ import UserMetaModel from "./example/models/UserMeta"
 
 export const db = new xansql("mysql://root:root1234@127.0.0.1:3306/xansql")
 
-const User = db.register(UserModel)
-const UserMeta = db.register(UserMetaModel)
+const User = db.model(UserModel)
+const UserMeta = db.model(UserMetaModel)
 
 // // db.migrate()
-// User.find({
-//    where: {
-//       name: "hello",
-//       user_metas: {
-//          select: ["id", "key"],
-//          where: {
-//             key: "well"
-//          }
-//       }
-//    },
-//    select: ["id", "name", 'age'],
-// })
-
-UserMeta.find({
+User.find({
    limit: {
       take: 10,
       skip: 0,
-      user: {
+      metas: {
          take: 10,
          skip: 0,
       }
    },
+   select: {
+      id: true,
+      name: true,
+      metas: {
+         id: true,
+         key: true,
+         value: true,
+      }
+   },
    orderBy: {
       id: "desc",
-      user: {
-         name: "asc",
+      metas: {
+         key: "asc",
+         value: "desc",
       }
    },
    where: {
-      value: "asd",
-      key: {
-         contains: "well"
-      },
-      user: {
-         name: "hello",
-         user_metas: {
-            key: "well"
-         }
+      name: "hello",
+      metas: {
+         key: "hello",
+         value: "hello",
       }
-   },
-   select: {
-      id: true,
-      key: true,
-      value: true,
-      user: {
-         id: true,
-         name: true,
-      }
-   },
+   }
 })
+// UserMeta.find({
+//    where: {
+//       key: "hello",
+//       user: {
+//          name: "hello",
+//       },
+//       customer: {
+
+//       }
+//    }
+// })
 
 
 const server = async (app) => {

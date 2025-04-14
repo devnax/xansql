@@ -23,6 +23,7 @@ export type SQLConstraints = {
 export type ColumnTypes = typeof columnTypes[number];
 export type ColumnValue = (string | number)[]
 
-export type Schema = {
-   [key: string]: Column | Relation | IDField
+export type SchemaValue = Column | Relation | IDField
+export type SchemaMap = { id: IDField } & {
+   [key: string]: SchemaValue
 }

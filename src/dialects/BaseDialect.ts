@@ -1,8 +1,8 @@
-import xansql from ".";
-import Model from "./model";
-import { XansqlDialectDriver, XansqlDialectExcuteReturn } from "./type";
+import xansql from "..";
+import Model from "../model";
+import { XansqlDialectDriver, XansqlDialectExcuteReturn } from "../type";
 
-class Dialect {
+class BaseDialect {
    driver!: XansqlDialectDriver
    xansql: xansql;
    types: { [key: string]: string } = {
@@ -51,4 +51,4 @@ class Dialect {
    }
 }
 
-export default Dialect
+export default BaseDialect

@@ -1,6 +1,7 @@
 import { id, integer, relation, string, timestamp } from "../../src";
 import Model from "../../src/model";
-import { UserData } from "./User";
+import Schema from "../../src/schema";
+import { UserData, UserSchema } from "./User";
 
 export interface UserMetaData {
    id: number;
@@ -12,20 +13,23 @@ export interface UserMetaData {
    updated_at: Date;
 }
 
-class UserMeta extends Model {
-   table = 'user_metas'
-   schema() {
-      return {
-         id: id(),
-         user_id: integer().references('users', 'id').onCascade(),
-         user: relation('user_id'),
-         key: string().notNull(),
-         value: string().notNull(),
-         created_at: timestamp().default('CURRENT_TIMESTAMP'),
-         updated_at: timestamp().default('CURRENT_TIMESTAMP', true),
-      }
-   }
+const UserMetaSchema = new Schema({
+   id: id(),
+   user_id: integer().references('users', 'id').onCascade(),
+   user: relation('user_id'),
+   key: string().notNull(),
+   value: string().notNull(),
+   created_at: timestamp().default('CURRENT_TIMESTAMP'),
+   updated_at: timestamp().default('CURRENT_TIMESTAMP', true),
+})
 
+UserSchema.add('metas', relation('user_id', 'user_metas'))
+
+class UserMeta extends Model {
+   table = "user_metas"
+   schema: Schema = UserMetaSchema
 }
 
 export default UserMeta
+
+

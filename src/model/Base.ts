@@ -1,111 +1,54 @@
 import xansql from "..";
-import Column from "../schema/core/Column";
-import IDField from "../schema/core/IDField";
+import Schema, { id } from "../schema";
 import Relation from "../schema/core/Relation";
-import { Schema } from "../schema/types";
-import { FindArgs } from "../type";
-import { isObject } from "../utils";
+import { SchemaMap } from "../schema/types";
+import { FindArgs } from "./type";
 
 
 abstract class ModelBase {
    xansql: xansql;
-   table!: string;
-   alias!: string;
+   table: string = "";
+   alias: string = "";
+   schema: Schema = new Schema({ id: id() });
+
    constructor(xansql: xansql) {
       this.xansql = xansql
    }
 
-   protected jsonQuery(table: string, select: string[]) {
-      const dialect = this.xansql.getDialect()
-      let sql = ``
-      switch (dialect.driver) {
-         case "mysql":
-            sql = `JSON_ARRAYAGG(JSON_OBJECT(
-                  ${select.map(f => `"${f}", ${this.alias}.${f}`).join(', ')}
-               )) as ${table}`
-            break;
-         case "sqlite":
+   getRelation(column: string) {
+      const schema = this.schema.get()
+      const foregin = schema[column]
+      console.log(foregin);
 
-            break;
-         case "postgres":
+      if (!(foregin instanceof Relation)) throw new Error(`Invalid relation column ${this.table}.${column}`)
 
-            break;
-      }
-
-      return sql
-   }
-
-
-   protected getRelation(table: string, rel: Relation) {
-
-      let rel_table = rel.table
-      let rel_column = rel.column
       let single = false
 
-      if (!rel_table) {
-         const model = this.xansql.getModel(table)
-         if (!model) throw new Error(`Invalid table name ${table}`)
-         const schema: Schema = model.schema()
-         const schemaCol: any = schema[rel.column]
-         rel_table = schemaCol.constraints.references.table
-         rel_column = schemaCol.constraints.references.column
+      if (!foregin.table) {
+         const reference: any = schema[foregin.column]
+         foregin.table = reference.constraints.references.table
+         foregin.column = reference.constraints.references.column
          single = true
+      } else {
+         //   let mainSchema = this.xansql.getModel(foregin.table).schema.get()
       }
 
-      if (!rel_table) throw new Error(`Invalid relation table name ${table}`)
-      if (!rel_column) throw new Error(`Invalid relation column name ${table}`)
+      if (!foregin.table) throw new Error(`Invalid relation table name ${this.table}`)
+      if (!foregin.column) throw new Error(`Invalid relation column name ${this.table}`)
 
       return {
+         single,
          main: {
-            table: table,
-            column: rel.column,
-            alias: this.xansql.getModel(table).alias,
+            table: this.table,
+            column,
+            alias: this.alias,
          },
          foregin: {
-            table: rel_table,
-            column: rel_column,
-            alias: this.xansql.getModel(rel_table).alias,
-         },
-         single
-      }
-   }
-
-
-   protected buildFind(args: FindArgs, table: string, isRoot = true) {
-      const { take, skip, orderBy, where, select } = args;
-      const model = this.xansql.getModel(table)
-      if (!model) throw new Error(`Invalid table name ${table}`)
-      const schema: Schema = model.schema()
-      const alias = this.alias
-
-      let _build: any = {
-         fields: [],
-         join: [],
-         where: [],
-         orderBy: [],
-      }
-
-      if (isRoot) {
-         _build.fields = select?.length ? select.map(f => `${alias}.${f}`) : [`${alias}.*`]
-      }
-
-      for (let field in where) {
-         let value = where[field]
-         let schemaValue = schema[field]
-
-         if (schemaValue instanceof Relation) {
-            const foregen = this.getRelation(table, schemaValue)
-            console.log(field, value);
-
-         } else {
-            if (isObject(value)) {
-
-            } else {
-
-            }
+            table: foregin.table,
+            column: foregin.column,
+            alias: this.xansql.getModel(foregin.table).alias,
          }
       }
-      return _build
    }
 
 

@@ -1,5 +1,6 @@
 import { id, relation, string, timestamp } from "../../src";
 import Model from "../../src/model";
+import Schema from "../../src/schema";
 
 export interface UserData {
    id: number;
@@ -10,20 +11,20 @@ export interface UserData {
    updated_at: Date;
 }
 
-class User extends Model {
-   table = 'users'
-   schema() {
-      return {
-         id: id(),
-         name: string().notNull(),
-         email: string().notNull(),
-         password: string().notNull(),
-         created_at: timestamp().default('CURRENT_TIMESTAMP'),
-         updated_at: timestamp().default('CURRENT_TIMESTAMP', true),
-         user_metas: relation('id', 'user_metas'),
-      }
-   }
 
+export const UserSchema = new Schema({
+   id: id(),
+   name: string().notNull(),
+   email: string().notNull(),
+   password: string().notNull(),
+   created_at: timestamp().default('CURRENT_TIMESTAMP'),
+   updated_at: timestamp().default('CURRENT_TIMESTAMP', true),
+})
+
+
+class User extends Model {
+   table = "users"
+   schema: Schema = UserSchema
 }
 
 export default User

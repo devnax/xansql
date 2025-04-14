@@ -1,6 +1,7 @@
 import Column from "./core/Column";
 import IDField from "./core/IDField";
 import Relation from "./core/Relation";
+import { SchemaMap, SchemaValue } from "./types";
 
 // Numeric: INT, BIGINT, DECIMAL, NUMERIC, FLOAT
 export const integer = () => new Column(`integer`);
@@ -36,3 +37,45 @@ export const updatedAt = () => timestamp().default('CURRENT_TIMESTAMP').onUpdate
 
 export const reference = (table: string, foreignKey: string) => integer().references(table, foreignKey);
 export const relation = (column: string, table?: string,) => new Relation(column, table);
+
+
+class Schema {
+   schema: SchemaMap = {} as any;
+
+   constructor(schema: SchemaMap) {
+      this.schema = schema || {}
+      let id_count = 0
+      for (let column in schema) {
+         const value = schema[column]
+         this.validateColumn(value)
+         if (value instanceof IDField) {
+            id_count++
+         }
+      }
+
+      if (id_count > 1) {
+         throw new Error(`Schema can only have one ID field`)
+      }
+
+      if (id_count === 0) {
+         throw new Error("Schema must have one ID field");
+      }
+   }
+
+   private validateColumn(value: any) {
+      const is = value instanceof Column || value instanceof Relation || value instanceof IDField
+      if (!is) {
+         throw new Error(`Invalid schema type for column ${value}`)
+      }
+   }
+
+   add(column: string, value: Column | Relation) {
+      this.schema[column] = value;
+   }
+
+   get() {
+      return this.schema
+   }
+}
+
+export default Schema;

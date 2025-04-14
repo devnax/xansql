@@ -1,12 +1,12 @@
-import Dialect from "../../Dialect";
 import Model from "../../model";
 import Column from "../../schema/core/Column";
 import IDField from "../../schema/core/IDField";
 import Relation from "../../schema/core/Relation";
 import { XansqlDialectDriver } from "../../type";
 import { isServer } from "../../utils";
+import BaseDialect from "../BaseDialect";
 
-class MysqlDialect extends Dialect {
+class MysqlDialect extends BaseDialect {
    driver: XansqlDialectDriver = "mysql"
    private excuter: any;
    private footer: string[] = [];
@@ -60,7 +60,7 @@ class MysqlDialect extends Dialect {
    }
 
    buildSchema(model: Model): string {
-      const schema = model.schema()
+      const schema = model.schema.get()
       const tableName = model.table
 
       const columns = Object.keys(schema).map((key) => {

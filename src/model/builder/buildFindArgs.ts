@@ -1,7 +1,7 @@
 import Model from ".."
 import Relation from "../../schema/core/Relation"
-import { FindArgs } from "../../type"
 import { isObject } from "../../utils"
+import { FindArgs, GetRelationType } from "../type"
 
 
 type RelationFactory = {
@@ -15,6 +15,10 @@ class buildFindArgs {
 
    private relations: RelationFactory = {}
    private where: string[] = []
+   private select: string[] = []
+   private limit: string[] = []
+   private orderBy: string[] = []
+   private relation: GetRelationType | null = null
 
 
    constructor(model: Model, args: FindArgs) {
@@ -24,15 +28,59 @@ class buildFindArgs {
       if (!args.where) {
          throw new Error(`Where condition is required`)
       }
-      const schema = model.schema()
+      const schema = model.schema.get()
+
+      // format select 
+      if (args.select) {
+         for (let column in args.select) {
+            const schemaValue = schema[column]
+            if (!schemaValue) throw new Error(`Invalid column ${model.table}.${column}`)
+            const is = schemaValue instanceof Relation
+            if (!is) {
+               this.select.push(`${model.alias}.${column}`)
+            }
+         }
+      }
+
+      if (args.orderBy) {
+         for (let column in args.orderBy) {
+            const schemaValue = schema[column]
+            if (!schemaValue) throw new Error(`Invalid column ${model.table}.${column}`)
+            const is = schemaValue instanceof Relation
+            if (!is) {
+               this.orderBy.push(`${model.alias}.${column} ${args.orderBy[column]}`)
+            }
+         }
+      }
+
+      if (args.limit) {
+         this.limit.push(`LIMIT ${args.limit.take || 0} OFFSET ${args.limit.skip || 0}`)
+      }
 
       for (let column in args.where) {
          const value = args.where[column]
          const schemaValue = schema[column]
+         if (!schemaValue) throw new Error(`Invalid column ${model.table}.${column}`)
+
          if (schemaValue instanceof Relation) {
-            const relation = this.getRelation(model.table, column)
-            const foregin = model.xansql.getModel(relation.main.table)
-            this.relations[column] = new buildFindArgs(foregin, value as FindArgs)
+            const relation = model.getRelation(column)
+            const foreginModel = model.xansql.getModel(relation.foregin.table)
+
+            const newargs: any = {
+               where: value
+            }
+            if (args.select && column in args.select) {
+               newargs.select = args.select[column]
+            }
+            if (args.limit && column in args.limit) {
+               newargs.limit = (args.limit as any)[column]
+            }
+            if (args.orderBy && column in args.orderBy) {
+               newargs.orderBy = args.orderBy[column]
+            }
+            const builder = new buildFindArgs(foreginModel, newargs)
+            builder.relation = relation
+            this.relations[column] = builder
          } else {
             if (isObject(value)) {
 
@@ -43,10 +91,40 @@ class buildFindArgs {
       }
    }
 
+   buildJoin() {
+      let joins = ""
+      for (let column in this.relations) {
+         const builder = this.relations[column]
+         const relation = builder.relation as GetRelationType
+         joins += ` JOIN ${relation.foregin.table} ${relation.foregin.alias} ON ${relation.main.alias}.${relation.main.column} = ${relation.foregin.alias}.${relation.foregin.column}`
+         joins += builder.buildJoin()
+      }
+      return joins
+   }
+
+   build() {
+      let sql = `SELECT ${this.select.join(", ")} FROM ${this.model.table} ${this.model.alias}`
+      if (this.where.length) {
+         sql += ` WHERE ${this.where.join(" AND ")}`
+      }
+      if (this.orderBy.length) {
+         sql += ` ORDER BY ${this.orderBy.join(", ")}`
+      }
+      if (this.limit.length) {
+         sql += ` ${this.limit.join(" ")}`
+      }
+
+      sql += this.buildJoin()
+
+      console.log(sql);
+
+      return sql
+   }
+
    private getRelation(table: string, column: string) {
       const model = this.model.xansql.getModel(table)
       if (!model) throw new Error(`Invalid table name ${table}`)
-      const schema = model.schema()
+      const schema = model.schema.get()
       const foregin = schema[column]
 
       if (!(foregin instanceof Relation)) throw new Error(`Invalid relation column ${table}.${column}`)
@@ -78,47 +156,6 @@ class buildFindArgs {
       }
    }
 
-   private buildRelation() {
-      let join: string[] = []
-
-      for (let column in this.relations) {
-         const buildArgs = this.relations[column]
-         const relation = this.getRelation(buildArgs.model.table, column)
-         join.push(`JOIN ${relation.foregin.table} ${relation.foregin.alias} ON ${relation.main.alias}.${relation.main.column} = ${relation.foregin.alias}.${relation.foregin.column}`);
-
-         if (buildArgs.relations) {
-            join = [
-               ...join,
-               ...buildArgs.buildRelation()
-            ]
-         }
-      }
-      return join
-   }
-   private buildWhere() {
-      const where = this.where.join(' AND ')
-      return where ? `WHERE ${where}` : ''
-   }
-   private buildSelect() {
-      const select = this.args.select ? this.args.select.map(f => `${this.model.alias}.${f}`).join(',') : '*'
-      return select
-   }
-   // private buildOrderBy() {
-   //    const orderBy = this.args.orderBy ? this.args.orderBy.map(f => `${this.model.alias}.${f}`).join(',') : ''
-   //    return orderBy ? `ORDER BY ${orderBy}` : ''
-   // }
-
-   build() {
-      const join = this.buildRelation()
-      const select = this.buildSelect()
-      const where = this.buildWhere()
-      // const orderBy = this.buildOrderBy()
-      const limit = this.args.take ? `LIMIT ${this.args.take}` : ''
-      const offset = this.args.skip ? `OFFSET ${this.args.skip}` : ''
-
-      let query = `SELECT ${select} FROM ${this.model.table} ${this.model.alias} ${where}  ${limit} ${offset}`
-      return join.length ? `${query} ${join.join(' ')}` : query
-   }
 }
 
 export default buildFindArgs

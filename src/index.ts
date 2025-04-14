@@ -1,7 +1,6 @@
-import Dialect from "./Dialect";
+import BaseDialect from "./dialects/BaseDialect";
 import MysqlDialect from "./dialects/Mysql";
 import Model from "./model";
-import IDField from "./schema/core/IDField";
 import { DialectDrivers, XansqlConfig, XansqlConfigOptions, XansqlDialectDriver, XansqlDialectExcuteReturn, XansqlDialectsFactory, XansqlModelsFactory } from "./type";
 import { isServer } from "./utils";
 export * from './schema'
@@ -45,10 +44,10 @@ class xansql {
          dialect
       })
 
-      this.initialDialect(MysqlDialect);
+      this.registerDialect(MysqlDialect);
    }
 
-   private initialDialect(dialect: typeof Dialect) {
+   private registerDialect(dialect: typeof BaseDialect) {
       const instance = new dialect(this);
       if (!instance.driver) {
          throw new Error(`Dialect must have a driver in ${dialect.constructor.name}`);
@@ -57,27 +56,11 @@ class xansql {
       info.dialects.set(instance.driver, instance);
    }
 
-   register = (model: typeof Model): Model => {
+   model = (model: typeof Model): Model => {
       const instance = new model(this);
       if (!instance.table) {
          throw new Error(`Model must have a table name in ${model.constructor.name}`);
       }
-      const schema = instance.schema();
-      let idcount = 0;
-      for (let field in schema) {
-         if (schema[field] instanceof IDField) {
-            idcount++;
-         }
-      }
-
-      if (!idcount) {
-         throw new Error(`Model ${model.constructor.name} must have an id field`);
-      }
-
-      if (idcount > 1) {
-         throw new Error(`Model ${model.constructor.name} must have only one id field`);
-      }
-
       const info = getInfo(this.instanceId)
       const aliasKeys = Object.values(info.models).map((model: any) => model.alias)
       let alias = instance.table.split('_').map((word: any) => word[0]).join('');

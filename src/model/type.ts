@@ -26,14 +26,13 @@ interface WhereSubCondition {
 }
 
 interface WhereCondition {
-   [column: string]: string | number | boolean | WhereSubCondition | null | Date | FindArgs;
+   [column: string]: string | number | boolean | WhereSubCondition | null | Date | WhereCondition;
 }
 
 export type LimitClause = {
    take?: number;
    skip?: number;
-} | {
-   [foregin: string]: LimitClause;
+   [foregin: string]: LimitClause | number | undefined
 }
 
 export type OrderByClause = {
@@ -76,3 +75,19 @@ export type DeleteArgs = {
 }
 
 
+
+
+
+export type GetRelationType = {
+   single: boolean;
+   main: {
+      table: string;
+      column: string;
+      alias: string;
+   };
+   foregin: {
+      table: string;
+      column: string;
+      alias: string;
+   };
+}
