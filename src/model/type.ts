@@ -40,7 +40,7 @@ export type OrderByClause = {
 }
 
 export type SelectClause = {
-   [column: string]: boolean | SelectClause;
+   [column: string | "*"]: boolean | SelectClause;
 }
 
 export type FindArgs = {

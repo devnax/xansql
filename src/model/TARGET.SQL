@@ -1,0 +1,31 @@
+SELECT u.name, JSON_ARRAYAGG(
+        JSON_OBJECT(
+            'id', um.id, 'user', JSON_OBJECT(
+                'id', u1.id, 'name', u1.name, 'products', JSON_ARRAYAGG(
+                    JSON_OBJECT(
+                        'id', p.id, 'name', p.name, 'user', JSON_OBJECT(
+                            'id', u2.id, 'name', u2.name, 'email', u2.email, 'password', u2.password, 'created_at', u2.created_at, 'updated_at', u2.updated_at
+                        ), 'categorys', JSON_ARRAYAGG(
+                            JSON_OBJECT('id', c.id, 'name', c.name)
+                        )
+                    )
+                )
+            )
+        )
+    ) AS metas
+FROM
+    users u
+    JOIN user_metas um ON um.user_id = u.id
+    JOIN (SELECT * FROM users) u1 ON u1.id = um.user_id
+    JOIN products p ON p.user_id = u.id
+    JOIN users u2 ON u2.id = p.user_id
+    JOIN product_categories pc ON pc.product_id = p.id
+    JOIN categories c ON c.id = pc.category_id
+WHERE
+    u.status = 'active' AND EXISTS(
+        SELECT 1
+        FROM user_metas um2
+        WHERE um2.user_id = u.id AND um2.status = 'active'
+    )
+GROUP BY
+    u.id;

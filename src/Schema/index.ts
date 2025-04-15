@@ -1,7 +1,7 @@
 import Column from "./core/Column";
 import IDField from "./core/IDField";
 import Relation from "./core/Relation";
-import { SchemaMap, SchemaValue } from "./types";
+import { SchemaMap } from "./types";
 
 // Numeric: INT, BIGINT, DECIMAL, NUMERIC, FLOAT
 export const integer = () => new Column(`integer`);

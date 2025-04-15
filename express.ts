@@ -12,50 +12,96 @@ const Product = db.model(ProductModel)
 const Category = db.model(CategoryModel)
 
 // // db.migrate()
+
 User.find({
    limit: {
-      take: 10,
-      skip: 0,
-      metas: {
-         take: 10,
-         skip: 0,
+      user: {
+         take: 20,
       }
    },
    select: {
-      id: true,
       name: true,
       metas: {
          id: true,
-         key: true,
-         value: true,
-      },
-      products: {
-         id: true,
-         name: true,
-         categorys: {
+         user: {
             id: true,
             name: true,
          }
       }
    },
-   orderBy: {
-      id: "desc",
-      metas: {
-         key: "asc",
-         value: "desc",
-      }
-   },
    where: {
       name: "hello",
-      metas: {
-         key: "hello",
-         value: "hello",
-      },
       products: {
          name: "hello",
+         categorys: {
+            name: "hello",
+         }
       }
    }
 })
+
+// Product.find({
+//    limit: {
+//       user: {
+//          take: 20,
+//       }
+//    },
+//    select: {
+//       name: true,
+//       user: {
+//          id: true,
+//          name: true,
+//       }
+//    },
+//    where: {
+//       name: "hello",
+//    }
+// })
+// User.find({
+//    limit: {
+//       take: 10,
+//       skip: 0,
+//       metas: {
+//          take: 10,
+//          skip: 0,
+//       }
+//    },
+//    select: {
+//       id: true,
+//       name: true,
+//       metas: {
+//          id: true,
+//          key: true,
+//          value: true,
+//       },
+//       products: {
+//          id: true,
+//          name: true,
+//          user: true,
+//          categorys: {
+//             id: true,
+//             name: true,
+//          }
+//       }
+//    },
+//    orderBy: {
+//       id: "desc",
+//       metas: {
+//          key: "asc",
+//          value: "desc",
+//       }
+//    },
+//    where: {
+//       name: "hello",
+//       metas: {
+//          key: "hello",
+//          value: "hello",
+//       },
+//       products: {
+//          name: "hello",
+//       }
+//    }
+// })
 
 const server = async (app) => {
 

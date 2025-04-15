@@ -1,4 +1,3 @@
-
 class Relation {
    table: string | null;
    column: string;
