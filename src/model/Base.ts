@@ -1,5 +1,6 @@
 import xansql from "..";
 import Schema, { id } from "../schema";
+import Column from "../schema/core/Column";
 import Relation from "../schema/core/Relation";
 import { SchemaMap } from "../schema/types";
 import { FindArgs } from "./type";
@@ -17,36 +18,39 @@ abstract class ModelBase {
 
    getRelation(column: string) {
       const schema = this.schema.get()
-      const foregin = schema[column]
-      console.log(foregin);
-
-      if (!(foregin instanceof Relation)) throw new Error(`Invalid relation column ${this.table}.${column}`)
+      const relation_column = schema[column]
+      if (!(relation_column instanceof Relation)) throw new Error(`Invalid relation column ${this.table}.${column}`)
 
       let single = false
 
-      if (!foregin.table) {
-         const reference: any = schema[foregin.column]
-         foregin.table = reference.constraints.references.table
-         foregin.column = reference.constraints.references.column
+      if (!relation_column.table) {
+         const reference: any = schema[relation_column.column]
+         relation_column.table = reference.constraints.references.table
+         relation_column.column = reference.constraints.references.column
          single = true
-      } else {
-         //   let mainSchema = this.xansql.getModel(foregin.table).schema.get()
       }
 
-      if (!foregin.table) throw new Error(`Invalid relation table name ${this.table}`)
-      if (!foregin.column) throw new Error(`Invalid relation column name ${this.table}`)
+      const foreginModel = this.xansql.getModel((relation_column as any).table)
+      if (!foreginModel) throw new Error(`Invalid table name ${relation_column.table}`)
+      const foreginSchema = foreginModel.schema.get()
+      const foreginColumn = foreginSchema[relation_column.column]
+
+      if (!(foreginColumn instanceof Column)) throw new Error(`Invalid relation column ${relation_column.table}.${relation_column.column}`)
+      const references = foreginColumn.constraints.references
+      if (!references) throw new Error(`Invalid relation column ${relation_column.table}.${relation_column.column}`)
+      if (references.table !== this.table) throw new Error(`Invalid relation column ${relation_column.table}.${relation_column.column}`);
 
       return {
-         single,
+         single: false,
          main: {
-            table: this.table,
-            column,
+            table: references.table,
+            column: references.column,
             alias: this.alias,
          },
          foregin: {
-            table: foregin.table,
-            column: foregin.column,
-            alias: this.xansql.getModel(foregin.table).alias,
+            table: relation_column.table as string,
+            column: relation_column.column,
+            alias: foreginModel.alias
          }
       }
    }

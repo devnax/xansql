@@ -1,11 +1,15 @@
 import xansql from "./src"
 import UserModel from "./example/models/User"
 import UserMetaModel from "./example/models/UserMeta"
+import ProductModel from "./example/models/Product"
+import CategoryModel from "./example/models/Category"
 
 export const db = new xansql("mysql://root:root1234@127.0.0.1:3306/xansql")
 
 const User = db.model(UserModel)
 const UserMeta = db.model(UserMetaModel)
+const Product = db.model(ProductModel)
+const Category = db.model(CategoryModel)
 
 // // db.migrate()
 User.find({
@@ -24,6 +28,14 @@ User.find({
          id: true,
          key: true,
          value: true,
+      },
+      products: {
+         id: true,
+         name: true,
+         categorys: {
+            id: true,
+            name: true,
+         }
       }
    },
    orderBy: {
@@ -38,21 +50,12 @@ User.find({
       metas: {
          key: "hello",
          value: "hello",
+      },
+      products: {
+         name: "hello",
       }
    }
 })
-// UserMeta.find({
-//    where: {
-//       key: "hello",
-//       user: {
-//          name: "hello",
-//       },
-//       customer: {
-
-//       }
-//    }
-// })
-
 
 const server = async (app) => {
 
