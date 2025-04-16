@@ -15,7 +15,7 @@ const Category = db.model(CategoryModel)
 
 User.find({
    limit: {
-      user: {
+      metas: {
          take: 20,
       }
    },
@@ -27,6 +27,14 @@ User.find({
             id: true,
             name: true,
          }
+      },
+      products: {
+         id: true,
+         name: true,
+         user: {
+            id: true,
+            name: true,
+         },
       }
    },
    where: {
