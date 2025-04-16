@@ -12,6 +12,22 @@ class BuilFind {
       this.args = args
    }
 
+   jsonObject = (fields: string) => {
+      let dialect = this.model.xansql.getDialect().driver
+      if (dialect === 'mysql') return `JSON_OBJECT(${fields})`;
+      if (dialect === 'postgres') return `json_build_object(${fields})`;
+      if (dialect === 'sqlite') return `json_object(${fields})`;
+      throw new Error("Dialect not supported");
+   };
+
+   jsonArrayAgg = (expr: string) => {
+      let dialect = this.model.xansql.getDialect().driver
+      if (dialect === 'mysql') return `JSON_ARRAYAGG(${expr})`;
+      if (dialect === 'postgres') return `json_agg(${expr})`;
+      if (dialect === 'sqlite') return `json_group_array(${expr})`;
+      throw new Error("Dialect not supported");
+   };
+
    getSelectFields(select: FindArgs['select'], model: Model) {
       const schema = model.schema.get()
       let _selectFields: string[] = []
@@ -96,8 +112,12 @@ class BuilFind {
             if (args.orderBy && column in args.orderBy) {
                newargs.orderBy = args.orderBy[column]
             }
-
+            if (relation.single) {
+               usesAliases[model.alias] = (usesAliases[model.alias] || 0) - 1
+            }
             const _info = this.buildSelect(newargs, foreginModel, usesAliases, false)
+            const isLimit = newargs.limit?.take || newargs.limit?.skip
+            const isOrderBy = newargs.orderBy && Object.keys(newargs.orderBy).length > 0
 
             let formatedFields = []
             for (let col of _info.fields) {
@@ -107,11 +127,18 @@ class BuilFind {
                   formatedFields.push(`'${col.split('.')[1]}', ${col}`)
                }
             }
-            let sql = `JSON_ARRAYAGG(
-                  JSON_OBJECT(
-                     ${formatedFields.join(", ")}
-                  )
+            let json_object = this.jsonObject(formatedFields.join(", "))
+            let sql = relation.single ? json_object : this.jsonArrayAgg(json_object)
+
+            if (isLimit) {
+               let _orderByFields: string[] = this.getOrderByFields(newargs.orderBy, foreginModel)
+               sql = `(SELECT ${sql} FROM ${relation.foregin.table} ${relation.foregin.alias} 
+               ${_info.joins.length ? ` ${_info.joins.join(" ")}` : ""}
+               WHERE ${relation.main.alias}.${relation.main.column} = ${_info.alias}.${relation.foregin.column} ${info.wheres.length ? `WHERE ${info.wheres.join(" AND ")}` : ""}
+               ${_orderByFields.length ? `ORDER BY ${_orderByFields.join(', ')}` : ""}
+               ${newargs.limit ? ` ${newargs.limit.take ? `LIMIT ${newargs.limit.take}` : ""} ${newargs.limit.skip ? `OFFSET ${newargs.limit.skip}` : ""}` : ""}
             )`
+            }
 
             if (asCol) {
                sql = `${sql} AS ${column}`
@@ -121,26 +148,14 @@ class BuilFind {
 
             info.fields.push(sql)
 
-            let rel = `${relation.foregin.table} ${_info.alias} ON ${relation.main.alias}.${relation.main.column} = ${_info.alias}.${relation.foregin.column}`
-            let join = ``
-            if (newargs.limit?.take || newargs.limit?.skip) {
-               let _selectFields: string[] = this.getSelectFields(newargs.select, foreginModel)
-               let _orderByFields: string[] = this.getOrderByFields(newargs.orderBy, foreginModel)
-               join = `JOIN (
-                  SELECT * ${_info.alias}.${relation.foregin.column}  FROM ${relation.foregin.table} ${relation.foregin.alias}
-                   ${info.wheres.length ? `WHERE ${info.wheres.join(" AND ")}` : ""}
-                  ${_orderByFields.length ? `ORDER BY ${_orderByFields.join(', ')}` : ""}
-                  ${newargs.limit ? ` ${newargs.limit.take ? `LIMIT ${newargs.limit.take}` : ""} ${newargs.limit.skip ? `OFFSET ${newargs.limit.skip}` : ""}` : ""}
-               ) ${rel}`
-            } else {
-               join = `JOIN ${rel} ${_info.wheres.length ? `WHERE ${_info.wheres.join(" AND ")}` : ""}`
+            if (!isLimit && !relation.single) {
+               let rel = `${relation.foregin.table} ${_info.alias} ON ${relation.main.alias}.${relation.main.column} = ${_info.alias}.${relation.foregin.column}`
+               info.joins.push(`JOIN ${rel} ${_info.wheres.length ? `WHERE ${_info.wheres.join(" AND ")}` : ""}`)
+               info.joins = [
+                  ...info.joins,
+                  ..._info.joins,
+               ]
             }
-
-            info.joins = [
-               ...info.joins,
-               join,
-               ..._info.joins,
-            ]
          } else {
             info.fields.push(`${alias}.${column}`)
          }
