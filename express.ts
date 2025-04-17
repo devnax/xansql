@@ -14,37 +14,65 @@ const Category = db.model(CategoryModel)
 // // db.migrate()
 
 User.find({
+   orderBy: {
+      id: "desc",
+      metas: {
+         key: "asc",
+         value: "desc",
+      }
+   },
    limit: {
       metas: {
          take: 20,
+         page: 2
       }
    },
    select: {
       name: true,
+      email: true,
       metas: {
          id: true,
-         user: {
-            id: true,
-            name: true,
-         }
+         // user: {
+         //    id: true,
+         //    name: true,
+         // }
       },
-      products: {
-         id: true,
-         name: true,
-         user: {
-            id: true,
-            name: true,
-         },
-      }
+      // products: {
+      //    id: true,
+      //    name: true,
+      //    user: {
+      //       id: true,
+      //       name: true,
+      //       username: true
+      //    },
+      // }
    },
    where: {
-      name: "hello",
-      products: {
-         name: "hello",
-         categorys: {
-            name: "hello",
+      email: {
+         equals: "asd",
+         gte: "123",
+         lte: "1234",
+      },
+      username: {
+         contains: "nax",
+      },
+      metas: {
+         key: "hello",
+         user_id: 3,
+         value: {
+            in: ["hello", "world"]
          }
       }
+      // products: {
+      //    name: "hello",
+      //    user: {
+      //       username: "nax",
+      //       password: "1234",
+      //    },
+      //    categories: {
+      //       name: "mobile",
+      //    }
+      // }
    }
 })
 

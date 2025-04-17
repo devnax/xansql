@@ -15,6 +15,7 @@ export interface UserData {
 export const UserSchema = new Schema({
    id: id(),
    name: string().notNull(),
+   username: string().notNull(),
    email: string().notNull(),
    password: string().notNull(),
    created_at: timestamp().default('CURRENT_TIMESTAMP'),

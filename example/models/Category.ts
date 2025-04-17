@@ -4,7 +4,7 @@ import Schema, { integer } from "../../src/schema";
 import { ProductSchema } from "./Product";
 
 
-export const CategorySchema = new Schema({
+export const categoriesSchema = new Schema({
    id: id(),
    name: string().notNull(),
    description: string().notNull(),
@@ -15,11 +15,11 @@ export const CategorySchema = new Schema({
    updated_at: timestamp().default('CURRENT_TIMESTAMP', true),
 })
 
-ProductSchema.add("categorys", relation("product_id", "categorys"))
+ProductSchema.add("categories", relation("product_id", "categories"))
 
 class Category extends Model {
-   table = "categorys"
-   schema: Schema = CategorySchema
+   table = "categories"
+   schema: Schema = categoriesSchema
 }
 
 export default Category

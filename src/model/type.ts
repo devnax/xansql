@@ -1,5 +1,5 @@
 
-interface WhereSubCondition {
+export interface WhereSubCondition {
    equals?: string | number | boolean;
    not?: string | number | boolean;
    lt?: string | number;
@@ -25,13 +25,15 @@ interface WhereSubCondition {
    matches?: string;
 }
 
-interface WhereCondition {
-   [column: string]: string | number | boolean | WhereSubCondition | null | Date | WhereCondition;
+export type WhereArgsValue = string | number | boolean | WhereSubCondition | null | Date | WhereArgs
+export interface WhereArgs {
+   [column: string]: WhereArgsValue | WhereArgsValue[];
 }
 
 export type LimitClause = {
    take?: number;
    skip?: number;
+   page?: number;
    [foregin: string]: LimitClause | number | undefined
 }
 
@@ -46,7 +48,7 @@ export type SelectClause = {
 export type FindArgs = {
    limit?: LimitClause
    orderBy?: OrderByClause;
-   where?: WhereCondition;
+   where: WhereArgs;
    select?: SelectClause;
 }
 
@@ -65,13 +67,16 @@ export type CreateArgs = {
 
 export type UpdateArgs = {
    data?: DataClause;
-   where?: WhereCondition;
+   where?: WhereArgs;
    select?: SelectClause;
 }
 
+export type DeleteInclude = {
+   [column: string]: boolean | DeleteInclude;
+}
 export type DeleteArgs = {
-   where?: WhereCondition;
-   select?: SelectClause;
+   where?: WhereArgs;
+   include?: DeleteInclude;
 }
 
 

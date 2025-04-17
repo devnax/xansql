@@ -1,4 +1,4 @@
-import Dialect from "./Dialect";
+import BaseDialect from "./dialects/BaseDialect";
 import Model from "./model";
 
 export type XansqlConfigOptions = {
@@ -11,6 +11,7 @@ export type XansqlConfigOptions = {
       port: number;
    };
    cache?: boolean;
+   maxDataLimit?: number;
 }
 
 export type XansqlConfigFunction = () => (XansqlConfigOptions | string);
@@ -20,7 +21,7 @@ export type XansqlConfig = XansqlConfigOptions | string | XansqlConfigFunction;
 export const DialectDrivers = ["mysql", "sqlite", "postgres"] as const
 
 export type XansqlDialectDriver = typeof DialectDrivers[number];
-export type XansqlDialectsFactory = Map<XansqlDialectDriver, Dialect>;
+export type XansqlDialectsFactory = Map<XansqlDialectDriver, BaseDialect>;
 export type XansqlDialectExcuteReturn<R> = {
    result: R[],
    affectedRows: number,
