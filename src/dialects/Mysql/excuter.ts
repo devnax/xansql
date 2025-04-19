@@ -23,8 +23,8 @@ class Excuter {
       await connection.end();
       return {
          result,
-         insertId: field?.insertId || 0,
-         affectedRows: field?.affectedRows || 0,
+         insertId: field?.insertId || result?.insertId || 0,
+         affectedRows: field?.affectedRows || result?.affectedRows,
       }
    }
 }

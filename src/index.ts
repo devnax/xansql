@@ -1,8 +1,10 @@
 import BaseDialect from "./dialects/BaseDialect";
 import MysqlDialect from "./dialects/Mysql";
 import Model from "./model";
+import Column from "./schema/core/Column";
+import Relation from "./schema/core/Relation";
 import { DialectDrivers, XansqlConfig, XansqlConfigOptions, XansqlDialectDriver, XansqlDialectExcuteReturn, XansqlDialectsFactory, XansqlModelsFactory } from "./type";
-import { isServer } from "./utils";
+import { arrayMove, isServer } from "./utils";
 export * from './schema'
 
 type XansqlsValue = {
@@ -70,7 +72,50 @@ class xansql {
 
       instance.alias = alias
       info.models.set(instance.table, instance);
+      Xansqls.set(this.instanceId, { ...info })
+      this.sortTables()
       return instance
+   }
+
+   sortTables() {
+      let tables: string[] = []
+      const info = getInfo(this.instanceId)
+      info.models.forEach((model: Model) => {
+         const schema = model.schema.get()
+         for (const column in schema) {
+            const schemaVal = schema[column]
+            if (schemaVal instanceof Column) {
+               const references = schemaVal.constraints.references
+               if (references) {
+                  const mainIndex = tables.indexOf(model.table)
+                  const foreginIndex = tables.indexOf(references.table)
+                  let hasMain = mainIndex !== -1
+                  let hasForegin = foreginIndex !== -1
+
+                  if (!hasMain && !hasForegin) {
+                     tables.push(references.table)
+                     tables.push(model.table)
+                  } else if (!hasMain && hasForegin) {
+                     tables.splice(foreginIndex + 1, 0, model.table)
+                  } else if (hasMain && !hasForegin) {
+                     tables.splice(mainIndex, 0, references.table)
+                  } else if (hasMain && hasForegin && foreginIndex > mainIndex) {
+                     tables = arrayMove(tables, foreginIndex, mainIndex)
+                  }
+               }
+            }
+         }
+      })
+
+      const models = new Map()
+      tables.forEach((table) => {
+         let m = info.models.get(table)
+         if (m) {
+            models.set(table, info.models.get(table) as any)
+         }
+      })
+      info.models = models
+      Xansqls.set(this.instanceId, { ...info })
    }
 
    getConfig = (): XansqlConfigOptions => {
@@ -112,13 +157,23 @@ class xansql {
       }
    }
 
-   migrate = async () => {
+   migrate = async (force = false) => {
+      const info = getInfo(this.instanceId)
+      const models = info.models
+      const tables = Array.from(models.keys())
       if (isServer) {
-         const info = getInfo(this.instanceId)
-         info.models.forEach(async model => {
-            const schema = this.buildSchema(model);
-            await this.excute(schema)
-         })
+         if (force) {
+            for (let table of [...tables].reverse()) {
+               const model = this.getModel(table)
+               await this.excute(`DROP TABLE IF EXISTS ${model.table}`)
+            }
+         }
+
+         for (let table of tables) {
+            const model = this.getModel(table)
+            const sql = this.buildSchema(model);
+            await this.excute(sql)
+         }
       }
    }
 }

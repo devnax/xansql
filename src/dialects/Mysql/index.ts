@@ -3,13 +3,12 @@ import Column from "../../schema/core/Column";
 import IDField from "../../schema/core/IDField";
 import Relation from "../../schema/core/Relation";
 import { XansqlDialectDriver } from "../../type";
-import { isServer } from "../../utils";
+import { formatValue, isServer } from "../../utils";
 import BaseDialect from "../BaseDialect";
 
 class MysqlDialect extends BaseDialect {
    driver: XansqlDialectDriver = "mysql"
    private excuter: any;
-   private footer: string[] = [];
 
    private getType(column: Column) {
       let type: any = this.types[column.type] || "TEXT";
@@ -20,26 +19,18 @@ class MysqlDialect extends BaseDialect {
       return type
    };
 
-   private constraints(name: string, column: Column, tableName: string) {
+   private constraints(name: string, column: Column) {
       const constraints = column.constraints;
+      let footer: string[] = []
 
       let sql = '';
-      if (constraints.unique) sql += ' UNIQUE';
-      if (constraints.notNull) sql += ' NOT NULL';
-      if (constraints.unsigned) sql += ' UNSIGNED';
+      sql += constraints.unique ? ' UNIQUE' : "";
+      sql += constraints.null ? ' NULL' : ' NOT NULL'
+      sql += constraints.unsigned ? ' UNSIGNED' : "";
 
-      if (constraints.default !== undefined) {
-         if (constraints.default === 'CURRENT_TIMESTAMP') {
-            sql += ` DEFAULT ${constraints.default}`;
-         } else if (typeof constraints.default === 'string') {
-            sql += ` DEFAULT '${constraints.default}'`;
-         } else if (typeof constraints.default === 'number') {
-            sql += ` DEFAULT ${constraints.default}`;
-         } else if (typeof constraints.default === 'boolean') {
-            sql += ` DEFAULT ${constraints.default ? 1 : 0}`;
-         } else {
-            sql += ` DEFAULT ${constraints.default}`;
-         }
+      let _default = constraints.default;
+      if (_default !== undefined) {
+         sql += ` DEFAULT ${_default === 'CURRENT_TIMESTAMP' ? 'CURRENT_TIMESTAMP' : formatValue(_default)}`;
       }
 
       if (constraints.onUpdate === 'CURRENT_TIMESTAMP') sql += ` ON UPDATE ${constraints.onUpdate}`;
@@ -48,34 +39,38 @@ class MysqlDialect extends BaseDialect {
          let foreign = `FOREIGN KEY (${name}) REFERENCES ${ref.table}(${ref.column})`;
          if (constraints.onDelete) foreign += ` ON DELETE ${constraints.onDelete}`;
          if (constraints.onUpdate) foreign += ` ON UPDATE ${constraints.onUpdate}`;
-         this.footer.push(foreign);
+         footer.push(foreign);
       }
 
-      if (constraints.index) this.footer.push(`INDEX ${name}_index (${name})`);
+      if (constraints.index) footer.push(`INDEX ${name}_index (${name})`);
       if (constraints.check) sql += ` CHECK (${constraints.check})`;
       if (constraints.collate) sql += ` COLLATE ${constraints.collate}`;
       if (constraints.comment) sql += ` COMMENT '${constraints.comment}'`;
 
-      return sql;
+      return { footer, sql: sql.trim() }
    }
 
    buildSchema(model: Model): string {
       const schema = model.schema.get()
       const tableName = model.table
+      let footer: string[] = []
 
       const columns = Object.keys(schema).map((key) => {
          key = key.toLowerCase();
          const column = schema[key];
          if (column instanceof Relation) return '';
+
          if (column instanceof IDField) {
             return `${key} INT PRIMARY KEY AUTO_INCREMENT`;
          }
-         return `${key} ${this.getType(column)} ${this.constraints(key, column, tableName)}`;
+         let c = this.constraints(key, column)
+         footer = [...footer, ...c.footer]
+         return `${key} ${this.getType(column)} ${c.sql}`;
       }).filter(Boolean).join(",\n");
 
       let sql = columns;
-      if (this.footer.length) {
-         sql += `,\n${this.footer.join(",\n")}`;
+      if (footer.length) {
+         sql += `,\n${footer.join(",\n")}`;
       }
 
       return `CREATE TABLE ${tableName} (\n${sql}\n);`;

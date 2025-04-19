@@ -17,8 +17,8 @@ const UserMetaSchema = new Schema({
    id: id(),
    user_id: integer().references('users', 'id').onCascade(),
    user: relation('user_id'),
-   key: string().notNull(),
-   value: string().notNull(),
+   meta_key: string(),
+   meta_value: string(),
    created_at: timestamp().default('CURRENT_TIMESTAMP'),
    updated_at: timestamp().default('CURRENT_TIMESTAMP', true),
 })

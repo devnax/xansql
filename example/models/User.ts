@@ -14,10 +14,10 @@ export interface UserData {
 
 export const UserSchema = new Schema({
    id: id(),
-   name: string().notNull(),
-   username: string().notNull(),
-   email: string().notNull(),
-   password: string().notNull(),
+   name: string(),
+   email: string(),
+   password: string(),
+   username: string().default(""),
    created_at: timestamp().default('CURRENT_TIMESTAMP'),
    updated_at: timestamp().default('CURRENT_TIMESTAMP', true),
 })

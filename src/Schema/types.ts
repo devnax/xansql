@@ -8,11 +8,11 @@ export type SQLConstraints = {
    primaryKey?: boolean;
    references?: { table: string; column: string }
    unique?: boolean;
-   notNull?: boolean;
+   null?: boolean;
    unsigned?: boolean;
    default?: any;
    autoincrement?: boolean;
-   index?: string;
+   index?: boolean;
    onDelete?: ReferenceValue;
    onUpdate?: "CURRENT_TIMESTAMP" | ReferenceValue;
    check?: string;

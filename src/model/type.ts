@@ -52,36 +52,30 @@ export type FindArgs = {
    select?: SelectClause;
 }
 
-export type DataClause = {
-   [column: string]: string | number | boolean | Date | null;
-}
-
+export type DataClause = string | number | boolean | Date | null
 export type CreateArgsData = {
-   [column: string]: DataClause | CreateArgs;
+   [column: string]: DataClause | CreateArgsData[];
 }
+export type SelectType = "partial" | "full";
 
 export type CreateArgs = {
    data: CreateArgsData | CreateArgsData[];
-   select?: SelectClause;
+   select?: SelectType;
+}
+
+export type UpdateArgsData = {
+   [column: string]: DataClause | UpdateArgsData;
 }
 
 export type UpdateArgs = {
-   data?: DataClause;
-   where?: WhereArgs;
-   select?: SelectClause;
+   data: UpdateArgsData | UpdateArgsData[];
+   where: WhereArgs;
+   select?: SelectType
 }
 
-export type DeleteInclude = {
-   [column: string]: boolean | DeleteInclude;
-}
 export type DeleteArgs = {
-   where?: WhereArgs;
-   include?: DeleteInclude;
+   where: WhereArgs;
 }
-
-
-
-
 
 export type GetRelationType = {
    single: boolean;

@@ -10,14 +10,17 @@ export default class Model extends ModelBase {
    }
 
    async create(args: CreateArgs) {
-      if (!isArray(args)) {
-
-      } else {
-
-      }
+      const results = await this.buildCreate(args, this)
+      console.log(results);
    }
-   async update(args: UpdateArgs) { }
-   async delete(args: DeleteArgs) { }
+   async update(args: UpdateArgs) {
+      const results = await this.buildUpdate(args, this)
+      console.log(results);
+   }
+   async delete(args: DeleteArgs) {
+      const results = await this.buildDelete(args, this)
+      console.log(results);
+   }
    async sync() {
    }
    async drop() { }

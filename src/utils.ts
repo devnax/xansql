@@ -6,7 +6,9 @@ export const isNumber = (v: any) => typeof v === 'number' && !isNaN(v)
 export const isBoolean = (v: any) => typeof v === 'boolean'
 export const formatValue = (v: any): any => {
    if (isString(v)) return `'${v}'`
-   if (isNumber(v)) return v
+   if (isNumber(v)) {
+      return v
+   }
    if (isBoolean(v)) return v ? 'TRUE' : 'FALSE'
    if (v === null) return 'NULL'
    if (v === undefined) return 'NULL'
@@ -14,4 +16,11 @@ export const formatValue = (v: any): any => {
    if (isArray(v)) {
       return v.map((item) => formatValue(item)).join(',')
    }
+}
+
+export const arrayMove = (arr: any[], fromIndex: number, toIndex: number) => {
+   const newArr = [...arr];
+   const item = newArr.splice(fromIndex, 1)[0];
+   newArr.splice(toIndex, 0, item);
+   return newArr;
 }

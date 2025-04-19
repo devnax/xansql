@@ -6,9 +6,8 @@ import { ProductSchema } from "./Product";
 
 export const categoriesSchema = new Schema({
    id: id(),
-   name: string().notNull(),
-   description: string().notNull(),
-   price: string().notNull(),
+   name: string(),
+   description: string().null(),
    product_id: integer().references('products', 'id').onDelete('CASCADE').onUpdate('CASCADE'),
    product: relation("product_id"),
    created_at: timestamp().default('CURRENT_TIMESTAMP'),

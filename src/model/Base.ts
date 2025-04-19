@@ -2,9 +2,10 @@ import Model from ".";
 import xansql from "..";
 import Schema, { id } from "../schema";
 import Column from "../schema/core/Column";
+import IDField from "../schema/core/IDField";
 import Relation from "../schema/core/Relation";
-import { formatValue, isObject } from "../utils";
-import { FindArgs, GetRelationType, WhereArgs, WhereSubCondition } from "./type";
+import { formatValue, isArray, isObject } from "../utils";
+import { CreateArgs, CreateArgsData, DeleteArgs, FindArgs, GetRelationType, SelectType, UpdateArgs, UpdateArgsData, WhereArgs, WhereSubCondition } from "./type";
 
 
 abstract class ModelBase {
@@ -152,12 +153,12 @@ abstract class ModelBase {
          if (is) {
             const relation = model.getRelation(column)
             const foreginModel = model.xansql.getModel(relation.foregin.table)
-            const _where: any = where[column]
+            const _where: any = where[column] || {}
 
             const build = this.buildWhere(_where, foreginModel, aliases)
             info.wheres.push(`EXISTS (SELECT 1 FROM ${relation.foregin.table} ${build.alias} WHERE ${build.alias}.${relation.foregin.column} = ${relation.main.alias}.${relation.main.column} AND ${build.wheres.join(" AND ")})`)
          } else {
-            let v = `${alias}.${column} = '${where[column]}'`
+            let v = ``
             if (isObject(where[column])) {
                const subConditions = this.buildWhereConditions(column, (where as any)[column], model.alias)
                v = subConditions
@@ -166,7 +167,7 @@ abstract class ModelBase {
                   if (isObject(v)) {
                      return this.buildWhereConditions(column, v, model.alias)
                   } else {
-                     return `${alias}.${column} = '${v}'`
+                     return `${alias}.${column} = ${formatValue(v)}`
                   }
                }).join(" OR ")
                v = `(${subConditions})`
@@ -174,6 +175,8 @@ abstract class ModelBase {
                v = `${alias}.${column} IS NULL`
             } else if (where[column] === undefined) {
                v = `${alias}.${column} IS NOT NULL`
+            } else {
+               v = `${alias}.${column} = ${formatValue(where[column])}`
             }
             info.wheres.push(v)
          }
@@ -220,12 +223,13 @@ abstract class ModelBase {
             }
             if (!columns.includes(relation.main.column)) {
                columns.push(relation.main.column)
-               rel_columns[column] = relation.foregin.column
             }
+            rel_columns[column] = relation.foregin.column
          } else {
             columns.push(column)
          }
       }
+
 
       let _fields = columns.length ? columns.join(',') : ["*"]
       let sql = `SELECT ${_fields} FROM ${model.table} ${model.alias}`
@@ -247,12 +251,10 @@ abstract class ModelBase {
          sql += `${take ? ` LIMIT ${take}` : ""} ${skip ? `OFFSET ${skip}` : ""}`
       }
 
-      console.log(sql);
-
-
       // excute sql
-      // const result = await this.xansql.query(sql)
-      let results: any[] = []
+      const excute = await this.xansql.excute(sql)
+      const results = excute.result
+      if (!results || !results.length) return []
       let _ins: { [rel_rable_column: string]: ({ [val: string | number]: any }) } = {}
 
       for (let rel_column in rel_columns) {
@@ -265,15 +267,14 @@ abstract class ModelBase {
             _ins[rel_rable_column] = format
          }
       }
-      console.log(sql);
-
       for (let column in relations) {
          const relation = relations[column]
          let _model = this.xansql.getModel(relation.relation.foregin.table)
          let rel_rable_column = rel_columns[column]
+
          let _in_values = _ins[rel_rable_column] || []
          let _in: any = { column: `${relation.relation.foregin.alias}.${rel_rable_column}`, values: Object.keys(_in_values) }
-
+         if (!relation.args.where) relation.args.where = {}
          if (rel_rable_column in relation.args.where) {
             let rcol: any = relation.args.where[rel_rable_column]
             if (isObject(rcol)) {
@@ -307,6 +308,190 @@ abstract class ModelBase {
          }
       }
       return results
+   }
+
+   protected async buildCreate(args: CreateArgs, model: Model, foregineColumn?: string): Promise<any> {
+
+      let { data, select } = args
+      const schema = model.schema.get()
+      let fields: { [column: string]: any } = {}
+      let relations: {
+         [column: string]: {
+            relation: GetRelationType,
+            data: CreateArgsData[],
+         }
+      } = {}
+
+      if (isArray(data)) {
+         let res = []
+         for (let _data of data) {
+            res.push(await this.buildCreate({
+               data: _data,
+               select: select
+            }, model, foregineColumn))
+         }
+         return res
+      } else {
+         for (let column in data) {
+            const schemaValue = schema[column]
+            if (!schemaValue) throw new Error(`Invalid column ${model.table}.${column}`)
+            if (schemaValue instanceof Relation) {
+               const relation = model.getRelation(column)
+               const rvalue = data[column]
+               if (relation.single) throw new Error(`Invalid column ${column}`)
+               if (!isArray(rvalue)) throw new Error(`Data must be an array ${column}`)
+               if (rvalue.length) {
+                  relations[column] = {
+                     relation: relation,
+                     data: rvalue
+                  }
+               }
+            } else {
+               fields[column] = formatValue(data[column])
+            }
+         }
+
+         let columns = Object.keys(fields)
+         let values = Object.values(fields)
+
+         let sql = `INSERT INTO ${model.table} (${columns.join(",")}) VALUES (${values.join(",")})`
+         const excute = await this.xansql.excute(sql)
+         let result = null
+         let findArgs: any = {}
+         let idField = Object.keys(schema).find((column) => schema[column] instanceof IDField)
+         if (!idField) throw new Error(`Invalid column ${model.table}.${idField}`)
+         if (excute.insertId) {
+            result = [{ [idField]: excute.insertId }]
+            findArgs.where = { [idField]: excute.insertId }
+         }
+         if (select === 'partial' || select === 'full') {
+            if (select === 'partial') {
+               findArgs.select = {}
+               for (let column in fields) {
+                  if (column === foregineColumn) continue
+                  findArgs.select[column] = true
+               }
+            }
+            let find = await this.buildFind(findArgs, model)
+            result = [{ [idField]: excute.insertId, ...find[0] }]
+         }
+
+         if (!result || !result.length) return null
+         const excuteResult = result[0]
+
+         for (let column in relations) {
+            const { relation, data: rel_data } = relations[column]
+            const _model = this.xansql.getModel(relation.foregin.table)
+            for (let arg of rel_data) {
+               arg[relation.foregin.column] = excuteResult[relation.main.column]
+            }
+            const _foreginResult = await this.buildCreate({ data: rel_data, select }, _model, relation.foregin.column)
+            excuteResult[column] = _foreginResult
+         }
+         return excuteResult
+      }
+   }
+
+   protected async buildUpdate(args: UpdateArgs, model: Model, foregineColumn?: string): Promise<any> {
+      let { data, where, select } = args
+      const schema = model.schema.get()
+      let fields: { [column: string]: any } = {}
+      let relations: {
+         [column: string]: {
+            relation: GetRelationType,
+            data: UpdateArgsData[],
+         }
+      } = {}
+
+      if (isArray(data)) {
+         let res = []
+         for (let _data of data) {
+            res.push(await this.buildUpdate({
+               data: _data,
+               where,
+               select
+            }, model, foregineColumn))
+         }
+         return res
+      } else {
+         for (let column in data) {
+            const schemaValue = schema[column]
+            if (!schemaValue) throw new Error(`Invalid column ${model.table}.${column}`)
+            if (schemaValue instanceof Relation) {
+               const relation = model.getRelation(column)
+               const rvalue = data[column]
+               if (relation.single) throw new Error(`Invalid column ${column}`)
+               if (isArray(rvalue)) throw new Error(`Data must be an array ${column}`)
+               relations[column] = {
+                  relation: relation,
+                  data: rvalue as any
+               }
+            } else {
+               fields[column] = formatValue(data[column])
+            }
+         }
+
+         let columns = Object.keys(fields)
+         let values = []
+         for (let column of columns) {
+            values.push(`${column} = ${fields[column]}`)
+         }
+
+         if (values.length) {
+            const buildWhere = this.buildWhere(where, model)
+            let sql = `UPDATE ${model.table} ${model.alias} SET ${values.join(", ")}`
+            sql += ` WHERE ${buildWhere.wheres.join(" AND ")}`
+            const excute = await this.xansql.excute(sql)
+            if (!excute.affectedRows) return null
+         }
+
+         let idField = Object.keys(schema).find((column) => schema[column] instanceof IDField)
+         if (!idField) throw new Error(`Invalid column ${model.table}.${idField}`)
+         let findArgs: any = {}
+         findArgs.where = where
+
+         if (select === 'partial' || select === 'full') {
+            if (select === 'partial') {
+               findArgs.select = {
+                  [idField]: true
+               }
+               for (let column in fields) {
+                  if (column === foregineColumn) continue
+                  findArgs.select[column] = true
+               }
+            }
+         } else {
+            findArgs.select = {
+               [idField]: true
+            }
+         }
+
+         let result = await this.buildFind(findArgs, model)
+         if (!result || !result.length) return null
+         for (let res of result) {
+            for (let column in relations) {
+               const { relation, data: rel_data } = relations[column]
+               let _rel_data: any = rel_data
+               const _model = this.xansql.getModel(relation.foregin.table)
+               const columnWhere: any = where[column] || {}
+               let rel_where: any = { ...columnWhere, [relation.foregin.column]: res[relation.main.column] }
+               _rel_data[relation.foregin.column] = res[relation.main.column]
+
+               const _foreginResult = await this.buildUpdate({ data: _rel_data, where: rel_where, select }, _model, relation.foregin.column)
+               res[column] = _foreginResult
+            }
+         }
+         return result
+      }
+   }
+
+   protected async buildDelete(args: DeleteArgs, model: Model, foregineColumn?: string): Promise<any> {
+      const { where } = args
+      const buildWhere = this.buildWhere(where, model)
+      let sql = `DELETE FROM ${model.table} ${model.alias}`
+      sql += ` WHERE ${buildWhere.wheres.join(" AND ")}`
+      const excute = await this.xansql.excute(sql)
+      return excute
    }
 }
 

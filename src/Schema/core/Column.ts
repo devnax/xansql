@@ -46,6 +46,7 @@ class Column {
       if (onUpdateTimeStamp) {
          this.constraints.onUpdate = "CURRENT_TIMESTAMP"; // MySQL-specific behavior
       }
+      this.null()
       return this;
    }
 
@@ -54,6 +55,7 @@ class Column {
    // Define a foreign key reference with related constraints
    references(table: string, column: string): this {
       this.constraints.references = { table, column };
+      this.index();
       return this;
    }
 
@@ -69,8 +71,8 @@ class Column {
    }
 
    // Mark the column as not nullable
-   notNull(): this {
-      this.constraints.notNull = true;
+   null(is = true): this {
+      this.constraints.null = is;
       return this;
    }
 
@@ -81,8 +83,8 @@ class Column {
    }
 
    // Add an index to the column
-   index(value: string): this {
-      this.constraints.index = value;
+   index(): this {
+      this.constraints.index = true;
       return this;
    }
 
