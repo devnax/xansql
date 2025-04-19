@@ -46,10 +46,10 @@ export type SelectClause = {
 }
 
 export type FindArgs = {
-   limit?: LimitClause
-   orderBy?: OrderByClause;
    where: WhereArgs;
    select?: SelectClause;
+   limit?: LimitClause
+   orderBy?: OrderByClause;
 }
 
 export type DataClause = string | number | boolean | Date | null

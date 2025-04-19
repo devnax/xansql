@@ -185,9 +185,12 @@ abstract class ModelBase {
    }
 
    protected async buildFind(args: FindArgs, model: Model) {
+      if (!args.where || !Object.keys(args.where).length) throw new Error("Where clause is required");
       const schema = model.schema.get()
       let columns: string[] = []
-      let rel_columns: { [column: string]: string } = {}
+      // {[foregin: string]: main_column} = {}
+      let ralation_columns: { [foregin: string]: string } = {}
+
       let relations: {
          [column: string]: {
             relation: GetRelationType,
@@ -204,6 +207,12 @@ abstract class ModelBase {
             let _args: any = {}
             if (args.select && column in args.select) {
                _args.select = args.select[column]
+               if (isObject(_args.select) && !(relation.foregin.column in _args.select)) {
+                  _args.select = {
+                     ..._args.select,
+                     [relation.foregin.column]: true
+                  }
+               }
             }
             if (args.orderBy && column in args.orderBy) {
                _args.orderBy = args.orderBy[column]
@@ -215,7 +224,7 @@ abstract class ModelBase {
                _args.where = args.where[column]
             }
             if (relation.single) {
-               _args.limit = { take: 1, skip: 0 }
+               _args.limit = { take: 1 }
             }
             relations[column] = {
                relation: relation,
@@ -224,18 +233,16 @@ abstract class ModelBase {
             if (!columns.includes(relation.main.column)) {
                columns.push(relation.main.column)
             }
-            rel_columns[column] = relation.foregin.column
+            ralation_columns[relation.foregin.column] = relation.main.column
          } else {
             columns.push(column)
          }
       }
 
-
       let _fields = columns.length ? columns.join(',') : ["*"]
       let sql = `SELECT ${_fields} FROM ${model.table} ${model.alias}`
       const buildWhere = this.buildWhere(args.where, model)
       sql += ` WHERE ${buildWhere.wheres.join(" AND ")}`
-
 
       if (args.orderBy) {
          let orderByFields: string[] = Object.keys(args.orderBy).filter((column) => !(schema[column] instanceof Relation))
@@ -255,28 +262,33 @@ abstract class ModelBase {
       const excute = await this.xansql.excute(sql)
       const results = excute.result
       if (!results || !results.length) return []
-      let _ins: { [rel_rable_column: string]: ({ [val: string | number]: any }) } = {}
+      let _ins: {
+         [foregin_column: string]: ({
+            [main_column_val: string | number]: any
+         })
+      } = {}
 
-      for (let rel_column in rel_columns) {
-         let rel_rable_column = rel_columns[rel_column]
-         if (!(rel_rable_column in _ins)) {
+      for (let foregin_column in ralation_columns) {
+         let main_column = ralation_columns[foregin_column]
+         if (!(foregin_column in _ins)) {
             let format: any = {}
             results.forEach((result, index) => {
-               format[result[rel_rable_column]] = index
+               format[result[main_column]] = index
             })
-            _ins[rel_rable_column] = format
+            _ins[foregin_column] = format
          }
       }
+
       for (let column in relations) {
          const relation = relations[column]
          let _model = this.xansql.getModel(relation.relation.foregin.table)
-         let rel_rable_column = rel_columns[column]
+         let foregin_column = relation.relation.foregin.column
+         let _in_values = Object.keys(_ins[foregin_column]) || []
+         let _in: any = { column: `${relation.relation.foregin.alias}.${foregin_column}`, values: _in_values }
 
-         let _in_values = _ins[rel_rable_column] || []
-         let _in: any = { column: `${relation.relation.foregin.alias}.${rel_rable_column}`, values: Object.keys(_in_values) }
          if (!relation.args.where) relation.args.where = {}
-         if (rel_rable_column in relation.args.where) {
-            let rcol: any = relation.args.where[rel_rable_column]
+         if (foregin_column in relation.args.where) {
+            let rcol: any = relation.args.where[foregin_column]
             if (isObject(rcol)) {
                if (rcol.in) {
                   rcol.in = [..._in.values, ...rcol.in]
@@ -286,17 +298,18 @@ abstract class ModelBase {
             } else {
                rcol = { in: _in.values, equals: rcol }
             }
-            relation.args.where[rel_rable_column] = rcol
+            relation.args.where[foregin_column] = rcol
          } else {
-            relation.args.where[rel_rable_column] = {
+            relation.args.where[foregin_column] = {
                in: _in.values
             }
          }
 
          const rel_results = await this.buildFind(relation.args, _model)
+         console.log(rel_results);
 
          for (let r_res of rel_results) {
-            let _index = _in_values[r_res[rel_rable_column]]
+            let _index = _ins[foregin_column][r_res[relation.relation.foregin.column]]
             if (_index !== undefined) {
                if (relation.relation.single) {
                   results[_index][column] = r_res
@@ -375,9 +388,9 @@ abstract class ModelBase {
             let find = await this.buildFind(findArgs, model)
             result = [{ [idField]: excute.insertId, ...find[0] }]
          }
-
          if (!result || !result.length) return null
          const excuteResult = result[0]
+
 
          for (let column in relations) {
             const { relation, data: rel_data } = relations[column]

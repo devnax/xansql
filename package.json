@@ -25,6 +25,8 @@
       "build:publish": "makepack publish"
    },
    "dependencies": {
+      "@faker-js/faker": "^9.7.0",
+      "faker": "^6.6.6",
       "mysql2": "^3.14.0",
       "pg": "^8.14.1",
       "sqlite": "^5.1.1",
