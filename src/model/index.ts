@@ -1,5 +1,4 @@
-import { CreateArgs, DeleteArgs, FindArgs, UpdateArgs } from "./type";
-import { isArray } from "../utils";
+import { CountArgs, CreateArgs, DeleteArgs, FindArgs, UpdateArgs } from "./type";
 import ModelBase from "./Base";
 
 export default class Model extends ModelBase {
@@ -11,15 +10,20 @@ export default class Model extends ModelBase {
 
    async create(args: CreateArgs) {
       const results = await this.buildCreate(args, this)
-      console.log(results);
+      return results
    }
    async update(args: UpdateArgs) {
       const results = await this.buildUpdate(args, this)
-      console.log(results);
+      return results
    }
    async delete(args: DeleteArgs) {
       const results = await this.buildDelete(args, this)
-      console.log(results);
+      return results
+   }
+
+   async count(args: CountArgs) {
+      const results = await this.buildCount(args, this)
+      return results
    }
    async sync() {
    }

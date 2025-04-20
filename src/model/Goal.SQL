@@ -139,3 +139,19 @@ GROUP BY
     u.name
 LIMIT 10;
 -- Here, you can limit the total number of users.
+
+
+
+
+
+
+SELECT
+    COUNT(DISTINCT u.id) AS users,
+    COUNT(DISTINCT um.id) AS user_metas,
+    COUNT(DISTINCT p.id) AS products,
+    COUNT(DISTINCT c.id) AS categories
+FROM
+    users u
+    LEFT JOIN user_metas um ON um.user_id = u.id
+    LEFT JOIN products p ON p.user_id = u.id
+    LEFT JOIN categories c ON c.product_id = p.id

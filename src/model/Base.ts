@@ -5,7 +5,7 @@ import Column from "../schema/core/Column";
 import IDField from "../schema/core/IDField";
 import Relation from "../schema/core/Relation";
 import { formatValue, isArray, isObject } from "../utils";
-import { CreateArgs, CreateArgsData, DeleteArgs, FindArgs, GetRelationType, SelectType, UpdateArgs, UpdateArgsData, WhereArgs, WhereSubCondition } from "./type";
+import { CountArgs, CreateArgs, CreateArgsData, DeleteArgs, FindArgs, GetRelationType, SelectType, UpdateArgs, UpdateArgsData, WhereArgs, WhereSubCondition } from "./type";
 
 
 abstract class ModelBase {
@@ -209,8 +209,8 @@ abstract class ModelBase {
                _args.select = args.select[column]
                if (isObject(_args.select) && !(relation.foregin.column in _args.select)) {
                   _args.select = {
-                     ..._args.select,
-                     [relation.foregin.column]: true
+                     [relation.foregin.column]: true,
+                     ..._args.select
                   }
                }
             }
@@ -223,15 +223,16 @@ abstract class ModelBase {
             if (args.where && column in args.where) {
                _args.where = args.where[column]
             }
-            if (relation.single) {
-               _args.limit = { take: 1 }
-            }
+
             relations[column] = {
                relation: relation,
                args: _args
             }
             if (!columns.includes(relation.main.column)) {
-               columns.push(relation.main.column)
+               columns = [
+                  relation.main.column,
+                  ...columns
+               ]
             }
             ralation_columns[relation.foregin.column] = relation.main.column
          } else {
@@ -242,40 +243,39 @@ abstract class ModelBase {
       let _fields = columns.length ? columns.join(',') : ["*"]
       let sql = `SELECT ${_fields} FROM ${model.table} ${model.alias}`
       const buildWhere = this.buildWhere(args.where, model)
-      sql += ` WHERE ${buildWhere.wheres.join(" AND ")}`
+      sql += buildWhere.wheres.length ? ` WHERE ${buildWhere.wheres.join(" AND ")}` : ""
 
       if (args.orderBy) {
          let orderByFields: string[] = Object.keys(args.orderBy).filter((column) => !(schema[column] instanceof Relation))
          let orderBy: string[] = orderByFields.map((column) => `${column} ${(args as any).orderBy[column]}`)
-         sql += ` ORDER BY ${orderBy.join(",")}`
+         sql += orderByFields.length ? ` ORDER BY ${orderBy.join(",")}` : ""
       }
-      if (args.limit?.take || args.limit?.skip || args.limit?.page) {
-         let take = args.limit.take || 0
+
+      let take = args.limit?.take || this.xansql.getConfig().maxDataLimit || 0
+      sql += ` LIMIT ${take}`
+      if (args.limit?.skip || args.limit?.page) {
          let skip = args.limit.skip
          if (args.limit.page) {
             skip = (args.limit.page - 1) * take
          }
-         sql += `${take ? ` LIMIT ${take}` : ""} ${skip ? `OFFSET ${skip}` : ""}`
+         sql += `OFFSET ${skip}`
       }
 
       // excute sql
       const excute = await this.xansql.excute(sql)
-      const results = excute.result
+      let results = excute.result
       if (!results || !results.length) return []
       let _ins: {
-         [foregin_column: string]: ({
-            [main_column_val: string | number]: any
-         })
+         [foregin_column: string]: any[] // ids
       } = {}
 
       for (let foregin_column in ralation_columns) {
          let main_column = ralation_columns[foregin_column]
          if (!(foregin_column in _ins)) {
-            let format: any = {}
-            results.forEach((result, index) => {
-               format[result[main_column]] = index
-            })
-            _ins[foregin_column] = format
+            _ins[foregin_column] = []
+            for (let result of results) {
+               _ins[foregin_column].push(result[main_column])
+            }
          }
       }
 
@@ -283,7 +283,7 @@ abstract class ModelBase {
          const relation = relations[column]
          let _model = this.xansql.getModel(relation.relation.foregin.table)
          let foregin_column = relation.relation.foregin.column
-         let _in_values = Object.keys(_ins[foregin_column]) || []
+         let _in_values = _ins[foregin_column] || []
          let _in: any = { column: `${relation.relation.foregin.alias}.${foregin_column}`, values: _in_values }
 
          if (!relation.args.where) relation.args.where = {}
@@ -306,17 +306,12 @@ abstract class ModelBase {
          }
 
          const rel_results = await this.buildFind(relation.args, _model)
-         console.log(rel_results);
-
-         for (let r_res of rel_results) {
-            let _index = _ins[foregin_column][r_res[relation.relation.foregin.column]]
-            if (_index !== undefined) {
-               if (relation.relation.single) {
-                  results[_index][column] = r_res
-               } else {
-                  if (!results[_index][column]) results[_index][column] = []
-                  results[_index][column].push(r_res)
-               }
+         for (let res of results) {
+            let filter = rel_results.filter((r) => r[foregin_column] === res[relation.relation.main.column])
+            if (relation.relation.single) {
+               res[column] = filter[0] || null
+            } else {
+               res[column] = filter || []
             }
          }
       }
@@ -498,13 +493,67 @@ abstract class ModelBase {
       }
    }
 
-   protected async buildDelete(args: DeleteArgs, model: Model, foregineColumn?: string): Promise<any> {
+   protected async buildDelete(args: DeleteArgs, model: Model): Promise<any> {
       const { where } = args
       const buildWhere = this.buildWhere(where, model)
       let sql = `DELETE FROM ${model.table} ${model.alias}`
       sql += ` WHERE ${buildWhere.wheres.join(" AND ")}`
       const excute = await this.xansql.excute(sql)
       return excute
+   }
+
+
+   protected async buildCount(args: CountArgs, model: Model) {
+      const schema = model.schema.get()
+      let columns: string[] = []
+      // {[foregin: string]: main_column} = {}
+      let ralation_columns: { [foregin: string]: string } = {}
+
+      let relations: {
+         [column: string]: {
+            relation: GetRelationType,
+            args: CountArgs,
+         }
+      } = {}
+
+      const buildWhere = this.buildWhere(args.where, model)
+      let sql = `SELECT COUNT(*) AS ${model.table} FROM ${model.table} ${model.alias}`
+      sql += buildWhere.wheres.length ? ` WHERE ${buildWhere.wheres.join(" AND ")}` : ""
+      const excute = await this.xansql.excute(sql)
+      let results = excute.result
+      if (!results || !results.length) return {}
+
+      const find = await this.buildFind({
+         where: args.where,
+         select: {
+            id: true,
+            metas: {
+               id: true
+            }
+         }
+      }, model)
+      console.log(find);
+
+      let select: any = {}
+
+      for (let column in args.select) {
+         const schemaValue = schema[column]
+         if (!schemaValue) throw new Error(`Invalid column ${model.table}.${column}`)
+         if (schemaValue instanceof Relation) {
+            const relation = model.getRelation(column)
+
+            select[column] = {
+               [relation.foregin.column]: true
+            }
+         } else {
+
+         }
+      }
+
+      console.log(select);
+
+
+      return results[0]
    }
 }
 

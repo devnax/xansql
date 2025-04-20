@@ -14,7 +14,9 @@ export const categoriesSchema = new Schema({
    updated_at: timestamp().default('CURRENT_TIMESTAMP', true),
 })
 
-ProductSchema.add("categories", relation("product_id", "categories"))
+ProductSchema.add({
+   categories: relation("product_id", "categories")
+})
 
 class Category extends Model {
    table = "categories"

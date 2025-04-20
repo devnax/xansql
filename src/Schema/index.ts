@@ -69,8 +69,15 @@ class Schema {
       }
    }
 
-   add(column: string, value: Column | Relation) {
-      this.schema[column] = value;
+   add(schema: SchemaMap) {
+      for (let column in schema) {
+         const value = schema[column]
+         this.validateColumn(value)
+         if (value instanceof IDField) {
+            throw new Error(`${column} cannot be added to schema, it already exists`);
+         }
+      }
+      this.schema = { ...this.schema, ...schema }
    }
 
    get() {

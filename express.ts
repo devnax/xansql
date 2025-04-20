@@ -5,27 +5,25 @@ import ProductModel from "./example/models/Product"
 import CategoryModel from "./example/models/Category"
 import fakeData from './faker'
 
-export const db = new xansql("mysql://root:root@127.0.0.1:3306/xansql")
+let mysql: any = "mysql://root:root@127.0.0.1:3306/xansql"
+let sqlite: any = {
+   dialect: 'sqlite',
+   connection: 'db.sqlite'
+}
+export const db = new xansql(sqlite)
 const UserMeta = db.model(UserMetaModel)
 const Product = db.model(ProductModel)
 const Category = db.model(CategoryModel)
 const User = db.model(UserModel)
 
-// db.migrate(true)
-
-const loadFakeData = async () => {
-   const users = fakeData(1000)
-   await User.create({ data: users })
-}
-
-
-// loadFakeData()
-
 const server = async (app) => {
    app.get('/data', async (req, res) => {
       const users = await User.find({
          orderBy: {
-            id: "desc",
+            // id: "desc",
+         },
+         limit: {
+
          },
          select: {
             name: true,
@@ -35,29 +33,56 @@ const server = async (app) => {
                meta_value: true,
                user: true
             },
-            // products: {
-            //    name: true,
-            //    price: true,
-            //    user: true,
-            //    categories: {
-            //       name: true,
-            //       description: true,
-            //    }
-            // }
+            products: {
+               name: true,
+               price: true,
+               user: {
+                  name: true,
+                  email: true,
+                  metas: {
+                     meta_key: true,
+                     meta_value: true,
+                  }
+               },
+               categories: {
+                  name: true,
+                  description: true,
+               }
+            }
          },
          where: {
+            name: "adm'in"
+         }
+      })
+      res.json(users);
+   });
+   app.get('/count', async (req, res) => {
+      const users = await User.count({
+         where: {
             id: {
-               in: [1]
+               in: [1, 2, 3, 4, 5]
+            }
+         },
+         select: {
+            metas: true,
+            products: {
+               categories: true
             }
          }
       })
       res.json(users);
    });
-   app.get('/user/:name', (req, res) => {
-      res.send(`Hello ${req.params.name}`);
+   app.get('/faker', async (req, res) => {
+      const users = fakeData(1000)
+      await User.create({
+         data: users
+      })
+      res.send(`done`);
    });
-   app.get('/user/:name/:age', (req, res) => {
-      res.send(`Hello ${req.params.name}, ${req.params.age}`);
+   app.get('/migrate', async (req, res) => {
+      await db.migrate(true)
+      res.send(`Migrated`);
    });
+
 }
 export default server;

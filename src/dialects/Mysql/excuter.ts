@@ -1,25 +1,27 @@
-import mysql, { ConnectionOptions } from 'mysql2/promise';
+import mysql from 'mysql2/promise';
+import { XansqlConfigOptions } from '../../type';
 
 class Excuter {
-   private options: ConnectionOptions;
-   constructor(options: ConnectionOptions) {
-      this.options = options
+   private config: XansqlConfigOptions;
+   constructor(config: XansqlConfigOptions) {
+      this.config = config
    }
 
    async connect() {
       try {
-         return await mysql.createConnection(this.options);
+         let options = typeof this.config.connection === 'string' ? { uri: this.config.connection } : this.config.connection;
+         return await mysql.createConnection(options);
       } catch (err) {
          console.error('Error: ', err);
       }
    }
 
-   async excute(query: string, params: any[] = []) {
+   async excute(query: string) {
       const connection = await this.connect();
       if (!connection) {
          throw new Error("Mysql database connection failed");
       }
-      let [result, field]: any = await connection.execute(query, params) || {}
+      let [result, field]: any = await connection.execute(query) || {}
       await connection.end();
       return {
          result,

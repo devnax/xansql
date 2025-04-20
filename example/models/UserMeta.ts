@@ -23,7 +23,9 @@ const UserMetaSchema = new Schema({
    updated_at: timestamp().default('CURRENT_TIMESTAMP', true),
 })
 
-UserSchema.add('metas', relation('user_id', 'user_metas'))
+UserSchema.add({
+   metas: relation('user_id', 'user_metas')
+})
 
 class UserMeta extends Model {
    table = "user_metas"

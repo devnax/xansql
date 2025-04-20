@@ -15,7 +15,9 @@ export const ProductSchema = new Schema({
    updated_at: timestamp().default('CURRENT_TIMESTAMP', true),
 })
 
-UserSchema.add("products", relation("user_id", "products"))
+UserSchema.add({
+   products: relation("user_id", "products")
+})
 
 
 class Product extends Model {

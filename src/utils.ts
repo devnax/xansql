@@ -4,21 +4,15 @@ export const isObject = (v: any) => typeof v === 'object' && v !== null && !isAr
 export const isString = (v: any) => typeof v === 'string'
 export const isNumber = (v: any) => typeof v === 'number' && !isNaN(v)
 export const isBoolean = (v: any) => typeof v === 'boolean'
+
 export const formatValue = (v: any): any => {
-   if (isString(v)) {
-      v = sanitizeSqlValue(v)
-      return `'${v}'`
-   }
-   if (isNumber(v)) {
-      return v
-   }
+   if (v instanceof Date) v = v.toISOString()
+   if (isString(v)) return `'${escapeSqlValue(v)}'`
+   if (isNumber(v)) return v
    if (isBoolean(v)) return v ? 'TRUE' : 'FALSE'
    if (v === null) return 'NULL'
    if (v === undefined) return 'NULL'
-   if (v instanceof Date) return `'${v.toISOString()}'`
-   if (isArray(v)) {
-      return v.map((item) => formatValue(item)).join(',')
-   }
+   if (isArray(v)) return v.map((item) => formatValue(item)).join(',')
 }
 
 export const arrayMove = (arr: any[], fromIndex: number, toIndex: number) => {
@@ -28,13 +22,12 @@ export const arrayMove = (arr: any[], fromIndex: number, toIndex: number) => {
    return newArr;
 }
 
-export const sanitizeSqlValue = (v: string): string => {
-   return v
-      .replace(/\\/g, '\\\\')   // Escape \
-      .replace(/'/g, `\\'`)     // Escape '
-      .replace(/"/g, `\\"`)     // Escape "
-      .replace(/\n/g, '\\n')    // Newlines
-      .replace(/\r/g, '\\r')    // Carriage return
-      .replace(/\x00/g, '\\0')  // Null byte
+export const escapeSqlValue = (value: string): string => {
+   return value
+      .replace(/\\/g, '\\\\')   // Escape backslash
+      .replace(/'/g, `''`)      // Escape single quote by doubling it
+      .replace(/"/g, `\\"`)     // Escape double quote
+      .replace(/\n/g, '\\n')    // Escape newlines
+      .replace(/\r/g, '\\r')    // Escape carriage returns
+      .replace(/\x00/g, '\\0');
 }
-

@@ -39,14 +39,14 @@ class BaseDialect {
    }
 
    buildSchema(model: Model): string {
-      throw new Error(`buildSchema method not implemented in dialect ${this.driver}`);
+      throw new Error(`buildSchema method not implemented in dialect ${model.table}`);
    }
 
-   buildQuery(option: any): string {
+   buildQuery(_option: any): string {
       throw new Error("")
    }
 
-   async excute(sql: any): Promise<XansqlDialectExcuteReturn<any>> {
+   async excute(_sql: any): Promise<XansqlDialectExcuteReturn<any>> {
       throw new Error(`excute method not implemented in dialect ${this.driver}`);
    }
 }

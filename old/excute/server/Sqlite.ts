@@ -18,7 +18,7 @@ class SqliteExcuter {
       }
    }
 
-   async execute(query: string, params: any[] = []) {
+   async execute(query: string) {
       const connection = await this.connect();
       if (!connection) {
          throw new Error("Sqlite database connection failed");

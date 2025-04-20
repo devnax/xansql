@@ -1,5 +1,6 @@
 import BaseDialect from "./dialects/BaseDialect";
 import MysqlDialect from "./dialects/Mysql";
+import SqliteDialect from "./dialects/sqlite";
 import Model from "./model";
 import Column from "./schema/core/Column";
 import Relation from "./schema/core/Relation";
@@ -39,6 +40,13 @@ class xansql {
          }
       }
 
+      _config = {
+         dialect: dialect || "mysql",
+         cache: _config.cache || true,
+         maxDataLimit: 100,
+         ..._config
+      }
+
       Xansqls.set(this.instanceId, {
          dialects: new Map(),
          config: _config,
@@ -47,6 +55,7 @@ class xansql {
       })
 
       this.registerDialect(MysqlDialect);
+      this.registerDialect(SqliteDialect);
    }
 
    private registerDialect(dialect: typeof BaseDialect) {
@@ -148,7 +157,7 @@ class xansql {
       return dialect.buildSchema(model);
    }
 
-   excute = async (sql: string, model?: Model): Promise<XansqlDialectExcuteReturn<any>> => {
+   excute = async (sql: string): Promise<XansqlDialectExcuteReturn<any>> => {
       const dialect = this.getDialect();
       if (isServer) {
          return await dialect.excute(sql);

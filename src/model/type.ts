@@ -77,6 +77,15 @@ export type DeleteArgs = {
    where: WhereArgs;
 }
 
+export type CountSelectArgs = {
+   [relation_column: string]: boolean | CountSelectArgs;
+}
+
+export type CountArgs = {
+   where: WhereArgs;
+   select?: CountSelectArgs
+}
+
 export type GetRelationType = {
    single: boolean;
    main: {

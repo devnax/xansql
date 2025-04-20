@@ -24,6 +24,6 @@ export type ColumnTypes = typeof columnTypes[number];
 export type ColumnValue = (string | number)[]
 
 export type SchemaValue = Column | Relation | IDField
-export type SchemaMap = { id: IDField } & {
+export type SchemaMap = {
    [key: string]: SchemaValue
 }
