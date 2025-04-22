@@ -38,7 +38,7 @@ class MysqlDialect extends BaseDialect {
          const ref = constraints.references;
          let foreign = `FOREIGN KEY (${name}) REFERENCES ${ref.table}(${ref.column})`;
          if (constraints.onDelete) foreign += ` ON DELETE ${constraints.onDelete}`;
-         if (constraints.onUpdate) foreign += ` ON UPDATE ${constraints.onUpdate}`;
+         // if (constraints.onUpdate) foreign += ` ON UPDATE ${constraints.onUpdate}`;
          footer.push(foreign);
       }
 

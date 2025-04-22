@@ -18,29 +18,43 @@ abstract class ModelBase {
       this.xansql = xansql
    }
 
+   async excute(sql: string) {
+      const results = await this.xansql.excute(sql, this as any)
+      return results
+   }
+
    getRelation(column: string) {
       const schema = this.schema.get()
       const relation_column = schema[column]
       if (!(relation_column instanceof Relation)) throw new Error(`Invalid relation column ${this.table}.${column}`)
 
       if (!relation_column.table) {
-         const reference: any = schema[relation_column.column];
-         let foregin_table = reference.constraints.references.table
-         let foregin_column = reference.constraints.references.column
+         const reference: any = schema[relation_column.column]; // relation_column.column-> user_id
+         let foregin_table = reference.constraints.references.table // users
+         let foregin_column = reference.constraints.references.column // id
          if (!foregin_table) throw new Error(`Invalid relation column ${this.table}.${column}`)
          if (!foregin_column) throw new Error(`Invalid relation column ${this.table}.${column}`)
+
+         const foreginModel = this.xansql.getModel(foregin_table)
+         if (!foreginModel) throw new Error(`Invalid table name ${foregin_table}`)
+         const foreginSchema = foreginModel.schema.get()
+         let _for_col = ""
+         for (let fcolumn in foreginSchema) {
+            if (foreginSchema[fcolumn] instanceof Relation) {
+               const relation = foreginSchema[fcolumn] as Relation
+               if (relation.table === this.table && relation.column === relation_column.column) {
+                  _for_col = fcolumn
+                  break
+               }
+            }
+         }
+
+         let foreginRelation: any = foreginModel.getRelation(_for_col)
+
          return {
             single: true,
-            main: {
-               table: this.table,
-               column: relation_column.column,
-               alias: this.alias,
-            },
-            foregin: {
-               table: foregin_table,
-               column: foregin_column,
-               alias: this.xansql.getModel(foregin_table).alias
-            }
+            main: foreginRelation.foregin,
+            foregin: foreginRelation.main,
          }
       } else {
          const foreginModel = this.xansql.getModel((relation_column as any).table)
@@ -53,16 +67,29 @@ abstract class ModelBase {
          if (!references) throw new Error(`Invalid relation column ${relation_column.table}.${relation_column.column}`)
          if (references.table !== this.table) throw new Error(`Invalid relation column ${relation_column.table}.${relation_column.column}`);
 
+         let foriginField = ''
+         for (let column in foreginSchema) {
+            if (foreginSchema[column] instanceof Relation) {
+               const relation = foreginSchema[column] as Relation
+               if (relation.column === relation_column.column) {
+                  foriginField = column
+                  break
+               }
+            }
+         }
+
          return {
             single: false,
             main: {
                table: references.table,
                column: references.column,
+               field: column,
                alias: this.alias,
             },
             foregin: {
                table: relation_column.table as string,
                column: relation_column.column,
+               field: foriginField,
                alias: foreginModel.alias
             }
          }
@@ -156,7 +183,7 @@ abstract class ModelBase {
             const _where: any = where[column] || {}
 
             const build = this.buildWhere(_where, foreginModel, aliases)
-            info.wheres.push(`EXISTS (SELECT 1 FROM ${relation.foregin.table} ${build.alias} WHERE ${build.alias}.${relation.foregin.column} = ${relation.main.alias}.${relation.main.column} AND ${build.wheres.join(" AND ")})`)
+            info.wheres.push(`EXISTS (SELECT 1 FROM ${relation.foregin.table} ${build.alias} WHERE ${build.alias}.${relation.foregin.column} = ${relation.main.alias}.${relation.main.column} ${build.wheres.length ? ` AND ${build.wheres.join(" AND ")}` : ""})`)
          } else {
             let v = ``
             if (isObject(where[column])) {
@@ -262,7 +289,7 @@ abstract class ModelBase {
       }
 
       // excute sql
-      const excute = await this.xansql.excute(sql)
+      const excute = await this.excute(sql)
       let results = excute.result
       if (!results || !results.length) return []
       let _ins: {
@@ -305,7 +332,7 @@ abstract class ModelBase {
             }
          }
 
-         const rel_results = await this.buildFind(relation.args, _model)
+         const rel_results = await _model.find(relation.args)
          for (let res of results) {
             let filter = rel_results.filter((r) => r[foregin_column] === res[relation.relation.main.column])
             if (relation.relation.single) {
@@ -318,7 +345,7 @@ abstract class ModelBase {
       return results
    }
 
-   protected async buildCreate(args: CreateArgs, model: Model, foregineColumn?: string): Promise<any> {
+   protected async buildCreate(args: CreateArgs, model: Model): Promise<any> {
 
       let { data, select } = args
       const schema = model.schema.get()
@@ -336,7 +363,7 @@ abstract class ModelBase {
             res.push(await this.buildCreate({
                data: _data,
                select: select
-            }, model, foregineColumn))
+            }, model))
          }
          return res
       } else {
@@ -363,7 +390,7 @@ abstract class ModelBase {
          let values = Object.values(fields)
 
          let sql = `INSERT INTO ${model.table} (${columns.join(",")}) VALUES (${values.join(",")})`
-         const excute = await this.xansql.excute(sql)
+         const excute = await this.excute(sql)
          let result = null
          let findArgs: any = {}
          let idField = Object.keys(schema).find((column) => schema[column] instanceof IDField)
@@ -376,31 +403,29 @@ abstract class ModelBase {
             if (select === 'partial') {
                findArgs.select = {}
                for (let column in fields) {
-                  if (column === foregineColumn) continue
+                  // if (column === foregineColumn) continue
                   findArgs.select[column] = true
                }
             }
-            let find = await this.buildFind(findArgs, model)
+            let find = await model.find(findArgs)
             result = [{ [idField]: excute.insertId, ...find[0] }]
          }
          if (!result || !result.length) return null
          const excuteResult = result[0]
-
-
          for (let column in relations) {
             const { relation, data: rel_data } = relations[column]
             const _model = this.xansql.getModel(relation.foregin.table)
             for (let arg of rel_data) {
                arg[relation.foregin.column] = excuteResult[relation.main.column]
             }
-            const _foreginResult = await this.buildCreate({ data: rel_data, select }, _model, relation.foregin.column)
+            const _foreginResult = await _model.create({ data: rel_data, select })
             excuteResult[column] = _foreginResult
          }
          return excuteResult
       }
    }
 
-   protected async buildUpdate(args: UpdateArgs, model: Model, foregineColumn?: string): Promise<any> {
+   protected async buildUpdate(args: UpdateArgs, model: Model): Promise<any> {
       let { data, where, select } = args
       const schema = model.schema.get()
       let fields: { [column: string]: any } = {}
@@ -418,7 +443,7 @@ abstract class ModelBase {
                data: _data,
                where,
                select
-            }, model, foregineColumn))
+            }, model))
          }
          return res
       } else {
@@ -449,7 +474,7 @@ abstract class ModelBase {
             const buildWhere = this.buildWhere(where, model)
             let sql = `UPDATE ${model.table} ${model.alias} SET ${values.join(", ")}`
             sql += ` WHERE ${buildWhere.wheres.join(" AND ")}`
-            const excute = await this.xansql.excute(sql)
+            const excute = await this.excute(sql)
             if (!excute.affectedRows) return null
          }
 
@@ -464,7 +489,7 @@ abstract class ModelBase {
                   [idField]: true
                }
                for (let column in fields) {
-                  if (column === foregineColumn) continue
+                  // if (column === foregineColumn) continue
                   findArgs.select[column] = true
                }
             }
@@ -474,7 +499,7 @@ abstract class ModelBase {
             }
          }
 
-         let result = await this.buildFind(findArgs, model)
+         let result = await model.find(findArgs)
          if (!result || !result.length) return null
          for (let res of result) {
             for (let column in relations) {
@@ -485,7 +510,7 @@ abstract class ModelBase {
                let rel_where: any = { ...columnWhere, [relation.foregin.column]: res[relation.main.column] }
                _rel_data[relation.foregin.column] = res[relation.main.column]
 
-               const _foreginResult = await this.buildUpdate({ data: _rel_data, where: rel_where, select }, _model, relation.foregin.column)
+               const _foreginResult = await _model.update({ data: _rel_data, where: rel_where, select })
                res[column] = _foreginResult
             }
          }
@@ -495,65 +520,102 @@ abstract class ModelBase {
 
    protected async buildDelete(args: DeleteArgs, model: Model): Promise<any> {
       const { where } = args
+      const schema = this.schema.get()
+      for (let column in schema) {
+         const schemaValue = schema[column]
+         if (!schemaValue) throw new Error(`Invalid column ${model.table}.${column}`)
+         if (schemaValue instanceof Relation && schemaValue.column && schemaValue.table) {
+            const relation = model.getRelation(column)
+            const foreginModel = this.xansql.getModel(schemaValue.table)
+            const foreginSchema = foreginModel.schema.get()
+
+            const foreginColumn: any = foreginSchema[schemaValue.column]
+            const constraints = foreginColumn.constraints
+            let _model = this.xansql.getModel(relation.foregin.table)
+
+            switch (constraints.onDelete) {
+               case "CASCADE":
+                  await _model.delete({
+                     where: {
+                        [relation.foregin.field]: where
+                     }
+                  })
+                  break;
+               case "SET NULL":
+                  await _model.update({
+                     data: {
+                        [relation.foregin.field]: null
+                     },
+                     where: {
+                        [relation.foregin.field]: where
+                     }
+                  })
+                  break;
+               case "SET DEFAULT":
+                  await _model.update({
+                     data: {
+                        [relation.foregin.field]: constraints.default
+                     },
+                     where: {
+                        [relation.foregin.field]: where
+                     }
+                  })
+                  break;
+               case "RESTRICT":
+               case "NO ACTION":
+                  let _count = await _model.count({
+                     where: {
+                        [relation.foregin.field]: where
+                     }
+                  })
+                  if (_count._count) throw new Error(`Cannot delete ${model.table}.${column} because it is referenced by ${relation.foregin.table}.${relation.foregin.field}`)
+                  break;
+            }
+         }
+      }
+
       const buildWhere = this.buildWhere(where, model)
       let sql = `DELETE FROM ${model.table} ${model.alias}`
       sql += ` WHERE ${buildWhere.wheres.join(" AND ")}`
-      const excute = await this.xansql.excute(sql)
+      const excute = await this.excute(sql)
       return excute
    }
 
 
    protected async buildCount(args: CountArgs, model: Model) {
-      const schema = model.schema.get()
-      let columns: string[] = []
-      // {[foregin: string]: main_column} = {}
-      let ralation_columns: { [foregin: string]: string } = {}
+      const { where, select } = args
 
-      let relations: {
-         [column: string]: {
-            relation: GetRelationType,
-            args: CountArgs,
-         }
-      } = {}
-
-      const buildWhere = this.buildWhere(args.where, model)
-      let sql = `SELECT COUNT(*) AS ${model.table} FROM ${model.table} ${model.alias}`
+      const buildWhere = this.buildWhere(where, model)
+      let sql = `SELECT COUNT(*) as count FROM ${model.table} ${model.alias}`
       sql += buildWhere.wheres.length ? ` WHERE ${buildWhere.wheres.join(" AND ")}` : ""
-      const excute = await this.xansql.excute(sql)
-      let results = excute.result
-      if (!results || !results.length) return {}
+      const excute = await this.excute(sql)
+      const count: any = { _count: excute.result[0].count }
 
-      const find = await this.buildFind({
-         where: args.where,
-         select: {
-            id: true,
-            metas: {
-               id: true
-            }
-         }
-      }, model)
-      console.log(find);
-
-      let select: any = {}
-
-      for (let column in args.select) {
-         const schemaValue = schema[column]
-         if (!schemaValue) throw new Error(`Invalid column ${model.table}.${column}`)
+      for (let _select in select) {
+         let selectValue = select[_select]
+         const schemaValue = model.schema.get()[_select]
+         if (!schemaValue) throw new Error(`Invalid column ${model.table}.${_select}`)
          if (schemaValue instanceof Relation) {
-            const relation = model.getRelation(column)
-
-            select[column] = {
-               [relation.foregin.column]: true
+            const relation = model.getRelation(_select)
+            let _model = this.xansql.getModel(relation.foregin.table)
+            let d: any = {}
+            let _count = await _model.count({
+               where: {
+                  [relation.foregin.field]: where
+               }
+            })
+            d._count = _count._count
+            if (isObject(selectValue)) {
+               const build = await _model.count({ where: { [relation.foregin.field]: where }, select: selectValue as any })
+               d = {
+                  ...d,
+                  ...build
+               }
             }
-         } else {
-
+            count[_select] = d
          }
       }
-
-      console.log(select);
-
-
-      return results[0]
+      return count
    }
 }
 

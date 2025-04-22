@@ -4,8 +4,8 @@ import { XansqlConfigOptions } from '../../type';
 
 class Excuter {
    private config: XansqlConfigOptions;
-   db: Database | null = null
-   closeTimeout: NodeJS.Timeout | null = null
+   db: any;
+   timer: any;
    constructor(config: XansqlConfigOptions) {
       this.config = config
       if (typeof config.connection !== 'string') {
@@ -14,24 +14,31 @@ class Excuter {
    }
 
    async connect() {
-      if (this.db) return this.db
+      if (this.timer !== null) {
+         clearTimeout(this.timer);
+         this.timer = null;
+      }
+      if (this.db) return this.db;
       const db = await open({
          filename: this.config.connection as string,
          driver: sqlite3.Database
       });
-      this.db = db as any
+      this.db = db;
+      this.timer = setTimeout(() => {
+         this.db?.end();
+         this.db = null;
+      }, 1000 * 60 * 5); // 5 minutes
       return db
    }
 
    async excute(query: string) {
-      clearTimeout(this.closeTimeout as any)
       query = query.trim()
       let res;
       const db = await this.connect();
       if (query.startsWith('SELECT')) {
          const result: any = await db.all(query);
          res = {
-            result: result,
+            result,
             affectedRows: result.length,
             insertId: null,
          };
@@ -43,10 +50,6 @@ class Excuter {
             insertId: result.lastID,
          };
       }
-      this.closeTimeout = setTimeout(async () => {
-         await db.close();
-         this.db = null
-      }, 1000 * 60);
       return res
    }
 }

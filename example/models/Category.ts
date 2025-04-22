@@ -8,7 +8,7 @@ export const categoriesSchema = new Schema({
    id: id(),
    name: string(),
    description: string().null(),
-   product_id: integer().references('products', 'id').onDelete('CASCADE').onUpdate('CASCADE'),
+   product_id: integer().references('products', 'id').onDelete('CASCADE'),
    product: relation("product_id"),
    created_at: timestamp().default('CURRENT_TIMESTAMP'),
    updated_at: timestamp().default('CURRENT_TIMESTAMP', true),

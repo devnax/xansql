@@ -14,7 +14,7 @@ export type SQLConstraints = {
    autoincrement?: boolean;
    index?: boolean;
    onDelete?: ReferenceValue;
-   onUpdate?: "CURRENT_TIMESTAMP" | ReferenceValue;
+   onUpdate?: "CURRENT_TIMESTAMP"
    check?: string;
    collate?: string;
    comment?: string;

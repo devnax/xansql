@@ -1,33 +1,34 @@
-SELECT u.name, JSON_ARRAYAGG(
-        JSON_OBJECT(
-            'id', um.id, 'user', JSON_OBJECT(
-                'id', u1.id, 'name', u1.name, 'products', JSON_ARRAYAGG(
-                    JSON_OBJECT(
-                        'id', p.id, 'name', p.name, 'user', JSON_OBJECT(
-                            'id', u2.id, 'name', u2.name, 'email', u2.email, 'password', u2.password, 'created_at', u2.created_at, 'updated_at', u2.updated_at
-                        ), 'categorys', JSON_ARRAYAGG(
-                            JSON_OBJECT('id', c.id, 'name', c.name)
-                        )
-                    )
-                )
+-- Active: 1687499211543@@127.0.0.1@3306@xansql
+SELECT u.name, (
+    SELECT JSON_ARRAYAGG(
+            JSON_OBJECT(
+                'id', um.id, 'user', JSON_OBJECT('id', u1.id, 'name', u1.name)
             )
         )
-    ) AS metas
-FROM
-    users u
-    JOIN user_metas um ON um.user_id = u.id
-    JOIN users u1 ON u1.id = um.user_id
-    JOIN products p ON p.user_id = u.id
-    JOIN users u2 ON u2.id = p.user_id
-    JOIN categories c ON c.id = pc.category_id
-WHERE
-    u.status = 'active' AND EXISTS(
-        SELECT 1
-        FROM user_metas um2
-        WHERE um2.user_id = u.id AND um2.status = 'active'
-    )
-GROUP BY
-    u.id, u.name;
+    FROM user_metas um
+    WHERE
+        um.user_id = u.id
+) AS metas, (
+    SELECT JSON_ARRAYAGG(
+            JSON_OBJECT(
+                'id', p.id, 'name', p.name, 'user', JSON_OBJECT('id', u2.id, 'name', u2.name, 'metas', (
+                    SELECT JSON_ARRAYAGG(
+                            JSON_OBJECT(
+                                'id', um.id, 'user', JSON_OBJECT('id', u1.id, 'name', u1.name),
+                            )
+                        )
+                    FROM user_metas um
+                    WHERE
+                        um.user_id = u2.id
+                ))
+            )
+        )
+    FROM products p
+    WHERE
+        p.user_id = u.id
+) AS products
+FROM users u
+   
 
 SELECT 1 FROM users 
 JOIN user_metas um ON um.user_id = u.id
@@ -82,20 +83,17 @@ SELECT u.name, (
     ) AS products
 FROM users u
 WHERE
-    u.status = 'active'
     AND EXISTS (
         SELECT 1
         FROM user_metas um
         WHERE
             um.user_id = u.id
-            AND um.status = 'active'
     )
     AND EXISTS (
         SELECT 1
         FROM products p
         WHERE
             p.user_id = u.id
-            AND p.status = 'active'
     );
 
 
@@ -155,3 +153,35 @@ FROM
     LEFT JOIN user_metas um ON um.user_id = u.id
     LEFT JOIN products p ON p.user_id = u.id
     LEFT JOIN categories c ON c.product_id = p.id
+
+SELECT JSON_OBJECT(
+        'users', JSON_OBJECT(
+            '_count', COUNT(DISTINCT u.id), 'user_metas', JSON_OBJECT(
+                '_count', (
+                    SELECT COUNT(DISTINCT um.id)
+                    FROM user_metas um
+                    WHERE
+                        um.user_id = u.id
+                )
+            ), 'products', JSON_OBJECT(
+                '_count', (
+                    SELECT COUNT(DISTINCT p.id)
+                    FROM products p
+                    WHERE
+                        p.user_id = u.id
+                ), 'categories', JSON_OBJECT(
+                    '_count', (
+                        SELECT COUNT(DISTINCT c.id)
+                        FROM products p
+                            JOIN categories c ON c.product_id = p.id
+                        WHERE
+                            p.user_id = u.id
+                    )
+                )
+            )
+        )
+    ) AS _COUNT
+FROM users u
+GROUP BY
+    u.id
+LIMIT 10;

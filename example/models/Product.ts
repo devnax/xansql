@@ -9,7 +9,7 @@ export const ProductSchema = new Schema({
    name: string(),
    price: string(),
    description: string().null(),
-   user_id: integer().references('users', 'id').onDelete('CASCADE').onUpdate('CASCADE'),
+   user_id: integer().references('users', 'id').onDelete('CASCADE'),
    user: relation("user_id"),
    created_at: timestamp().default('CURRENT_TIMESTAMP'),
    updated_at: timestamp().default('CURRENT_TIMESTAMP', true),

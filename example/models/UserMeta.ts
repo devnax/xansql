@@ -15,7 +15,7 @@ export interface UserMetaData {
 
 const UserMetaSchema = new Schema({
    id: id(),
-   user_id: integer().references('users', 'id').onCascade(),
+   user_id: integer().references('users', 'id').onDelete('CASCADE'),
    user: relation('user_id'),
    meta_key: string(),
    meta_value: string(),

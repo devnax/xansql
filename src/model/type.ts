@@ -92,10 +92,12 @@ export type GetRelationType = {
       table: string;
       column: string;
       alias: string;
+      field: string;
    };
    foregin: {
       table: string;
       column: string;
       alias: string;
+      field: string;
    };
 }

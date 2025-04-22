@@ -31,15 +31,6 @@ class Column {
       this.value = value;
    }
 
-   // autoincrement(): this {
-   //    this.constraints.autoincrement = true;
-   //    return this;
-   // }
-   // primaryKey(): this {
-   //    this.constraints.primaryKey = true;
-   //    return this;
-   // }
-
    // Set a default value for the column
    default(value: any, onUpdateTimeStamp?: boolean): this {
       this.constraints.default = value;
@@ -49,8 +40,6 @@ class Column {
       this.null()
       return this;
    }
-
-
 
    // Define a foreign key reference with related constraints
    references(table: string, column: string): this {
@@ -110,30 +99,32 @@ class Column {
       this.constraints.onDelete = value;
       return this
    }
-   onUpdate(value: ReferenceValue) {
+
+   onUpdate(value: "CURRENT_TIMESTAMP") {
       this.constraints.onUpdate = value;
       return this
    }
-   onCascade() {
-      this.constraints.onDelete = "CASCADE";
-      this.constraints.onUpdate = "CASCADE";
-      return this
-   }
-   onRestrict() {
-      this.constraints.onDelete = "RESTRICT";
-      this.constraints.onUpdate = "RESTRICT";
-      return this
-   }
-   onSetNull() {
-      this.constraints.onDelete = "SET NULL";
-      this.constraints.onUpdate = "SET NULL";
-      return this
-   }
-   onSetDefault() {
-      this.constraints.onDelete = "SET DEFAULT";
-      this.constraints.onUpdate = "SET DEFAULT";
-      return this
-   }
+
+   // onCascade() {
+   //    this.constraints.onDelete = "CASCADE";
+   //    this.constraints.onUpdate = "CASCADE";
+   //    return this
+   // }
+   // onRestrict() {
+   //    this.constraints.onDelete = "RESTRICT";
+   //    this.constraints.onUpdate = "RESTRICT";
+   //    return this
+   // }
+   // onSetNull() {
+   //    this.constraints.onDelete = "SET NULL";
+   //    this.constraints.onUpdate = "SET NULL";
+   //    return this
+   // }
+   // onSetDefault() {
+   //    this.constraints.onDelete = "SET DEFAULT";
+   //    this.constraints.onUpdate = "SET DEFAULT";
+   //    return this
+   // }
 }
 
 export default Column;

@@ -157,7 +157,7 @@ class xansql {
       return dialect.buildSchema(model);
    }
 
-   excute = async (sql: string): Promise<XansqlDialectExcuteReturn<any>> => {
+   excute = async (sql: string, model: Model): Promise<XansqlDialectExcuteReturn<any>> => {
       const dialect = this.getDialect();
       if (isServer) {
          return await dialect.excute(sql);
@@ -174,14 +174,14 @@ class xansql {
          if (force) {
             for (let table of [...tables].reverse()) {
                const model = this.getModel(table)
-               await this.excute(`DROP TABLE IF EXISTS ${model.table}`)
+               await this.excute(`DROP TABLE IF EXISTS ${model.table}`, model)
             }
          }
 
          for (let table of tables) {
             const model = this.getModel(table)
             const sql = this.buildSchema(model);
-            await this.excute(sql)
+            await this.excute(sql, model)
          }
       }
    }
