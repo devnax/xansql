@@ -101,3 +101,7 @@ export type GetRelationType = {
       field: string;
    };
 }
+
+export type ReturnCount = {
+   [column: string | '_count']: number | ReturnCount;
+}

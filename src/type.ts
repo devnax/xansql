@@ -22,17 +22,12 @@ export const DialectDrivers = ["mysql", "sqlite", "postgres"] as const
 
 export type XansqlDialectDriver = typeof DialectDrivers[number];
 export type XansqlDialectsFactory = Map<XansqlDialectDriver, BaseDialect>;
-export type XansqlDialectExcuteReturn<R> = {
-   result: R[],
+
+export type XansqlDialectExcuteReturn<DATA> = {
+   result: DATA[] | null,
    affectedRows: number,
    insertId: number,
 }
 
 export type ModelTableName = string
 export type XansqlModelsFactory = Map<ModelTableName, Model>;
-
-export type JsonQueryOption = {
-   select: [],
-   where: {},
-   relations: { [table_name: string]: JsonQueryOption }
-}

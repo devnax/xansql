@@ -66,7 +66,7 @@ class SqliteDialect extends BaseDialect {
       if (constraints.references) {
          const ref = constraints.references;
          let foreign = `FOREIGN KEY (${name}) REFERENCES ${ref.table}(${ref.column})`;
-         if (constraints.onDelete) foreign += ` ON DELETE ${constraints.onDelete}`;
+         // if (constraints.onDelete) foreign += ` ON DELETE ${constraints.onDelete}`;
          // if (constraints.onUpdate) foreign += ` ON UPDATE ${constraints.onUpdate}`;
          footer.push(foreign);
       }
@@ -116,11 +116,10 @@ class SqliteDialect extends BaseDialect {
    }
 
    async excute(sql: any) {
-      const xanconfig = await this.xansql.getConfig()
       if (isServer) {
          if (!this.excuter) {
             const mod = await import("./excuter");
-            this.excuter = new mod.default(xanconfig,);
+            this.excuter = new mod.default(this.xansql.config);
          }
          return await this.excuter.excute(sql);
       }

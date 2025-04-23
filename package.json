@@ -25,18 +25,23 @@
       "build:publish": "makepack publish"
    },
    "dependencies": {
+      "alasql": "^4.6.6",
       "mysql2": "^3.14.0",
+      "pako": "^2.1.0",
       "pg": "^8.14.1",
       "sqlite": "^5.1.1",
-      "sqlite3": "^5.1.7"
+      "sqlite3": "^5.1.7",
+      "tweetnacl": "^1.0.3",
+      "youid": "^1.0.5"
    },
    "devDependencies": {
-      "faker": "^6.6.6",
       "@faker-js/faker": "^9.7.0",
       "@types/express": "latest",
+      "@types/pako": "^2.0.3",
       "@types/react": "^19.0.2",
       "@types/react-dom": "^19.0.2",
       "express": "latest",
+      "faker": "^6.6.6",
       "makepack": "latest",
       "react": "^19.0.0",
       "react-dom": "^19.0.0",
