@@ -4,6 +4,20 @@ import UserMetaModel from "./example/models/UserMeta"
 import ProductModel from "./example/models/Product"
 import CategoryModel from "./example/models/Category"
 import fakeData from './faker'
+import alasql from 'alasql'
+// Create separate instances
+const db1 = new alasql.Database();
+const db2 = new alasql.Database();
+
+db1.exec('CREATE TABLE cities (city STRING, population NUMBER);');
+db1.exec("INSERT INTO cities VALUES ('Rome',2863223);");
+
+db2.exec('CREATE TABLE cities (city STRING, population NUMBER);');
+db2.exec("INSERT INTO cities VALUES ('Madrid',3041579);");
+db2.exec("INSERT INTO cities VALUES ('London',3344);");
+
+console.log('DB1:', db1.exec('SELECT * FROM cities'));
+console.log('DB2:', db2.exec('SELECT * FROM cities'));
 
 let mysql: any = "mysql://root:root@127.0.0.1:3306/xansql"
 let sqlite: any = {
