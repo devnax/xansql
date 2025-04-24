@@ -228,7 +228,6 @@ abstract class ModelBase {
       const schema = model.schema.get()
       const idField: string = model.idField() as any
       let columns: string[] = []
-      // {[foregin: string]: main_column} = {}
       let ralation_columns: { [foregin: string]: string } = {}
 
       let relations: {
@@ -365,13 +364,9 @@ abstract class ModelBase {
          // }
          relation.args.limit = {}
          const rel_results = await _model.find(relation.args) || []
-         let formate: any = {}
-
          for (let rel_result of rel_results) {
             let res: any = rel_result
             const id = res[foregin_column]
-            if (!formate[id]) formate[id] = []
-            formate[id].push(rel_result)
             const index = resultIndex[foregin_column][id]
             if (index !== undefined) {
                if (relation.relation.single) {
