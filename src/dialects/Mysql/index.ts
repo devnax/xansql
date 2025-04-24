@@ -36,13 +36,13 @@ class MysqlDialect extends BaseDialect {
       if (constraints.onUpdate === 'CURRENT_TIMESTAMP') sql += ` ON UPDATE ${constraints.onUpdate}`;
       if (constraints.references) {
          const ref = constraints.references;
-         let foreign = `FOREIGN KEY (${name}) REFERENCES ${ref.table}(${ref.column})`;
+         let foreign = `FOREIGN KEY (\`${name}\`) REFERENCES \`${ref.table}\`(\`${ref.column}\`)`;
          // if (constraints.onDelete) foreign += ` ON DELETE ${constraints.onDelete}`;
          // if (constraints.onUpdate) foreign += ` ON UPDATE ${constraints.onUpdate}`;
          footer.push(foreign);
       }
 
-      if (constraints.index) footer.push(`INDEX ${name}_index (${name})`);
+      if (constraints.index) footer.push(`INDEX ${name}_index (\`${name}\`)`);
       if (constraints.check) sql += ` CHECK (${constraints.check})`;
       if (constraints.collate) sql += ` COLLATE ${constraints.collate}`;
       if (constraints.comment) sql += ` COMMENT '${constraints.comment}'`;
@@ -61,11 +61,11 @@ class MysqlDialect extends BaseDialect {
          if (column instanceof Relation) return '';
 
          if (column instanceof IDField) {
-            return `${key} INT PRIMARY KEY AUTO_INCREMENT`;
+            return `\`${key}\` INT PRIMARY KEY AUTO_INCREMENT`;
          }
          let c = this.constraints(key, column)
          footer = [...footer, ...c.footer]
-         return `${key} ${this.getType(column)} ${c.sql}`;
+         return `\`${key}\` ${this.getType(column)} ${c.sql}`;
       }).filter(Boolean).join(",\n");
 
       let sql = columns;
@@ -73,7 +73,7 @@ class MysqlDialect extends BaseDialect {
          sql += `,\n${footer.join(",\n")}`;
       }
 
-      return `CREATE TABLE IF NOT EXISTS ${tableName} (\n${sql}\n);`;
+      return `CREATE TABLE IF NOT EXISTS \`${tableName}\` (\n${sql}\n);`;
    }
 
    async excute(sql: any) {

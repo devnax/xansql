@@ -1,7 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import xansql from './src';
-// export const mysql = new xansql("")
+export const mysql = new xansql("test")
 
 import alasql from 'alasql'
 // Create separate instances

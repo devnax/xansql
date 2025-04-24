@@ -13,13 +13,25 @@ abstract class ModelBase {
    table: string = "";
    alias: string = "";
    schema: Schema = new Schema({ id: id() });
+   private _idField: string = ''
 
    constructor(xansql: xansql) {
       this.xansql = xansql
    }
 
+   idField() {
+      if (this._idField) return this._idField
+      const schema = this.schema.get()
+      for (let column in schema) {
+         if (schema[column] instanceof IDField) {
+            this._idField = column
+            return column
+         }
+      }
+   }
+
    async excute(sql: string) {
-      const results = await this.xansql.excute(sql, this as any)
+      const results = await this.xansql.excute(sql)
       return results
    }
 
@@ -212,8 +224,9 @@ abstract class ModelBase {
    }
 
    protected async buildFind(args: FindArgs, model: Model): Promise<any[] | null> {
-      if (!args.where || !Object.keys(args.where).length) throw new Error("Where clause is required");
+      // if (!args.where || !Object.keys(args.where).length) throw new Error("Where clause is required");
       const schema = model.schema.get()
+      const idField: string = model.idField() as any
       let columns: string[] = []
       // {[foregin: string]: main_column} = {}
       let ralation_columns: { [foregin: string]: string } = {}
@@ -267,6 +280,10 @@ abstract class ModelBase {
          }
       }
 
+      if (!columns.includes(idField)) {
+         columns = [idField, ...columns]
+      }
+
       let _fields = columns.length ? columns.join(',') : ["*"]
       let sql = `SELECT ${_fields} FROM ${model.table} ${model.alias}`
       const buildWhere = this.buildWhere(args.where, model)
@@ -278,14 +295,20 @@ abstract class ModelBase {
          sql += orderByFields.length ? ` ORDER BY ${orderBy.join(",")}` : ""
       }
 
-      let take = args.limit?.take || this.xansql.config.maxDataLimit || 0
-      sql += ` LIMIT ${take}`
-      if (args.limit?.skip || args.limit?.page) {
-         let skip = args.limit.skip
-         if (args.limit.page) {
-            skip = (args.limit.page - 1) * take
+      if (args.limit) {
+         if (args.limit.take) {
+            let take = args.limit.take
+            sql += ` LIMIT ${take}`
+            if (args.limit?.skip || args.limit?.page) {
+               let skip = args.limit.skip
+               if (args.limit.page) {
+                  skip = (args.limit.page - 1) * take
+               }
+               sql += `OFFSET ${skip}`
+            }
          }
-         sql += `OFFSET ${skip}`
+      } else {
+         sql += ` LIMIT ${this.xansql.config.maxDataLimit || 100}`
       }
 
       // excute sql
@@ -335,8 +358,9 @@ abstract class ModelBase {
          // relation.args.where = {
          //    [relation.relation.foregin.field]: args.where
          // }
-
+         relation.args.limit = {}
          const rel_results = await _model.find(relation.args) || []
+
          for (let res of results) {
             let filter = rel_results.filter((r: any) => r[foregin_column] === res[relation.relation.main.column])
             if (relation.relation.single) {

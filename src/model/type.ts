@@ -50,6 +50,7 @@ export type FindArgs = {
    select?: SelectClause;
    limit?: LimitClause
    orderBy?: OrderByClause;
+   cache?: boolean;
 }
 
 export type DataClause = string | number | boolean | Date | null

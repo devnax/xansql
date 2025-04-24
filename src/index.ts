@@ -70,53 +70,21 @@ class xansql {
          if (force) {
             for (let table of [...tables].reverse()) {
                const model = this.getModel(table)
-               await this.excute(`DROP TABLE IF EXISTS ${model.table}`, model)
+               await this.excute(`DROP TABLE IF EXISTS ${model.table}`)
             }
          }
          for (let table of tables) {
             const model = this.getModel(table)
             const sql = this.buildSchema(model);
-            await this.excute(sql, model)
+            await this.excute(sql)
          }
       }
    }
 
-   excute = async (sql: string, model: Model): Promise<XansqlDialectExcuteReturn<any>> => {
-      const cache = await this.Cache()
-      const isCache = cache && (model as any).xansql.dialect !== 'cache'
-      if (isCache) {
-         let key = youid(sql) as string
-         const find: any = await cache.findOne({
-            where: {
-               cache_key: key,
-            }
-         })
-
-         if (find) {
-            const cacheValue = find.cache_value
-            const decompress = pako.decompress(cacheValue) as string
-            return JSON.parse(decompress)
-         }
-      }
-
+   excute = async (sql: string): Promise<XansqlDialectExcuteReturn<any>> => {
       const dialect = this.getDialect();
       if (isServer) {
          const res = await dialect.excute(sql);
-
-         if (isCache) {
-            const cacheKey = youid(sql) as string
-            const cacheValue = JSON.stringify(res)
-            const compress = pako.compress(cacheValue) as string
-            await cache.create({
-               data: {
-                  cache_key: cacheKey,
-                  cache_value: compress,
-                  expire: "0",
-                  created_at: new Date().toISOString()
-               }
-            })
-         }
-
          return res
       } else {
          throw new Error("Client excute not implemented yet");

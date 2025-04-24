@@ -65,13 +65,13 @@ class SqliteDialect extends BaseDialect {
       }
       if (constraints.references) {
          const ref = constraints.references;
-         let foreign = `FOREIGN KEY (${name}) REFERENCES ${ref.table}(${ref.column})`;
+         let foreign = `FOREIGN KEY (\`${name}\`) REFERENCES \`${ref.table}\`(\`${ref.column}\`)`;
          // if (constraints.onDelete) foreign += ` ON DELETE ${constraints.onDelete}`;
          // if (constraints.onUpdate) foreign += ` ON UPDATE ${constraints.onUpdate}`;
          footer.push(foreign);
       }
 
-      if (constraints.index) indexes.push(`CREATE INDEX IF NOT EXISTS ${name}_index ON ${table}(${name})`);
+      if (constraints.index) indexes.push(`CREATE INDEX IF NOT EXISTS ${name}_index ON \`${table}\`(\`${name}\`)`);
       if (constraints.check) sql += ` CHECK (${constraints.check})`;
       if (constraints.collate) sql += ` COLLATE ${constraints.collate}`;
       if (constraints.comment) {
@@ -93,19 +93,19 @@ class SqliteDialect extends BaseDialect {
          if (column instanceof Relation) return '';
 
          if (column instanceof IDField) {
-            return `${key} INTEGER PRIMARY KEY AUTOINCREMENT`;
+            return `\`${key}\` INTEGER PRIMARY KEY AUTOINCREMENT`;
          }
          let c = this.constraints(key, column, model.table)
          footer = [...footer, ...c.footer]
          indexes = [...indexes, ...c.indexes]
-         return `${key} ${this.getType(column)} ${c.sql}`;
+         return `\`${key}\` ${this.getType(column)} ${c.sql}`;
       }).filter(Boolean).join(",\n");
 
       let sql = columns;
       if (footer.length) {
          sql += `,\n${footer.join(",\n")}`;
       }
-      sql = `CREATE TABLE IF NOT EXISTS ${tableName} (\n${sql}\n);`;
+      sql = `CREATE TABLE IF NOT EXISTS \`${tableName}\` (\n${sql}\n);`;
       if (indexes.length) {
          sql += `\n${indexes.join(";\n")};`;
       }
