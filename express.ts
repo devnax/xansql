@@ -68,24 +68,24 @@ const server = async (app) => {
          },
          where: {
             // id: {
-            //    in: [16689]
+            //    in: [16688]
             // }
          }
       })
-      // const metas = await UserMeta.find({
-      //    select: {
-      //       id: true,
-      //       meta_key: true,
-      //       meta_value: true,
-      //       user_id: true
-      //    },
-      //    where: {
-      //       user_id: 16689
-      //    }
-      // })
+      const metas = await UserMeta.find({
+         select: {
+            id: true,
+            meta_key: true,
+            meta_value: true,
+            user_id: true
+         },
+         where: {
+            user_id: 16688
+         }
+      })
       res.json({
          length: users?.length,
-         // metas,
+         metas,
          users
       });
    });

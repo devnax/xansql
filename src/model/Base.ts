@@ -319,12 +319,17 @@ abstract class ModelBase {
          [foregin_column: string]: any[] // ids
       } = {}
 
+      const resultIndex: any = {}
+
       for (let foregin_column in ralation_columns) {
          let main_column = ralation_columns[foregin_column]
          if (!(foregin_column in _ins)) {
             _ins[foregin_column] = []
-            for (let result of results) {
+            for (let i = 0; i < results.length; i++) {
+               let result = results[i]
                _ins[foregin_column].push(result[main_column])
+               if (!resultIndex[foregin_column]) resultIndex[foregin_column] = {}
+               resultIndex[foregin_column][result[main_column]] = i
             }
          }
       }
@@ -360,14 +365,23 @@ abstract class ModelBase {
          // }
          relation.args.limit = {}
          const rel_results = await _model.find(relation.args) || []
+         let formate: any = {}
 
-         for (let res of results) {
-            let filter = rel_results.filter((r: any) => r[foregin_column] === res[relation.relation.main.column])
-            if (relation.relation.single) {
-               res[column] = filter[0] || null
-            } else {
-               res[column] = filter || []
+         for (let rel_result of rel_results) {
+            let res: any = rel_result
+            const id = res[foregin_column]
+            if (!formate[id]) formate[id] = []
+            formate[id].push(rel_result)
+            const index = resultIndex[foregin_column][id]
+            if (index !== undefined) {
+               if (relation.relation.single) {
+                  results[index][column] = res
+               } else {
+                  if (!results[index][column]) results[index][column] = []
+                  results[index][column].push(res)
+               }
             }
+
          }
       }
       return results
