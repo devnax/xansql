@@ -33,7 +33,7 @@ function buildCategories(count = 3): Category[] {
    }));
 }
 
-function buildProducts(count = 2): Product[] {
+function buildProducts(count = 20): Product[] {
    return Array.from({ length: count }, () => {
       return {
          name: faker.commerce.productName(),
@@ -44,7 +44,7 @@ function buildProducts(count = 2): Product[] {
    });
 }
 
-function buildUserMetas(count = 2): UserMeta[] {
+function buildUserMetas(count = 15): UserMeta[] {
    return Array.from({ length: count }, () => ({
       meta_key: faker.helpers.arrayElement(['bio', 'location', 'website']),
       meta_value: faker.lorem.words(3),

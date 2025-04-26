@@ -1,32 +1,28 @@
-import xansql from "./src"
-import UserModel from "./example/models/User"
-import UserMetaModel from "./example/models/UserMeta"
-import ProductModel from "./example/models/Product"
-import CategoryModel from "./example/models/Category"
+import dotenv from 'dotenv'
+dotenv.config()
 import fakeData from './faker'
-
-
-let mysql: any = {
-   dialect: 'mysql',
-   connection: "mysql://root:root@127.0.0.1:3306/xansql",
-}
-let sqlite: any = {
-   dialect: 'sqlite',
-   connection: 'db.sqlite'
-}
-export const db = new xansql(mysql)
-const UserMeta = db.model(UserMetaModel)
-const Product = db.model(ProductModel)
-const Category = db.model(CategoryModel)
-const User = db.model(UserModel)
-
+import { db, User } from './example';
+import './example/index'
+import './src/securequ/server';
 
 const server = async (app) => {
-   app.get('/data', async (req, res) => {
+   // app.use('/data/*', async (req, res) => {
+   //    const response = await sqserver.listen({
+   //       signeture: req.headers['x-signeture'],
+   //       path: req.originalUrl,
+   //       body: req.body,
+   //       method: req.method as any,
+   //    }, req)
+   //    res.status(response.status).end(response?.value);
+   // });
+   app.get('/datas', async (req, res) => {
       const users = await User.find({
-         // orderBy: {
-         //    id: "desc",
-         // },
+         orderBy: {
+            // id: "desc",
+         },
+         limit: {
+            take: 100
+         },
          select: {
             id: true,
             name: true,
@@ -38,20 +34,20 @@ const server = async (app) => {
             products: {
                id: true,
                name: true,
-               // categories: {
-               //    id: true,
-               //    name: true
-               // }
+               categories: {
+                  id: true,
+                  name: true
+               }
             }
          },
          where: {
-            id: {
-               in: [
-                  1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
-                  21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
-                  41, 42, 43, 44, 45, 46, 47, 48, 49, 50
-               ]
-            }
+            // id: {
+            //    in: [
+            //       1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+            //       21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
+            //       41, 42, 43, 44, 45, 46, 47, 48, 49, 50
+            //    ]
+            // }
          }
       })
 
@@ -83,32 +79,8 @@ const server = async (app) => {
       res.json({ usersCount, users });
    });
    app.get('/faker', async (req, res) => {
-      const users = fakeData(1000)
-      const d = await User.create({
-         data: {
-            name: "John Doe",
-            email: "example@gmail.com",
-            password: "123456",
-            metas: [
-               {
-                  meta_key: "test",
-                  meta_value: "test"
-               }
-            ],
-            products: [
-               {
-                  name: "Product 1",
-                  price: 100,
-                  categories: [
-                     {
-                        name: "Category 1",
-                        description: "Category 1 description"
-                     }
-                  ]
-               }
-            ]
-         }
-      })
+      const users = fakeData(10000)
+      const d = await User.create({ data: users })
       res.send(d);
    });
    app.get('/delete', async (req, res) => {

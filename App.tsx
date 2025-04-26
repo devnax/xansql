@@ -1,31 +1,24 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import xansql from './src';
-export const mysql = new xansql("test")
+import { User } from './example';
 
-import alasql from 'alasql'
-// Create separate instances
-const db1 = new alasql.Database();
-const db2 = new alasql.Database();
+const c = async () => {
+  const users = await User.find({
+    orderBy: {
+      id: "desc",
+    },
+    limit: {
+      take: 100
+    },
+    where: {
+      id: 1
+    }
+  })
+  console.log(users);
 
-db1.exec('CREATE TABLE cities (city STRING, population NUMBER);');
-db1.exec("INSERT INTO cities VALUES ('Rome',2863223);");
+}
 
-db2.exec('CREATE TABLE cities (city STRING, population NUMBER);');
-db2.exec("INSERT INTO cities VALUES ('Madrid',3041579);");
-db2.exec("INSERT INTO cities VALUES ('London',3344);");
-
-const cities = [
-  { city: 'Rome', population: 2863223 },
-  { city: 'Paris', population: 2249975 },
-  { city: 'Berlin', population: 3517424 },
-  { city: 'Madrid', population: 3041579 },
-];
-const query = 'SELECT * FROM ? WHERE population < 3500000 ORDER BY population DESC';
-const result = alasql(query, [cities]);
-
-console.log('DB1:', result);
-console.log('DB2:', db2.exec('SELECT * FROM cities'));
+c()
 
 const App = () => {
   return (

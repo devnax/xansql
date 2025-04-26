@@ -26,9 +26,11 @@
    },
    "dependencies": {
       "alasql": "^4.6.6",
+      "dotenv": "^16.5.0",
       "mysql2": "^3.14.0",
       "pako": "^2.1.0",
       "pg": "^8.14.1",
+      "securequ": "^1.0.0",
       "sqlite": "^5.1.1",
       "sqlite3": "^5.1.7",
       "tweetnacl": "^1.0.3",

@@ -82,12 +82,16 @@ class xansql {
    }
 
    excute = async (sql: string): Promise<XansqlDialectExcuteReturn<any>> => {
-      const dialect = this.getDialect();
       if (isServer) {
+         const dialect = this.getDialect();
          const res = await dialect.excute(sql);
          return res
       } else {
-         throw new Error("Client excute not implemented yet");
+         return {
+            result: [],
+            affectedRows: 0,
+            insertId: 0,
+         }
       }
    }
 
