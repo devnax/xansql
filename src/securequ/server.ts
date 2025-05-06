@@ -1,20 +1,18 @@
-import * as s from "securequ";
-console.log(s);
+import securequ from "securequ";
 
+const sqserver = new securequ.SecurequServer({
+   basepath: "/data"
+});
 
-// const sqserver = new SecurequServer({
-//    basepath: "/data"
-// });
+sqserver.get('/testasdasd', () => {
+   throw {
+      name: "1",
+      age: 20
+   }
+})
 
-// sqserver.get('/testasdasd', () => {
-//    throw {
-//       name: "1",
-//       age: 20
-//    }
-// })
+sqserver.post('/:id', (info) => {
+   throw new Response(JSON.stringify({ name: "1" }))
+})
 
-// sqserver.post('/:id', (info) => {
-//    throw new Response(JSON.stringify({ name: "1" }))
-// })
-
-// export default sqserver
+export default sqserver

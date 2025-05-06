@@ -1,4 +1,3 @@
-import youid from "youid";
 import BaseDialect from "./dialects/BaseDialect";
 import CacheDialect from "./dialects/Cache";
 import Cache from "./dialects/Cache/Cache";
