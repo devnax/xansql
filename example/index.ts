@@ -3,6 +3,7 @@ import UserModel from "./models/User"
 import UserMetaModel from "./models/UserMeta"
 import ProductModel from "./models/Product"
 import CategoryModel from "./models/Category"
+import mysqldialect from "../src/dialects/Mysql"
 import dotenv from 'dotenv'
 
 if (typeof process !== 'undefined' && process?.env) {
@@ -13,7 +14,7 @@ if (typeof process !== 'undefined' && process?.env) {
    }
 }
 
-const conn = typeof process !== 'undefined' ? process.env.MYSQL_DB : 'http://localhost:3000/data';
+const conn: string = (typeof process !== 'undefined' ? process.env.MYSQL_DB : 'http://localhost:3000/data') as string
 
 let mysql: any = {
    dialect: 'mysql',
@@ -26,14 +27,10 @@ let sqlite: any = {
 }
 export const db = new xansql({
    connection: conn,
-   dialect: "mysql",
-   cache: [
-      {
-
-      }
-   ]
+   dialect: mysqldialect,
+   cache: []
 })
-export const UserMeta = db.model(UserMetaModel)
-export const Product = db.model(ProductModel)
-export const Category = db.model(CategoryModel)
-export const User = db.model(UserModel)
+export const UserMeta = db.registerModel(UserMetaModel)
+export const Product = db.registerModel(ProductModel)
+export const Category = db.registerModel(CategoryModel)
+export const User = db.registerModel(UserModel)

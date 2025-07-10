@@ -1,10 +1,12 @@
-import securequ from "securequ";
+import { SecurequServer } from "securequ";
+import xansql from "..";
+import { ListenerInfo } from "securequ/server/types";
 
-const sqserver = new securequ.SecurequServer({
+const sqserver = new SecurequServer({
    basepath: "/data"
 });
 
-sqserver.get('/testasdasd', () => {
+sqserver.get('/test', () => {
    throw {
       name: "1",
       age: 20
@@ -16,3 +18,7 @@ sqserver.post('/:id', (info) => {
 })
 
 export default sqserver
+
+const XansqlSecurequServer = async (xansql: xansql, info: ListenerInfo, req: any) => {
+   const response = await sqserver.listen(info, req)
+}

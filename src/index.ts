@@ -1,73 +1,32 @@
-// import SecurequClient from "securequ/client";
-import BaseDialect from "./dialects/BaseDialect";
-import CacheDialect from "./dialects/Cache";
-import Cache from "./dialects/Cache/Cache";
-import MysqlDialect from "./dialects/Mysql";
-import SqliteDialect from "./dialects/Sqlite";
 import Model from "./model";
 import Column from "./schema/core/Column";
-import { DialectDrivers, XansqlConfig, XansqlConfigOptions, XansqlDialectDriver, XansqlDialectExcuteReturn, XansqlDialectsFactory, XansqlModelsFactory } from "./type";
+import { XansqlConfig, XansqlConfigOptions, XansqlDialectExcuteReturn, XansqlModelsFactory } from "./type";
 import { arrayMove, isServer } from "./utils";
 export * from './schema'
+import sqclietn from "./securequ/client";
 
 class xansql {
    private models: XansqlModelsFactory = new Map()
-   config: XansqlConfigOptions
-   // private securequClient: SecurequClient | null = null;
+   private config: XansqlConfig
+
 
    constructor(config: XansqlConfig) {
-      if (typeof config === "function") config = config()
-      if (!config.connection) throw new Error("Connection string is required")
-      if (!config.dialect) throw new Error("Dialect is required")
       this.config = config
    }
 
-   migrate = async (force = false) => {
-      const models = this.getModels()
-      const tables = Array.from(models.keys())
-      if (isServer) {
-         if (force) {
-            for (let table of [...tables].reverse()) {
-               const model = this.getModel(table)
-               await this.excute(`DROP TABLE IF EXISTS ${model.table}`)
-            }
-         }
-         for (let table of tables) {
-            const model = this.getModel(table)
-            const sql = this.buildSchema(model);
-            await this.excute(sql)
-         }
+   getConfig(): XansqlConfigOptions {
+      let config: XansqlConfigOptions = this.config as XansqlConfigOptions
+      if (typeof this.config === "function") config = this.config()
+      if (!config.connection) throw new Error("Connection string is required")
+      if (!config.dialect) throw new Error("Dialect is required")
+      return {
+         maxFindLimit: 50,
+         cache: [],
+         ...config
       }
    }
 
-   excute = async (sql: string): Promise<XansqlDialectExcuteReturn<any>> => {
-      if (isServer) {
-         const dialect = this.config.dialect;
-         const res = await dialect.excute(sql);
-         return res
-      } else {
-
-         // let cb = sqclietn.get
-         // if (sql.startsWith("INSERT")) {
-         //    cb = sqclietn.post
-         // } else if (sql.startsWith("UPDATE")) {
-         //    cb = sqclietn.put
-         // } else if (sql.startsWith("DELETE")) {
-         //    cb = sqclietn.delete
-         // }
-
-         // console.log(cb);
-
-
-         return {
-            result: [],
-            affectedRows: 0,
-            insertId: 0,
-         }
-      }
-   }
-
-   model = (model: typeof Model<any>): Model => {
+   registerModel(model: typeof Model<any>): Model {
       const instance = new model(this);
       if (!instance.table) {
          throw new Error(`Model must have a table name in ${model.constructor.name}`);
@@ -81,6 +40,14 @@ class xansql {
       instance.alias = alias
       this.models.set(instance.table, instance);
       return instance
+   }
+
+   getModel(table: string) {
+      const model = this.models.get(table)
+      if (!model) {
+         throw new Error(`Model ${table} not registered`);
+      }
+      return model
    }
 
    getModels() {
@@ -126,18 +93,57 @@ class xansql {
       return models
    }
 
-   getModel = (table: string) => {
-      const model = this.models.get(table)
-      if (!model) {
-         throw new Error(`Model ${table} not registered`);
+   async migrate(force = false) {
+      const models = this.getModels()
+      const tables = Array.from(models.keys())
+      if (isServer()) {
+         const { dialect } = this.getConfig()
+         for (let table of tables) {
+            const model = this.getModel(table)
+            if (force) {
+               await this.excute(`DROP TABLE IF EXISTS ${model.table}`);
+            }
+            const sql = dialect.buildSchema(model);
+            await this.excute(sql)
+         }
       }
-      return model
    }
 
-   buildSchema = (model: Model) => {
-      const dialect = this.config.dialect;
-      return dialect.migrate(model);
+   async excute(sql: string): Promise<XansqlDialectExcuteReturn<any>> {
+
+      if (isServer()) {
+         const { dialect } = this.getConfig()
+         const res = await dialect.excute(sql, this.getConfig());
+         return res
+      } else {
+         let cb = sqclietn.get
+         if (sql.startsWith("INSERT")) {
+            cb = sqclietn.post
+         } else if (sql.startsWith("UPDATE")) {
+            cb = sqclietn.put
+         } else if (sql.startsWith("DELETE")) {
+            cb = sqclietn.delete
+         }
+
+         cb = cb.bind(sqclietn)
+
+         const response = await sqclietn.get("/test", {
+
+         })
+         const val = await response.text()
+
+         return {
+            result: [
+               val
+            ],
+            affectedRows: 0,
+            insertId: 0,
+         }
+      }
    }
+
+
+
 
 
 }

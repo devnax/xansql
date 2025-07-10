@@ -1,10 +1,9 @@
-import BaseDialect from "./dialects/BaseDialect";
 import Model from "./model";
 
 export type Dialect = {
    name: string;
-   excute: (query: string) => Promise<any>;
-   migrate: (model: Model) => string;
+   excute: (query: string, config: XansqlConfigOptions) => Promise<any>;
+   buildSchema: (model: Model) => string;
 }
 
 export type XansqlCacheOptions = {
@@ -27,7 +26,7 @@ export type XansqlConfigOptions = {
    dialect: Dialect;
    connection: string | XansqlConnectionOptions;
    cache?: XansqlCacheOptions[];
-   // maxDataLimit?: number;
+   maxFindLimit?: number;
 }
 
 export type XansqlConfigFunction = () => XansqlConfigOptions;
@@ -35,7 +34,6 @@ export type XansqlConfig = XansqlConfigOptions | XansqlConfigFunction;
 export const DialectDrivers = ["mysql", "sqlite", "postgres"] as const
 
 export type XansqlDialectDriver = typeof DialectDrivers[number];
-export type XansqlDialectsFactory = Map<XansqlDialectDriver, BaseDialect>;
 
 export type XansqlDialectExcuteReturn<DATA> = {
    result: DATA[] | null,

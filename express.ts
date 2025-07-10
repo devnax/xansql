@@ -2,20 +2,28 @@ import dotenv from 'dotenv'
 dotenv.config()
 import fakeData from './faker'
 import { db, User } from './example';
-console.log(`Using database: ${process.env.DB_TYPE}://${process.env.DB_USER}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`);
+import sqserver from './src/securequ/server';
+import { SecurequServer } from 'securequ';
+import express from 'express';
 
-import './src/securequ/client';
 
 const server = async (app) => {
-   // app.use('/data/*', async (req, res) => {
-   //    const response = await sqserver.listen({
-   //       signeture: req.headers['x-signeture'],
-   //       path: req.originalUrl,
-   //       body: req.body,
-   //       method: req.method as any,
-   //    }, req)
-   //    res.status(response.status).end(response?.value);
-   // });
+   app.use('/static', express.static('public'));
+   app.use(express.json());
+   app.use(express.urlencoded({ extended: true }));
+   app.disable('etag');
+
+   app.use('/data/*', async (req, res) => {
+      const response = await sqserver.listen({
+         signeture: req.headers['x-signeture'],
+         path: req.originalUrl,
+         body: req.body,
+         method: req.method as any,
+      }, req)
+
+      res.status(response.status).end(response?.value);
+   });
+
    app.get('/datas', async (req, res) => {
       const users = await User.find({
          orderBy: {

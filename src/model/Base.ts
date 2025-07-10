@@ -30,11 +30,6 @@ abstract class ModelBase {
       }
    }
 
-   async excute(sql: string) {
-      const results = await this.xansql.excute(sql)
-      return results
-   }
-
    getRelation(column: string) {
       const schema = this.schema.get()
       const relation_column = schema[column]
@@ -307,11 +302,12 @@ abstract class ModelBase {
             }
          }
       } else {
-         sql += ` LIMIT ${this.xansql.config.maxDataLimit || 100}`
+         const { maxFindLimit } = this.xansql.getConfig()
+         sql += ` LIMIT ${maxFindLimit}`
       }
 
       // excute sql
-      const excute = await this.excute(sql)
+      const excute = await this.xansql.excute(sql)
       let results = excute.result
       if (!results || !results.length) return null
       let _ins: {
@@ -427,7 +423,7 @@ abstract class ModelBase {
          let values = Object.values(fields)
 
          let sql = `INSERT INTO ${model.table} (${columns.join(",")}) VALUES (${values.join(",")})`
-         const excute = await this.excute(sql)
+         const excute = await this.xansql.excute(sql)
          let result = null
          let findArgs: any = {}
          let idField = Object.keys(schema).find((column) => schema[column] instanceof IDField)
@@ -511,7 +507,7 @@ abstract class ModelBase {
             const buildWhere = this.buildWhere(where, model)
             let sql = `UPDATE ${model.table} ${model.alias} SET ${values.join(", ")}`
             sql += ` WHERE ${buildWhere.wheres.join(" AND ")}`
-            const excute = await this.excute(sql)
+            const excute = await this.xansql.excute(sql)
             if (!excute.affectedRows) return null
          }
 
@@ -614,7 +610,7 @@ abstract class ModelBase {
       const buildWhere = this.buildWhere(where, model)
       let sql = `DELETE FROM ${model.table} ${model.alias}`
       sql += ` WHERE ${buildWhere.wheres.join(" AND ")}`
-      const excute = await this.excute(sql)
+      const excute = await this.xansql.excute(sql)
       return excute.affectedRows
    }
 
@@ -623,7 +619,7 @@ abstract class ModelBase {
       const buildWhere = this.buildWhere(where, model)
       let sql = `SELECT COUNT(*) as count FROM ${model.table} ${model.alias}`
       sql += buildWhere.wheres.length ? ` WHERE ${buildWhere.wheres.join(" AND ")}` : ""
-      const excute = await this.excute(sql)
+      const excute = await this.xansql.excute(sql)
       if (!excute.result || !excute.result.length) return { _count: 0 }
       const count: any = { _count: excute.result[0].count }
 

@@ -25,5 +25,5 @@ export type ColumnValue = (string | number)[]
 
 export type SchemaValue = Column | Relation | IDField
 export type SchemaMap = {
-   [key: string]: SchemaValue
+   [field: string]: SchemaValue
 }
