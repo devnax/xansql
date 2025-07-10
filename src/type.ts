@@ -1,23 +1,37 @@
 import BaseDialect from "./dialects/BaseDialect";
 import Model from "./model";
 
-export type XansqlConfigOptions = {
-   dialect?: XansqlDialectDriver;
-   connection: string | {
-      host: string,
-      user: string,
-      password: string,
-      database: string,
-      port: number;
-   };
-   cache?: boolean;
-   maxDataLimit?: number;
+export type Dialect = {
+   name: string;
+   excute: (query: string) => Promise<any>;
+   migrate: (model: Model) => string;
 }
 
-export type XansqlConfigFunction = () => (XansqlConfigOptions | string);
+export type XansqlCacheOptions = {
+   set: (key: string, value: any) => void;
+   get: (key: string) => any;
+   delete: (key: string) => void;
+   clear: () => void;
+   has: (key: string) => boolean;
+}
 
-export type XansqlConfig = XansqlConfigOptions | string | XansqlConfigFunction;
+export type XansqlConnectionOptions = {
+   host: string,
+   user: string,
+   password: string,
+   database: string,
+   port: number;
+}
 
+export type XansqlConfigOptions = {
+   dialect: Dialect;
+   connection: string | XansqlConnectionOptions;
+   cache?: XansqlCacheOptions[];
+   // maxDataLimit?: number;
+}
+
+export type XansqlConfigFunction = () => XansqlConfigOptions;
+export type XansqlConfig = XansqlConfigOptions | XansqlConfigFunction;
 export const DialectDrivers = ["mysql", "sqlite", "postgres"] as const
 
 export type XansqlDialectDriver = typeof DialectDrivers[number];

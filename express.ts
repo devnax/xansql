@@ -2,8 +2,9 @@ import dotenv from 'dotenv'
 dotenv.config()
 import fakeData from './faker'
 import { db, User } from './example';
-import './example/index'
-import './src/securequ/server';
+console.log(`Using database: ${process.env.DB_TYPE}://${process.env.DB_USER}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`);
+
+import './src/securequ/client';
 
 const server = async (app) => {
    // app.use('/data/*', async (req, res) => {

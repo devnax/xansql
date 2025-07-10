@@ -1,6 +1,9 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { User } from './example';
+import { SecurequClient } from 'securequ';
+console.log(SecurequClient);
+
 
 const c = async () => {
   const users = await User.find({
@@ -15,10 +18,9 @@ const c = async () => {
     }
   })
   console.log(users);
-
 }
 
-c()
+// c()
 
 const App = () => {
   return (
@@ -36,7 +38,7 @@ const App = () => {
       <div style={{ marginTop: "50px" }}>
         <button
           onClick={async () => {
-
+            c()
           }}
           style={{ padding: '10px 20px', fontSize: '16px', cursor: 'pointer' }}
         >

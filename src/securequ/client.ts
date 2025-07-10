@@ -1,9 +1,10 @@
-import { SecurequClient } from "securequ";
+import a from "securequ/server";
+console.log(a);
 
-const sqclietn = new SecurequClient({
-   path: '/data',
-   secret: "985jkhfgu85kjnfouir",
-   cache: false
-})
+// const sqclietn = new SecurequClient({
+//    path: '/data',
+//    secret: "985jkhfgu85kjnfouir",
+//    cache: false
+// })
 
-export default sqclietn
+// export default sqclietn

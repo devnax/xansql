@@ -24,7 +24,15 @@ let sqlite: any = {
    dialect: 'sqlite',
    connection: 'db.sqlite'
 }
-export const db = new xansql(mysql)
+export const db = new xansql({
+   connection: conn,
+   dialect: "mysql",
+   cache: [
+      {
+
+      }
+   ]
+})
 export const UserMeta = db.model(UserMetaModel)
 export const Product = db.model(ProductModel)
 export const Category = db.model(CategoryModel)

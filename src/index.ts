@@ -1,3 +1,4 @@
+// import SecurequClient from "securequ/client";
 import BaseDialect from "./dialects/BaseDialect";
 import CacheDialect from "./dialects/Cache";
 import Cache from "./dialects/Cache/Cache";
@@ -7,59 +8,18 @@ import Model from "./model";
 import Column from "./schema/core/Column";
 import { DialectDrivers, XansqlConfig, XansqlConfigOptions, XansqlDialectDriver, XansqlDialectExcuteReturn, XansqlDialectsFactory, XansqlModelsFactory } from "./type";
 import { arrayMove, isServer } from "./utils";
-import pako from "./utils/pako";
 export * from './schema'
 
 class xansql {
-   private dialects: XansqlDialectsFactory = new Map();
    private models: XansqlModelsFactory = new Map()
-   private dialect: XansqlDialectDriver | null;
    config: XansqlConfigOptions
-
-   private cacheDB: xansql | null = null;
-   private cache: Cache | null = null;
+   // private securequClient: SecurequClient | null = null;
 
    constructor(config: XansqlConfig) {
-      let _config: XansqlConfigOptions = { connection: "" }
       if (typeof config === "function") config = config()
-      _config = typeof config === "string" ? { connection: config } : config
-      if (!_config.connection) throw new Error("Connection string is required")
-
-      let dialect = _config.dialect || null
-      if (!_config.dialect && typeof _config.connection === 'string') {
-         const d = _config.connection.split("://").shift() as any
-         if (DialectDrivers.includes(d)) {
-            dialect = d
-         }
-      }
-
-      _config = {
-         dialect: dialect || "mysql",
-         cache: _config.cache || true,
-         maxDataLimit: 100,
-         ..._config
-      }
-
-      this.config = _config
-      this.dialect = dialect || null
-
-      this.registerDialect(MysqlDialect);
-      this.registerDialect(SqliteDialect);
-   }
-
-   async Cache() {
-      if (this.config.cache) {
-         if (this.cache) return this.cache
-         this.cacheDB = new xansql({
-            dialect: "cache" as any,
-            connection: ":memory:",
-            cache: false,
-         })
-         this.cacheDB.registerDialect(CacheDialect)
-         this.cache = this.cacheDB.model(Cache)
-         await this.cacheDB.migrate()
-         return this.cache
-      }
+      if (!config.connection) throw new Error("Connection string is required")
+      if (!config.dialect) throw new Error("Dialect is required")
+      this.config = config
    }
 
    migrate = async (force = false) => {
@@ -82,24 +42,29 @@ class xansql {
 
    excute = async (sql: string): Promise<XansqlDialectExcuteReturn<any>> => {
       if (isServer) {
-         const dialect = this.getDialect();
+         const dialect = this.config.dialect;
          const res = await dialect.excute(sql);
          return res
       } else {
+
+         // let cb = sqclietn.get
+         // if (sql.startsWith("INSERT")) {
+         //    cb = sqclietn.post
+         // } else if (sql.startsWith("UPDATE")) {
+         //    cb = sqclietn.put
+         // } else if (sql.startsWith("DELETE")) {
+         //    cb = sqclietn.delete
+         // }
+
+         // console.log(cb);
+
+
          return {
             result: [],
             affectedRows: 0,
             insertId: 0,
          }
       }
-   }
-
-   registerDialect(dialect: typeof BaseDialect) {
-      const instance = new dialect(this);
-      if (!instance.driver) {
-         throw new Error(`Dialect must have a driver in ${dialect.constructor.name}`);
-      }
-      this.dialects.set(instance.driver, instance);
    }
 
    model = (model: typeof Model<any>): Model => {
@@ -169,20 +134,9 @@ class xansql {
       return model
    }
 
-   getDialect = () => {
-      if (!this.dialect) {
-         throw new Error("Invalid Dialect");
-      }
-      const dialect = this.dialects.get(this.dialect);
-      if (!dialect) {
-         throw new Error(`Dialect ${this.dialect} not registered`);
-      }
-      return dialect;
-   }
-
    buildSchema = (model: Model) => {
-      const dialect = this.getDialect();
-      return dialect.buildSchema(model);
+      const dialect = this.config.dialect;
+      return dialect.migrate(model);
    }
 
 
