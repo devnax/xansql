@@ -307,7 +307,7 @@ abstract class ModelBase {
       }
 
       // excute sql
-      const excute = await this.xansql.excute(sql)
+      const excute = await this.xansql.excute(sql, this as any)
       let results = excute.result
       if (!results || !results.length) return null
       let _ins: {
@@ -423,7 +423,7 @@ abstract class ModelBase {
          let values = Object.values(fields)
 
          let sql = `INSERT INTO ${model.table} (${columns.join(",")}) VALUES (${values.join(",")})`
-         const excute = await this.xansql.excute(sql)
+         const excute = await this.xansql.excute(sql, this as any)
          let result = null
          let findArgs: any = {}
          let idField = Object.keys(schema).find((column) => schema[column] instanceof IDField)
@@ -507,7 +507,7 @@ abstract class ModelBase {
             const buildWhere = this.buildWhere(where, model)
             let sql = `UPDATE ${model.table} ${model.alias} SET ${values.join(", ")}`
             sql += ` WHERE ${buildWhere.wheres.join(" AND ")}`
-            const excute = await this.xansql.excute(sql)
+            const excute = await this.xansql.excute(sql, this as any)
             if (!excute.affectedRows) return null
          }
 
@@ -610,7 +610,7 @@ abstract class ModelBase {
       const buildWhere = this.buildWhere(where, model)
       let sql = `DELETE FROM ${model.table} ${model.alias}`
       sql += ` WHERE ${buildWhere.wheres.join(" AND ")}`
-      const excute = await this.xansql.excute(sql)
+      const excute = await this.xansql.excute(sql, this as any)
       return excute.affectedRows
    }
 
@@ -619,7 +619,7 @@ abstract class ModelBase {
       const buildWhere = this.buildWhere(where, model)
       let sql = `SELECT COUNT(*) as count FROM ${model.table} ${model.alias}`
       sql += buildWhere.wheres.length ? ` WHERE ${buildWhere.wheres.join(" AND ")}` : ""
-      const excute = await this.xansql.excute(sql)
+      const excute = await this.xansql.excute(sql, this as any)
       if (!excute.result || !excute.result.length) return { _count: 0 }
       const count: any = { _count: excute.result[0].count }
 

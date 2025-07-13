@@ -3,7 +3,6 @@ import Column from "./schema/core/Column";
 import { XansqlConfig, XansqlConfigOptions, XansqlDialectExcuteReturn, XansqlModelsFactory } from "./type";
 import { arrayMove, isServer } from "./utils";
 export * from './schema'
-import sqclietn from "./securequ/client";
 
 class xansql {
    private models: XansqlModelsFactory = new Map()
@@ -101,21 +100,27 @@ class xansql {
          for (let table of tables) {
             const model = this.getModel(table)
             if (force) {
-               await this.excute(`DROP TABLE IF EXISTS ${model.table}`);
+               await this.excute(`DROP TABLE IF EXISTS ${model.table}`, model);
             }
             const sql = dialect.buildSchema(model);
-            await this.excute(sql)
+            await this.excute(sql, model)
          }
       }
    }
 
-   async excute(sql: string): Promise<XansqlDialectExcuteReturn<any>> {
-
+   async excute(sql: string, model: Model): Promise<XansqlDialectExcuteReturn<any>> {
       if (isServer()) {
          const { dialect } = this.getConfig()
          const res = await dialect.excute(sql, this.getConfig());
          return res
       } else {
+         const sqclietn = (await import("./securequ/client")).default;
+         let info = {
+            table: model.table,
+            sql
+         }
+         console.log(info);
+
          let cb = sqclietn.get
          if (sql.startsWith("INSERT")) {
             cb = sqclietn.post
@@ -127,14 +132,13 @@ class xansql {
 
          cb = cb.bind(sqclietn)
 
-         const response = await sqclietn.get("/test", {
+         const response = await cb("/test", {
 
          })
-         const val = await response.text()
 
          return {
             result: [
-               val
+               response
             ],
             affectedRows: 0,
             insertId: 0,

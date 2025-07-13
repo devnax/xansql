@@ -1,7 +1,7 @@
 import { SecurequClient } from "securequ";
 
 const sqclietn = new SecurequClient({
-   path: '/data',
+   basepath: '/data',
    secret: "985jkhfgu85kjnfouir",
    cache: false
 })
