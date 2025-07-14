@@ -20,7 +20,7 @@
       "pg": "^8.14.1",
       "react": "^19.1.0",
       "react-dom": "^19.1.0",
-      "securequ": "^1.0.14",
+      "securequ": "^1.0.15",
       "sqlite": "^5.1.1",
       "sqlite3": "^5.1.7",
       "tweetnacl": "^1.0.3",

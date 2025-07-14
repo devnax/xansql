@@ -2,24 +2,20 @@ import dotenv from 'dotenv'
 dotenv.config()
 import fakeData from './faker'
 import { db, User } from './example';
-import sqserver from './src/securequ/server';
-import { SecurequServer } from 'securequ';
 import express from 'express';
-
 
 const server = async (app) => {
    app.use('/static', express.static('public'));
    app.use(express.json());
    app.use(express.urlencoded({ extended: true }));
    app.disable('etag');
-
    app.use('/data/*', async (req, res) => {
-      const response = await sqserver.listen({
+      const response = await db.excuteClient({
          signeture: req.headers['x-signeture'],
          path: req.originalUrl,
          body: req.body,
          method: req.method as any,
-      }, req)
+      })
 
       res.status(response.status).end(response?.value);
    });
@@ -30,7 +26,7 @@ const server = async (app) => {
             // id: "desc",
          },
          limit: {
-            take: 100
+            take: 1
          },
          select: {
             id: true,

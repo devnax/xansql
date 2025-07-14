@@ -27,6 +27,9 @@ export type XansqlConfigOptions = {
    connection: string | XansqlConnectionOptions;
    cache?: XansqlCacheOptions[];
    maxFindLimit?: number;
+   client?: {
+      basepath: string;
+   }
 }
 
 export type XansqlConfigFunction = () => XansqlConfigOptions;

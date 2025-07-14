@@ -1,31 +1,39 @@
+import { SecurequClient, SecurequServer } from "securequ";
 import Model from "./model";
 import Column from "./schema/core/Column";
 import { XansqlConfig, XansqlConfigOptions, XansqlDialectExcuteReturn, XansqlModelsFactory } from "./type";
 import { arrayMove, isServer } from "./utils";
+import { ListenerInfo } from "securequ/server/types";
+
 export * from './schema'
+
+let securequ: { server: SecurequServer | null, client: SecurequClient | null } = {
+   server: null,
+   client: null
+}
 
 class xansql {
    private models: XansqlModelsFactory = new Map()
-   private config: XansqlConfig
+   private config: XansqlConfigOptions
 
 
    constructor(config: XansqlConfig) {
-      this.config = config
-   }
-
-   getConfig(): XansqlConfigOptions {
-      let config: XansqlConfigOptions = this.config as XansqlConfigOptions
-      if (typeof this.config === "function") config = this.config()
+      let _config: XansqlConfigOptions = config as XansqlConfigOptions
+      if (typeof config === "function") config = config()
       if (!config.connection) throw new Error("Connection string is required")
       if (!config.dialect) throw new Error("Dialect is required")
-      return {
+      this.config = {
          maxFindLimit: 50,
          cache: [],
-         ...config
+         ..._config
       }
    }
 
-   registerModel(model: typeof Model<any>): Model {
+   getConfig(): XansqlConfigOptions {
+      return this.config;
+   }
+
+   registerModel<DATA extends {} = {}>(model: typeof Model<DATA>) {
       const instance = new model(this);
       if (!instance.table) {
          throw new Error(`Model must have a table name in ${model.constructor.name}`);
@@ -111,43 +119,94 @@ class xansql {
    async excute(sql: string, model: Model): Promise<XansqlDialectExcuteReturn<any>> {
       if (isServer()) {
          const { dialect } = this.getConfig()
-         const res = await dialect.excute(sql, this.getConfig());
-         return res
+         return await dialect.excute(sql, this.getConfig());
       } else {
-         const sqclietn = (await import("./securequ/client")).default;
-         let info = {
-            table: model.table,
-            sql
-         }
-         console.log(info);
 
-         let cb = sqclietn.get
+         if (!this.config.client) {
+            throw new Error("Client configuration is not set. Please provide a client configuration in the XansqlConfig.");
+         }
+
+         if (!securequ.client) {
+            const _securequ = await import("securequ");
+            securequ.client = new _securequ.SecurequClient({
+               basepath: this.config.client?.basepath || '/data',
+               secret: "985jkhfgu85kjnfouir",
+               cache: false
+            });
+         }
+
+         const sqclient = securequ.client
+         let info = { table: model.table, sql }
+         let response: any = null
+
          if (sql.startsWith("INSERT")) {
-            cb = sqclietn.post
+            response = await sqclient.post('/insert', { body: info })
          } else if (sql.startsWith("UPDATE")) {
-            cb = sqclietn.put
+            response = await sqclient.put('/update', { body: info })
          } else if (sql.startsWith("DELETE")) {
-            cb = sqclietn.delete
+            response = await sqclient.delete('/delete', { params: info })
+         } else {
+            response = await sqclient.get('/find', { params: info })
          }
 
-         cb = cb.bind(sqclietn)
-
-         const response = await cb("/test", {
-
-         })
-
-         return {
-            result: [
-               response
-            ],
-            affectedRows: 0,
-            insertId: 0,
-         }
+         return response
       }
    }
 
 
+   async excuteClient(options: ListenerInfo): Promise<any> {
+      if (!isServer()) {
+         throw new Error("This method can only be used on the server side.");
+      }
 
+      if (!securequ.server) {
+         const _securequ = await import("securequ");
+         securequ.server = new _securequ.SecurequServer({
+            basepath: this.config.client?.basepath || '/data'
+         });
+
+         securequ.server.get('/find', async (info) => {
+            const params: any = info.searchParams
+            const model = this.getModel(params.table || '');
+            if (!model) {
+               throw new Error(`Model ${params.table} not registered`);
+            }
+            const res = await this.excute(params.sql, model);
+            throw res
+         })
+
+         securequ.server.post('/insert', async (info) => {
+            const params: any = info.body
+            const model = this.getModel(params.table || '');
+            if (!model) {
+               throw new Error(`Model ${params.table} not registered`);
+            }
+            const res = await this.excute(params.sql, model);
+            throw res
+         })
+
+         securequ.server.put('/update', async (info) => {
+            const params: any = info.body
+            const model = this.getModel(params.table || '');
+            if (!model) {
+               throw new Error(`Model ${params.table} not registered`);
+            }
+            const res = await this.excute(params.sql, model);
+            throw res
+         })
+
+         securequ.server.delete('/delete', async (info) => {
+            const params: any = info.searchParams
+            const model = this.getModel(params.table || '');
+            if (!model) {
+               throw new Error(`Model ${params.table} not registered`);
+            }
+            const res = await this.excute(params.sql, model);
+            throw res
+         })
+      }
+      return await securequ.server.listen(options)
+   }
 
 
 }

@@ -274,10 +274,9 @@ abstract class ModelBase {
          }
       }
 
-      if (!columns.includes(idField)) {
+      if (columns.length && !columns.includes(idField)) {
          columns = [idField, ...columns]
       }
-
       let _fields = columns.length ? columns.join(',') : ["*"]
       let sql = `SELECT ${_fields} FROM ${model.table} ${model.alias}`
       const buildWhere = this.buildWhere(args.where, model)
@@ -553,6 +552,9 @@ abstract class ModelBase {
 
    protected async buildDelete(args: DeleteArgs, model: Model): Promise<number> {
       const { where } = args
+      const count = await this.buildCount({ where }, model)
+      if (!count || !count._count) return 0
+
       const schema = this.schema.get()
       for (let column in schema) {
          const schemaValue = schema[column]

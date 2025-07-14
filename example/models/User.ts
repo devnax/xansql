@@ -3,12 +3,13 @@ import Model from "../../src/model";
 import Schema from "../../src/schema";
 
 export interface UserData {
-   id: number;
-   username: string;
+   id?: number;
+   name: string;
    email: string;
    password: string;
-   created_at: Date;
-   updated_at: Date;
+   username?: string;
+   created_at?: Date;
+   updated_at?: Date;
 }
 
 
@@ -23,7 +24,7 @@ export const UserSchema = new Schema({
 })
 
 
-class User extends Model {
+class User extends Model<UserData> {
    table = "users"
    schema: Schema = UserSchema
 }

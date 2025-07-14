@@ -1,5 +1,5 @@
 import xansql from "../src"
-import UserModel from "./models/User"
+import UserModel, { UserData } from "./models/User"
 import UserMetaModel from "./models/UserMeta"
 import ProductModel from "./models/Product"
 import CategoryModel from "./models/Category"
@@ -28,9 +28,12 @@ let sqlite: any = {
 export const db = new xansql({
    connection: conn,
    dialect: mysqldialect,
-   cache: []
+   cache: [],
+   client: {
+      basepath: '/data'
+   }
 })
 export const UserMeta = db.registerModel(UserMetaModel)
 export const Product = db.registerModel(ProductModel)
 export const Category = db.registerModel(CategoryModel)
-export const User = db.registerModel(UserModel)
+export const User = db.registerModel<UserData>(UserModel)
