@@ -1,6 +1,6 @@
 import Model from ".";
 import xansql from "..";
-import Schema, { id } from "../schema";
+import Schema, { id } from "../Schema";
 import Column from "../schema/core/Column";
 import IDField from "../schema/core/IDField";
 import Relation from "../schema/core/Relation";

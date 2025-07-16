@@ -1,6 +1,6 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { User } from './example';
+import { db, User } from './example';
 
 const Button = ({ label, onClick }) => {
   return (
@@ -22,6 +22,7 @@ const App = () => {
       <div style={{ marginTop: "50px" }}>
 
         <Button label="Insert" onClick={async () => {
+
           const user = await User.create({
             data: {
               name: "John Doe",
@@ -69,6 +70,7 @@ const App = () => {
               email: "well@gmail.com"
             },
           })
+          console.log(user);
 
         }} />
       </div>

@@ -7,11 +7,12 @@ export type Dialect = {
 }
 
 export type XansqlCacheOptions = {
-   set: (key: string, value: any) => void;
-   get: (key: string) => any;
-   delete: (key: string) => void;
-   clear: () => void;
-   has: (key: string) => boolean;
+   onCreate: (data: any, model: Model) => Promise<any>;
+   onUpdate: (data: any, where: any) => Promise<{ data: any, where: any }>;
+   onFind: (where: any) => Promise<any>;
+   onCache: (where: any) => Promise<any>;
+   onFelete: (key: string) => void;
+   onDestroy: () => void;
 }
 
 export type XansqlConnectionOptions = {
@@ -34,9 +35,6 @@ export type XansqlConfigOptions = {
 
 export type XansqlConfigFunction = () => XansqlConfigOptions;
 export type XansqlConfig = XansqlConfigOptions | XansqlConfigFunction;
-export const DialectDrivers = ["mysql", "sqlite", "postgres"] as const
-
-export type XansqlDialectDriver = typeof DialectDrivers[number];
 
 export type XansqlDialectExcuteReturn<DATA> = {
    result: DATA[] | null,

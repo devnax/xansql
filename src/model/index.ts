@@ -7,6 +7,26 @@ export default class Model<DATA extends {} = {}> extends ModelBase {
       const results = await this.buildFind(args, this)
       return results
    }
+   async create(args: CreateArgs): Promise<DATA[]> {
+      const results = await this.buildCreate(args, this)
+      return results
+   }
+
+   async update(args: UpdateArgs): Promise<DATA[] | null> {
+      const results = await this.buildUpdate(args, this)
+      return results
+   }
+   async delete(args: DeleteArgs) {
+      const affectedRows = await this.buildDelete(args, this)
+      return {
+         success: affectedRows > 0,
+         deletedRows: affectedRows,
+      }
+   }
+   async count(args: CountArgs): Promise<ReturnCount> {
+      const results = await this.buildCount(args, this)
+      return results
+   }
 
    async findOne(args: FindArgs): Promise<DATA | null> {
       const results = await this.find({
@@ -17,15 +37,6 @@ export default class Model<DATA extends {} = {}> extends ModelBase {
          }
       })
       return results?.length ? results[0] : null
-   }
-   async create(args: CreateArgs): Promise<DATA[]> {
-      const results = await this.buildCreate(args, this)
-      return results
-   }
-
-   async update(args: UpdateArgs): Promise<DATA[] | null> {
-      const results = await this.buildUpdate(args, this)
-      return results
    }
 
    async upsert(args: UpdateArgs) {
@@ -40,15 +51,5 @@ export default class Model<DATA extends {} = {}> extends ModelBase {
       }
       return results
    }
-   async delete(args: DeleteArgs) {
-      const affectedRows = await this.buildDelete(args, this)
-      return {
-         success: affectedRows > 0,
-         deletedRows: affectedRows,
-      }
-   }
-   async count(args: CountArgs): Promise<ReturnCount> {
-      const results = await this.buildCount(args, this)
-      return results
-   }
+
 }

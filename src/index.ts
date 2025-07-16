@@ -4,6 +4,7 @@ import Column from "./schema/core/Column";
 import { XansqlConfig, XansqlConfigOptions, XansqlDialectExcuteReturn, XansqlModelsFactory } from "./type";
 import { arrayMove, isServer } from "./utils";
 import { ListenerInfo } from "securequ/server/types";
+import youid from "youid";
 
 export * from './schema'
 
@@ -117,6 +118,8 @@ class xansql {
    }
 
    async excute(sql: string, model: Model): Promise<XansqlDialectExcuteReturn<any>> {
+
+      let type = sql.split(' ')[0].toUpperCase();
       if (isServer()) {
          const { dialect } = this.getConfig()
          return await dialect.excute(sql, this.getConfig());
@@ -130,7 +133,7 @@ class xansql {
             const _securequ = await import("securequ");
             securequ.client = new _securequ.SecurequClient({
                basepath: this.config.client?.basepath || '/data',
-               secret: "985jkhfgu85kjnfouir",
+               secret: youid(),
                cache: false
             });
          }
@@ -139,11 +142,13 @@ class xansql {
          let info = { table: model.table, sql }
          let response: any = null
 
-         if (sql.startsWith("INSERT")) {
+         if (type === "CREATE" || type === "ALTER" || type === "DROP") {
+            throw new Error(`${type}, This method is not allowed in client side.`);
+         } else if (type == "INSERT") {
             response = await sqclient.post('/insert', { body: info })
-         } else if (sql.startsWith("UPDATE")) {
+         } else if (type == "UPDATE") {
             response = await sqclient.put('/update', { body: info })
-         } else if (sql.startsWith("DELETE")) {
+         } else if (type == "DELETE") {
             response = await sqclient.delete('/delete', { params: info })
          } else {
             response = await sqclient.get('/find', { params: info })
