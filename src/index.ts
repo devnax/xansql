@@ -1,12 +1,12 @@
 import { SecurequClient, SecurequServer } from "securequ";
 import Model from "./model";
-import Column from "./schema/core/Column";
+import Column from "./Schema/core/Column";
 import { XansqlConfig, XansqlConfigOptions, XansqlDialectExcuteReturn, XansqlModelsFactory } from "./type";
 import { arrayMove, isServer } from "./utils";
 import { ListenerInfo } from "securequ/server/types";
 import youid from "youid";
 
-export * from './schema'
+export * from './Schema'
 
 let securequ: { server: SecurequServer | null, client: SecurequClient | null } = {
    server: null,
@@ -122,7 +122,9 @@ class xansql {
       let type = sql.split(' ')[0].toUpperCase();
       if (isServer()) {
          const { dialect } = this.getConfig()
-         return await dialect.excute(sql, this.getConfig());
+         const result = await dialect.excute(sql, this.getConfig());
+         return result;
+
       } else {
 
          if (!this.config.client) {
