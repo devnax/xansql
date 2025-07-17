@@ -1,3 +1,4 @@
+import xansql from ".";
 import Model from "./model";
 
 export type Dialect = {
@@ -6,14 +7,30 @@ export type Dialect = {
    buildSchema: (model: Model) => string;
 }
 
-export type XansqlCacheOptions = {
-   onCreate: (data: any, model: Model) => Promise<any>;
-   onUpdate: (data: any, where: any) => Promise<{ data: any, where: any }>;
-   onFind: (where: any) => Promise<any>;
-   onCache: (where: any) => Promise<any>;
-   onFelete: (key: string) => void;
-   onDestroy: () => void;
+
+export type XansqlCacheOnCacheArgs = {
+   sql: string;
+   model: Model;
+   requestData?: any;
 }
+export type XansqlCacheFNArgs = {
+   sql: string;
+   result: any;
+   model: Model;
+   requestData?: any;
+}
+
+export type XansqlCacheOptions = {
+   onCache: (info: XansqlCacheOnCacheArgs) => Promise<any>;
+   onFind: (info: XansqlCacheFNArgs) => Promise<void>;
+   onDestroy: (info: XansqlCacheFNArgs) => Promise<void>;
+
+   onCreate?: (info: XansqlCacheFNArgs) => Promise<void>;
+   onUpdate?: (info: XansqlCacheFNArgs) => Promise<void>;
+   onDelete?: (info: XansqlCacheFNArgs) => Promise<void>;
+}
+
+export type XansqlCache = (xansql: xansql) => XansqlCacheOptions | Promise<XansqlCacheOptions>;
 
 export type XansqlConnectionOptions = {
    host: string,
@@ -26,7 +43,7 @@ export type XansqlConnectionOptions = {
 export type XansqlConfigOptions = {
    dialect: Dialect;
    connection: string | XansqlConnectionOptions;
-   cache?: XansqlCacheOptions[];
+   cachePlugins?: XansqlCache[];
    maxFindLimit?: number;
    client?: {
       basepath: string;

@@ -1,4 +1,5 @@
 
+
 export interface WhereSubCondition {
    equals?: string | number | boolean;
    not?: string | number | boolean;

@@ -5,6 +5,7 @@ import ProductModel from "./models/Product"
 import CategoryModel from "./models/Category"
 import mysqldialect from "../src/dialects/Mysql"
 import dotenv from 'dotenv'
+import TestCache from "./TestCache"
 
 if (typeof process !== 'undefined' && process?.env) {
    try {
@@ -28,7 +29,9 @@ let sqlite: any = {
 export const db = new xansql({
    connection: conn,
    dialect: mysqldialect,
-   cache: [],
+   cachePlugins: [
+      TestCache
+   ],
    client: {
       basepath: '/data'
    }
