@@ -26,6 +26,8 @@ let sqlite: any = {
    dialect: 'sqlite',
    connection: 'db.sqlite'
 }
+
+
 export const db = new xansql({
    connection: conn,
    dialect: mysqldialect,
@@ -36,6 +38,7 @@ export const db = new xansql({
       basepath: '/data'
    }
 })
+
 export const UserMeta = db.registerModel(UserMetaModel)
 export const Product = db.registerModel(ProductModel)
 export const Category = db.registerModel(CategoryModel)

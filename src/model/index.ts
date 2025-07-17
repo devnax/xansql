@@ -5,8 +5,6 @@ export default class Model<DATA extends {} = {}> extends ModelBase {
 
    async find(args: FindArgs): Promise<DATA[] | null> {
       const results = await this.buildFind(args, this)
-      console.log("Model.find results:", results);
-
       return results
    }
    async create(args: CreateArgs): Promise<DATA[]> {

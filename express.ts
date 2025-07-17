@@ -39,6 +39,7 @@ const server = async (app) => {
             products: {
                id: true,
                name: true,
+               user: true,
                categories: {
                   id: true,
                   name: true

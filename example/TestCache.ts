@@ -6,7 +6,7 @@ const TestCache = (xansql: xansql) => {
 
    return {
       onCache: async (info: any) => {
-         console.log("Cache hit for:", info.sql);
+         // console.log("Cache hit for:", info.sql);
 
          // return [{ id: 1, name: "Test User" }];
       },
@@ -15,7 +15,7 @@ const TestCache = (xansql: xansql) => {
       },
 
       onDestroy: async (info: any) => {
-         console.log("Cache destroyed for:", info.model.table);
+         // console.log("Cache destroyed for:", info.model.table);
       },
 
       // onCreate: async (data: any, model: Model) => {
