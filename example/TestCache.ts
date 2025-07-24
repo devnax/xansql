@@ -1,31 +1,41 @@
 import xansql from "../src";
-import Model from "../src/model";
-
 
 const TestCache = (xansql: xansql) => {
-
+   const models = new Map<string, any>();
    return {
-      onCache: async (info: any) => {
-         // console.log("Cache hit for:", info.sql);
-
-         // return [{ id: 1, name: "Test User" }];
+      onCache: async ({ sql, model }: any) => {
+         if (!models.has(model.table)) {
+            models.set(model.table, new Map());
+         }
+         const data = models.get(model.table);
+         if (data.has(sql)) {
+            // return data.get(sql);
+         }
       },
 
       onFind: async (info: any) => {
+         const { sql, result, model } = info;
+         if (!models.has(model.table)) {
+            models.set(model.table, new Map());
+         }
+         const data = models.get(model.table);
+         data.set(sql, result);
+         return result;
       },
-
-      onDestroy: async (info: any) => {
-         // console.log("Cache destroyed for:", info.model.table);
+      onCreate: async ({ model }) => {
+         if (!models.has(model.table)) {
+            models.set(model.table, new Map());
+         }
+         const tableData = models.get(model.table);
+         tableData.clear();
       },
-
-      // onCreate: async (data: any, model: Model) => {
-      //    console.log("onCreate", data, model);
-      //    return data;
-      // },
-      // onUpdate: async (data: any, where: any) => {
-      //    console.log("onUpdate", data, where);
-      //    return { data, where };
-      // },
+      onUpdate: async ({ model }) => {
+         if (!models.has(model.table)) {
+            models.set(model.table, new Map());
+         }
+         const tableData = models.get(model.table);
+         tableData.clear();
+      },
 
       // onDelete: (key: string) => {
       //    console.log("onFelete", key);

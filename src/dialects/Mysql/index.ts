@@ -1,7 +1,9 @@
+import xansql from "../..";
 import Model from "../../model";
-import Column from "../../schema/core/Column";
-import IDField from "../../schema/core/IDField";
-import Relation from "../../schema/core/Relation";
+import Column from "../../Schema/core/Column";
+import IDField from "../../Schema/core/IDField";
+import Relation from "../../Schema/core/Relation";
+import { DialectOptions } from "../../type";
 import { formatValue, isServer } from "../../utils";
 
 const types = {
@@ -99,21 +101,28 @@ const buildSchema = (model: Model): string => {
    return `CREATE TABLE IF NOT EXISTS \`${tableName}\` (\n${sql}\n);`;
 }
 
-let excuter: any = null;
-const excute = async (sql: any, config: any): Promise<any> => {
-   if (isServer()) {
-      if (!excuter) {
-         const mod = await import("./excuter");
-         excuter = new mod.default(config);
-      }
-      return await excuter.excute(sql);
-   }
-}
 
-const mysqldialect = {
-   name: "mysql",
-   excute,
-   buildSchema
+
+let mod: any = null;
+const mysqldialect = async (xansql: xansql): Promise<DialectOptions> => {
+   const config = await xansql.getConfig();
+   let excuter: any = null;
+
+   return {
+      name: "mysql",
+      excute: async (sql: any, model: Model): Promise<any> => {
+         if (typeof window === "undefined") {
+            if (!mod) {
+               mod = (await import("./excuter")).default;
+               excuter = new mod(config);
+            }
+            return await excuter.excute(sql);
+         } else {
+            return await xansql.excuteClient(sql, model);
+         }
+      },
+      buildSchema
+   }
 }
 
 export default mysqldialect;

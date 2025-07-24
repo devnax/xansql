@@ -10,7 +10,7 @@ const server = async (app) => {
    app.use(express.urlencoded({ extended: true }));
    app.disable('etag');
    app.use('/data/*', async (req, res) => {
-      const response = await db.excuteClient({
+      const response = await db.handleClient({
          signeture: req.headers['x-signeture'],
          path: req.originalUrl,
          body: req.body,

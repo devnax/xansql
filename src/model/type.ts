@@ -1,5 +1,15 @@
 
 
+
+export type BuildResult = {
+   type: "main" | "relation";
+   results: ({ [key: string]: any })[] | null;
+   excuted: {
+      sql: string;
+      data: any;
+   }
+}
+
 export interface WhereSubCondition {
    equals?: string | number | boolean;
    not?: string | number | boolean;

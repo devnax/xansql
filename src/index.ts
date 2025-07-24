@@ -1,45 +1,53 @@
-import { SecurequClient, SecurequServer } from "securequ";
 import Model from "./model";
 import Column from "./Schema/core/Column";
-import { XansqlCacheOptions, XansqlConfig, XansqlConfigOptions, XansqlDialectExcuteReturn, XansqlModelsFactory } from "./type";
+import { DialectOptions, XansqlCacheOptions, XansqlConfig, XansqlConfigOptions, XansqlDialectExcuteReturn, XansqlModelsFactory } from "./type";
 import { arrayMove, isServer } from "./utils";
 import { ListenerInfo } from "securequ/server/types";
 import youid from "youid";
-
 export * from './Schema'
 
-let securequ: { server: SecurequServer | null, client: SecurequClient | null } = {
+let securequ: any = {
    server: null,
    client: null
 }
 
 class xansql {
    private models: XansqlModelsFactory = new Map()
-   private config: XansqlConfigOptions
+   private raw_config: XansqlConfig;
+   private _config: XansqlConfigOptions | null = null;
    private cachePlugins: XansqlCacheOptions[] = []
+   private securequ = { server: null, client: null }
+   private dialect: any = null;
    isServer: boolean = isServer()
 
-
    constructor(config: XansqlConfig) {
-      let _config: XansqlConfigOptions = config as XansqlConfigOptions
-      if (typeof config === "function") config = config()
-      if (!config.connection) throw new Error("Connection string is required")
-      if (!config.dialect) throw new Error("Dialect is required")
-      this.config = {
+      this.raw_config = config;
+   }
+
+   async getConfig(): Promise<XansqlConfigOptions> {
+      if (this._config) return this._config;
+      if (!this.raw_config) throw new Error("Xansql configuration is not set");
+      let _config: XansqlConfigOptions = this.raw_config as XansqlConfigOptions
+      if (typeof this.raw_config === "function") _config = await this.raw_config()
+      if (!_config.connection) throw new Error("Connection string is required")
+      if (!_config.dialect) throw new Error("Dialect is required")
+      this._config = {
          maxFindLimit: 50,
          cachePlugins: [],
          ..._config
       }
+      return this._config;
    }
 
-   getConfig(): XansqlConfigOptions {
-      return this.config;
+   async getDialect(): Promise<DialectOptions> {
+      const { dialect } = await this.getConfig();
+      return this.dialect = this.dialect || await dialect(this);
    }
 
    private async getCachePlugins(): Promise<XansqlCacheOptions[]> {
       if (!this.cachePlugins.length) {
-         const cachePlugins = this.config.cachePlugins || [];
-         for (const cachePlugin of cachePlugins) {
+         const { cachePlugins } = await this.getConfig();
+         for (const cachePlugin of (cachePlugins || [])) {
             const cacheOptions = await cachePlugin(this);
             if (!cacheOptions.onCache || !cacheOptions.onFind) {
                throw new Error("Cache plugin must implement onCache and onFind method");
@@ -121,7 +129,7 @@ class xansql {
       const models = this.getModels()
       const tables = Array.from(models.keys())
       if (this.isServer) {
-         const { dialect } = this.getConfig()
+         const dialect = await this.getDialect()
          for (let table of tables) {
             const model = this.getModel(table)
             if (force) {
@@ -133,11 +141,10 @@ class xansql {
       }
    }
 
-   async excute(sql: string, model: Model, requestData?: any): Promise<XansqlDialectExcuteReturn<any>> {
 
+   async excute(sql: string, model: Model, requestData?: any): Promise<XansqlDialectExcuteReturn<any>> {
       let type = sql.split(' ')[0].toUpperCase();
       const cachePlugins = await this.getCachePlugins();
-
       if (type === "SELECT") {
          for (const cachePlugin of cachePlugins) {
             const cachedData = await cachePlugin.onCache({ sql, model, requestData });
@@ -145,41 +152,9 @@ class xansql {
          }
       }
 
-      let result: any;
-      if (this.isServer) {
-         const { dialect } = this.getConfig()
-         result = await dialect.excute(sql, this.getConfig());
-         console.log(result);
+      const dialect = await this.getDialect()
+      const result = await dialect.excute(sql, model);
 
-      } else {
-         if (!this.config.client) {
-            throw new Error("Client configuration is not set. Please provide a client configuration in the XansqlConfig.");
-         }
-
-         if (!securequ.client) {
-            const _securequ = await import("securequ");
-            securequ.client = new _securequ.SecurequClient({
-               basepath: this.config.client?.basepath || '/data',
-               secret: youid(),
-               cache: false
-            });
-         }
-
-         let info = { table: model.table, sql }
-         let response: any = null
-         if (type === "CREATE" || type === "ALTER" || type === "DROP") {
-            throw new Error(`${type}, This method is not allowed in client side.`);
-         } else if (type == "INSERT") {
-            response = await securequ.client.post('/insert', { body: info })
-         } else if (type == "UPDATE") {
-            response = await securequ.client.put('/update', { body: info })
-         } else if (type == "DELETE") {
-            response = await securequ.client.delete('/delete', { params: info })
-         } else {
-            response = await securequ.client.get('/find', { params: info })
-         }
-         result = response
-      }
       for (const cachePlugin of cachePlugins) {
          if (type === "SELECT") {
             await cachePlugin.onFind({ sql, result, model, requestData });
@@ -194,62 +169,73 @@ class xansql {
       return result
    }
 
-
-   async excuteClient(options: ListenerInfo, requestData?: any): Promise<any> {
-      if (!this.isServer) {
-         throw new Error("This method can only be used on the server side.");
+   async excuteClient(sql: string, model: Model): Promise<XansqlDialectExcuteReturn<any>> {
+      const config = await this.getConfig();
+      if (!config.client) {
+         throw new Error("Client configuration is not set. Please provide a client configuration in the XansqlConfig.");
       }
+      let type = sql.split(' ')[0].toUpperCase();
+      securequ.client = securequ.client || (await import("securequ/client")).default;
+      const client = this.securequ.client = this.securequ.client || new securequ.client({
+         basepath: config.client?.basepath || '/data',
+         secret: youid(),
+         cache: false
+      });
 
-      if (!securequ.server) {
-         const _securequ = await import("securequ");
-         securequ.server = new _securequ.SecurequServer({
-            basepath: this.config.client?.basepath || '/data'
-         });
-
-         securequ.server.get('/find', async (info) => {
-            const params: any = info.searchParams
-            const model = this.getModel(params.table || '');
-            if (!model) {
-               throw new Error(`Model ${params.table} not registered`);
-            }
-            const res = await this.excute(params.sql, model, requestData);
-            throw res
-         })
-
-         securequ.server.post('/insert', async (info) => {
-            const params: any = info.body
-            const model = this.getModel(params.table || '');
-            if (!model) {
-               throw new Error(`Model ${params.table} not registered`);
-            }
-            const res = await this.excute(params.sql, model, requestData);
-            throw res
-         })
-
-         securequ.server.put('/update', async (info) => {
-            const params: any = info.body
-            const model = this.getModel(params.table || '');
-            if (!model) {
-               throw new Error(`Model ${params.table} not registered`);
-            }
-            const res = await this.excute(params.sql, model, requestData);
-            throw res
-         })
-
-         securequ.server.delete('/delete', async (info) => {
-            const params: any = info.searchParams
-            const model = this.getModel(params.table || '');
-            if (!model) {
-               throw new Error(`Model ${params.table} not registered`);
-            }
-            const res = await this.excute(params.sql, model, requestData);
-            throw res
-         })
+      let info = { table: model.table, sql }
+      if (type === "CREATE" || type === "ALTER" || type === "DROP") {
+         throw new Error(`${type}, This method is not allowed in client side.`);
+      } else if (type == "INSERT") {
+         return await client.post('/insert', { body: info })
+      } else if (type == "UPDATE") {
+         return await client.put('/update', { body: info })
+      } else if (type == "DELETE") {
+         return await client.delete('/delete', { params: info })
+      } else {
+         return await client.get('/find', { params: info })
       }
-      return await securequ.server.listen(options)
    }
 
 
+   async handleClient(options: ListenerInfo, requestData?: any): Promise<any> {
+      if (!this.isServer) {
+         throw new Error("This method can only be used on the server side.");
+      }
+      const config = await this.getConfig();
+      securequ.server = securequ.server || (await import("securequ/server")).default;
+      const server = this.securequ.server = this.securequ.server || new securequ.server({
+         basepath: config.client?.basepath || '/data'
+      });
+
+      server.get('/find', async (info: any) => {
+         const params: any = info.searchParams
+         const model = this.getModel(params.table || '');
+         if (!model) throw new Error(`Model ${params.table} not registered`)
+         throw await this.excute(params.sql, model, requestData);
+      })
+
+      server.post('/insert', async (info: any) => {
+         const params: any = info.body
+         const model = this.getModel(params.table || '');
+         if (!model) throw new Error(`Model ${params.table} not registered`)
+         throw await this.excute(params.sql, model, requestData);
+      })
+
+      server.put('/update', async (info: any) => {
+         const params: any = info.body
+         const model = this.getModel(params.table || '');
+         if (!model) throw new Error(`Model ${params.table} not registered`)
+         throw await this.excute(params.sql, model, requestData);
+      })
+
+      server.delete('/delete', async (info: any) => {
+         const params: any = info.searchParams
+         const model = this.getModel(params.table || '');
+         if (!model) throw new Error(`Model ${params.table} not registered`)
+         throw await this.excute(params.sql, model, requestData);
+      })
+      return await server.listen(options)
+   }
 }
 
 export default xansql

@@ -32,7 +32,7 @@ export const db = new xansql({
    connection: conn,
    dialect: mysqldialect,
    cachePlugins: [
-      TestCache
+      // TestCache
    ],
    client: {
       basepath: '/data'

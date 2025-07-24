@@ -1,12 +1,13 @@
 import xansql from ".";
 import Model from "./model";
 
-export type Dialect = {
+export type DialectOptions = {
    name: string;
-   excute: (query: string, config: XansqlConfigOptions) => Promise<any>;
+   excute: (query: string, model: Model) => Promise<any>;
    buildSchema: (model: Model) => string;
 }
 
+export type Dialect = (xansql: xansql) => DialectOptions | Promise<DialectOptions>;
 
 export type XansqlCacheOnCacheArgs = {
    sql: string;
@@ -50,7 +51,7 @@ export type XansqlConfigOptions = {
    }
 }
 
-export type XansqlConfigFunction = () => XansqlConfigOptions;
+export type XansqlConfigFunction = () => Promise<XansqlConfigOptions> | XansqlConfigOptions;
 export type XansqlConfig = XansqlConfigOptions | XansqlConfigFunction;
 
 export type XansqlDialectExcuteReturn<DATA> = {
