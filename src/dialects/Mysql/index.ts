@@ -102,7 +102,6 @@ const buildSchema = (model: Model): string => {
 }
 
 
-
 let mod: any = null;
 const mysqldialect = async (xansql: xansql): Promise<DialectOptions> => {
    const config = await xansql.getConfig();

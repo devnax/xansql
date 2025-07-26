@@ -316,8 +316,7 @@ abstract class ModelBase {
       }
 
       // excute sql
-      const excute = await model.excute(sql)
-      let results = excute.result
+      const results = (await model.excute(sql)).result
       const resultFormat: BuildResult = {
          type: isRelationArgs ? "relation" : "main",
          results,
@@ -328,30 +327,38 @@ abstract class ModelBase {
       }
       if (!resultFormat.results || !resultFormat.results.length) return resultFormat
 
-      let _ins: {
-         [foregin_column: string]: any[] // ids
-      } = {}
+      let ins: { [foregin_column: string]: any[] /** ids */ } = {}
 
       const resultIndex: any = {}
+      const indexes: any = {}
 
       for (let foregin_column in ralation_columns) {
          let main_column = ralation_columns[foregin_column]
-         if (!(foregin_column in _ins)) {
-            _ins[foregin_column] = []
+         if (!(foregin_column in ins)) {
+            ins[foregin_column] = []
             for (let i = 0; i < results.length; i++) {
                let result = results[i]
-               _ins[foregin_column].push(result[main_column])
+               if (!ins[foregin_column].includes(result[main_column])) {
+                  ins[foregin_column].push(result[main_column])
+               }
                if (!resultIndex[foregin_column]) resultIndex[foregin_column] = {}
                resultIndex[foregin_column][result[main_column]] = i
+
+               if (!indexes[foregin_column]) indexes[foregin_column] = []
+               indexes[foregin_column].push(i)
             }
          }
       }
+
+      console.log(indexes);
+
+      let relation_results: any = {}
 
       for (let column in relations) {
          const relation = relations[column]
          let _model = this.xansql.getModel(relation.relation.foregin.table)
          let foregin_column = relation.relation.foregin.column
-         let _in_values = _ins[foregin_column] || []
+         let _in_values = ins[foregin_column] || []
          let _in: any = { column: `${relation.relation.foregin.alias}.${foregin_column}`, values: _in_values }
 
          if (!relation.args.where) relation.args.where = {}
@@ -375,20 +382,24 @@ abstract class ModelBase {
 
          relation.args.limit = {}
          const rel_results: BuildResult = await _model.find(new RelationArgs(relation.args) as any) as any
-         for (let rel_result of (rel_results.results || [])) {
-            let res: any = rel_result
-            const id = res[foregin_column]
-            const index = resultIndex[foregin_column][id]
-            if (index !== undefined) {
-               if (relation.relation.single) {
-                  resultFormat.results[index][column] = res
-               } else {
-                  if (!resultFormat.results[index][column]) resultFormat.results[index][column] = []
-                  resultFormat.results[index][column].push(res)
-               }
-            }
-         }
+         relation_results[_model.table] = rel_results.results
+         // for (let rel_result of (rel_results.results || [])) {
+         //    let res: any = rel_result
+         //    const id = res[foregin_column]
+         //    const index = resultIndex[foregin_column][id]
+         //    if (index !== undefined) {
+         //       if (relation.relation.single) {
+         //          resultFormat.results[index][column] = res
+         //       } else {
+         //          if (!resultFormat.results[index][column]) resultFormat.results[index][column] = []
+         //          resultFormat.results[index][column].push(res)
+         //       }
+         //    }
+         // }
       }
+
+      console.log(relation_results);
+
       return resultFormat
    }
 
