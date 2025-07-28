@@ -298,25 +298,23 @@ abstract class ModelBase {
          sql += orderByFields.length ? ` ORDER BY ${orderBy.join(",")}` : ""
       }
 
-      if (args.limit) {
-         if (args.limit.take) {
-            let take = args.limit.take
-            sql += ` LIMIT ${take}`
-            if (args.limit?.skip || args.limit?.page) {
-               let skip = args.limit.skip
-               if (args.limit.page) {
-                  skip = (args.limit.page - 1) * take
-               }
-               sql += `OFFSET ${skip}`
-            }
-         }
-      } else {
+      if (!isRelationArgs) {
          const { maxFindLimit } = await this.xansql.getConfig()
-         sql += ` LIMIT ${maxFindLimit}`
+         const take: number = (args?.limit?.take || maxFindLimit) as any
+         sql += ` LIMIT ${take}`
+         if (args.limit?.skip || args.limit?.page) {
+            let skip = args.limit.skip
+            if (args.limit.page) {
+               skip = (args.limit.page - 1) * take
+            }
+            sql += `OFFSET ${skip}`
+         }
       }
 
       // excute sql
       const results = (await model.excute(sql)).result
+      console.log(results.length);
+
       const resultFormat: BuildResult = {
          type: isRelationArgs ? "relation" : "main",
          results,
@@ -330,8 +328,6 @@ abstract class ModelBase {
       let ins: { [foregin_column: string]: any[] /** ids */ } = {}
 
       const resultIndex: any = {}
-      const indexes: any = {}
-
       for (let foregin_column in ralation_columns) {
          let main_column = ralation_columns[foregin_column]
          if (!(foregin_column in ins)) {
@@ -343,16 +339,9 @@ abstract class ModelBase {
                }
                if (!resultIndex[foregin_column]) resultIndex[foregin_column] = {}
                resultIndex[foregin_column][result[main_column]] = i
-
-               if (!indexes[foregin_column]) indexes[foregin_column] = []
-               indexes[foregin_column].push(i)
             }
          }
       }
-
-      console.log(indexes);
-
-      let relation_results: any = {}
 
       for (let column in relations) {
          const relation = relations[column]
@@ -382,23 +371,27 @@ abstract class ModelBase {
 
          relation.args.limit = {}
          const rel_results: BuildResult = await _model.find(new RelationArgs(relation.args) as any) as any
-         relation_results[_model.table] = rel_results.results
-         // for (let rel_result of (rel_results.results || [])) {
-         //    let res: any = rel_result
-         //    const id = res[foregin_column]
-         //    const index = resultIndex[foregin_column][id]
-         //    if (index !== undefined) {
-         //       if (relation.relation.single) {
-         //          resultFormat.results[index][column] = res
-         //       } else {
-         //          if (!resultFormat.results[index][column]) resultFormat.results[index][column] = []
-         //          resultFormat.results[index][column].push(res)
-         //       }
-         //    }
-         // }
-      }
 
-      console.log(relation_results);
+         if (relation.relation.single) {
+            for (let mres of resultFormat.results) {
+               if (!rel_results.results?.length) {
+                  mres[column] = null
+               } else {
+                  mres[column] = rel_results.results[0]
+               }
+            }
+         } else {
+            for (let rel_result of (rel_results.results || [])) {
+               let res: any = rel_result
+               const id = res[foregin_column]
+               const index = resultIndex[foregin_column][id]
+               if (index !== undefined) {
+                  if (!resultFormat.results[index][column]) resultFormat.results[index][column] = []
+                  resultFormat.results[index][column].push(res)
+               }
+            }
+         }
+      }
 
       return resultFormat
    }

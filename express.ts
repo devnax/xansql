@@ -56,14 +56,16 @@ const server = async (app) => {
       //       // }
       //    }
       // })
-
+      const start = performance.now();
       const products = await Product.find({
-         where: {},
+         where: {
+            // id: 50
+         },
          orderBy: {
             // id: "desc",
          },
          limit: {
-            take: 2
+            // take: 4000
          },
          select: {
 
@@ -80,6 +82,8 @@ const server = async (app) => {
             }
          },
       })
+      const end = performance.now(); // More accurate for small durations
+      console.log(`Execution time: ${(end - start).toFixed(2)} ms`);
 
       res.json(products);
    });
