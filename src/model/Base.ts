@@ -1,3 +1,4 @@
+import youid from "youid";
 import Model from ".";
 import xansql from "..";
 import Schema, { id } from "../Schema";
@@ -183,6 +184,8 @@ abstract class ModelBase {
       let info = {
          alias,
          wheres: [] as string[],
+         whereArgs: {} as any,
+         relations: {} as { [column: string]: { where: object } }
       }
 
       for (let column in where) {
@@ -193,10 +196,16 @@ abstract class ModelBase {
             const relation = model.getRelation(column)
             const foreginModel = model.xansql.getModel(relation.foregin.table)
             const _where: any = where[column] || {}
-
+            if (!info.relations[column]) {
+               info.relations[column] = {
+                  where: where[column] as any
+               }
+            }
             const build = this.buildWhere(_where, foreginModel, aliases)
-            info.wheres.push(`EXISTS (SELECT 1 FROM ${relation.foregin.table} ${build.alias} WHERE ${build.alias}.${relation.foregin.column} = ${relation.main.alias}.${relation.main.column} ${build.wheres.length ? ` AND ${build.wheres.join(" AND ")}` : ""})`)
+            let _alias = build.alias
+            info.wheres.push(`EXISTS (SELECT 1 FROM ${relation.foregin.table} ${_alias} WHERE ${_alias}.${relation.foregin.column} = ${relation.main.alias}.${relation.main.column} ${build.wheres.length ? ` AND ${build.wheres.join(" AND ")}` : ""})`)
          } else {
+            info.whereArgs[column] = where[column]
             let v = ``
             if (isObject(where[column])) {
                const subConditions = this.buildWhereConditions(column, (where as any)[column], model.alias)
@@ -224,6 +233,142 @@ abstract class ModelBase {
    }
 
    protected async buildFind(args: FindArgs | RelationArgs, model: Model): Promise<BuildResult> {
+
+      const isRelationArgs = args instanceof RelationArgs;
+      const schema = model.schema.get()
+      let _args = args as FindArgs;
+      if (args instanceof RelationArgs) {
+         _args = args.args as FindArgs;
+      }
+
+      const relation_args: any = {}
+      let select = []
+
+      for (let column in _args.select) {
+         const schemaValue = schema[column]
+         if (!schemaValue) throw new Error(`Invalid column ${model.table}.${column}`)
+         if (schemaValue instanceof Relation) {
+            relation_args[column] = {
+               select: _args.select[column]
+            }
+            if (_args?.limit && _args.limit[column]) {
+               relation_args[column].limit = _args.limit[column]
+            }
+            if (_args?.orderBy && _args.orderBy[column]) {
+               relation_args[column].orderBy = _args.orderBy[column]
+            }
+         } else {
+            select.push(`${model.alias}.${column}`)
+         }
+      }
+
+      let orderBysql = "";
+      if (_args.orderBy) {
+         let orderBy = []
+         for (let column in _args.orderBy) {
+            const schemaValue = schema[column]
+            if (!schemaValue) throw new Error(`Invalid column ${model.table}.${column}`)
+            if (schemaValue instanceof Relation) continue
+            orderBy.push(`${model.alias}.${column} ${(_args as any).orderBy[column]}`)
+         }
+         orderBysql = orderBy.length ? ` ORDER BY ${orderBy.join(",")}` : ""
+      }
+
+      let sql = ''
+      let main_sql = ''
+
+      if (!isRelationArgs) {
+         const buildWhere = this.buildWhere(_args.where, model)
+         sql += buildWhere.wheres.length ? ` WHERE ${buildWhere.wheres.join(" AND ")}` : ""
+         sql += orderBysql
+
+         if (_args.limit) {
+            const { maxFindLimit } = await this.xansql.getConfig()
+            const take: number = (_args.limit.take || maxFindLimit) as any
+            sql += ` LIMIT ${take}`
+            if (_args.limit.skip || _args.limit.page) {
+               let skip = _args.limit.skip
+               sql += ` OFFSET ${skip}`
+            }
+         }
+         main_sql = `SELECT ${select.length ? select.join(",") : "*"} FROM ${model.table} ${model.alias} ${sql}`
+
+      } else {
+         const relation = args.relation as GetRelationType
+
+         let main_cte = `FETCH_${relation.main.table}`
+         let main_ctealias = `f${relation.main.alias}`
+         let parent_cte = `${main_cte} AS (${args.parent_sql})`
+
+         if (_args.limit && _args.limit?.take) {
+            let take = _args.limit.take || 50
+            let skip = _args.limit.skip || 0
+            let skip_sql = skip ? `${relation.foregin.alias}_rank > ${skip} AND` : ""
+            main_sql = `WITH ${parent_cte},
+            ranked_${relation.foregin.table} AS (
+                SELECT
+                  ${select.length ? select.join(",") : "*"},
+                    ROW_NUMBER() OVER (PARTITION BY ${relation.foregin.alias}.${relation.foregin.column} ${orderBysql}) AS ${relation.foregin.alias}_rank
+                FROM ${relation.foregin.table} c
+                JOIN ${main_cte} ${main_ctealias} ON ${relation.foregin.alias}.${relation.foregin.column} = ${main_ctealias}.${relation.main.column}
+            )
+            SELECT ${select.length ? select.join(",") : "*"}
+            FROM ranked_${relation.foregin.table} ${relation.foregin.alias}
+            WHERE ${skip_sql} ${relation.foregin.alias}_rank <= ${take + skip}
+            ${orderBysql}`
+         } else {
+            main_sql = `WITH ${parent_cte} 
+            SELECT ${select.length ? select.join(",") : "*"} 
+            FROM ${relation.foregin.table} ${relation.foregin.alias}
+            JOIN ${main_cte} ${main_ctealias} ON ${relation.foregin.alias}.${relation.foregin.column} = ${main_ctealias}.${relation.main.column}
+            ${sql}`
+         }
+      }
+
+      const results = (await model.excute(main_sql)).result
+
+      for (let column in relation_args) {
+         const relation = model.getRelation(column)
+         let rsql = `SELECT ${relation.main.alias}.${relation.main.column} FROM ${relation.main.table} ${relation.main.alias} ${sql}`
+         const rel_model = this.xansql.getModel(relation.foregin.table)
+         const rel_args = relation_args[column]
+         rel_args.where = rel_args.where || {}
+         rel_args.select = rel_args.select || {}
+         rel_args.select[relation.foregin.column] = true
+         const rel_results: BuildResult = await rel_model.find(new RelationArgs(rel_args, rsql, relation) as any) as any
+         if (relation.single) {
+            for (let mres of results) {
+               if (!rel_results.results?.length) {
+                  mres[column] = null
+               } else {
+                  mres[column] = rel_results.results[0]
+               }
+            }
+         } else {
+            for (let rel_result of (rel_results.results || [])) {
+               let res: any = rel_result
+               const id = res[relation.foregin.column]
+               for (let mres of results) {
+                  if (!mres[column]) mres[column] = []
+                  if (mres[relation.main.column] === id) {
+                     mres[column].push(res)
+                  }
+               }
+            }
+         }
+      }
+
+      return {
+         type: isRelationArgs ? "relation" : "main",
+         results: results,
+         excuted: {
+            sql: sql,
+            data: [] // deep copy
+         }
+      }
+   }
+
+   protected async _buildFind(args: FindArgs | RelationArgs, model: Model): Promise<BuildResult> {
       // if (!args.where || !Object.keys(args.where).length) throw new Error("Where clause is required");
       const isRelationArgs = args instanceof RelationArgs;
       if (args instanceof RelationArgs) {
@@ -298,23 +443,19 @@ abstract class ModelBase {
          sql += orderByFields.length ? ` ORDER BY ${orderBy.join(",")}` : ""
       }
 
+
       if (!isRelationArgs) {
          const { maxFindLimit } = await this.xansql.getConfig()
          const take: number = (args?.limit?.take || maxFindLimit) as any
          sql += ` LIMIT ${take}`
          if (args.limit?.skip || args.limit?.page) {
             let skip = args.limit.skip
-            if (args.limit.page) {
-               skip = (args.limit.page - 1) * take
-            }
             sql += `OFFSET ${skip}`
          }
       }
 
       // excute sql
       const results = (await model.excute(sql)).result
-      console.log(results.length);
-
       const resultFormat: BuildResult = {
          type: isRelationArgs ? "relation" : "main",
          results,

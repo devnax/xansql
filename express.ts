@@ -58,19 +58,40 @@ const server = async (app) => {
       // })
       const start = performance.now();
       const products = await Product.find({
-         where: {
-            // id: 50
-         },
+
          orderBy: {
-            // id: "desc",
+            id: "desc",
+            name: "asc",
+            categories: {
+               id: "asc",
+               name: "desc"
+            }
          },
          limit: {
-            // take: 4000
+            // take: 100,
+
+            categories: {
+               take: 2,
+               skip: 1
+            }
+         },
+         where: {
+            // name: "micle",
+            categories: {
+               name: "Electronics",
+            },
+            // user: {
+            //    email: "hello@gm.com",
+            //    metas: {
+            //       meta_key: "hello",
+            //       meta_value: "world"
+            //    }
+            // }
          },
          select: {
-
             id: true,
             name: true,
+            price: true,
             user: {
                id: true,
                name: true,

@@ -44,7 +44,6 @@ export interface WhereArgs {
 export type LimitClause = {
    take?: number;
    skip?: number;
-   page?: number;
    [foregin: string]: LimitClause | number | undefined
 }
 
