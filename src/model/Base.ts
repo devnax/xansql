@@ -242,7 +242,8 @@ abstract class ModelBase {
       }
 
       const relation_args: any = {}
-      let select = []
+      const relations: { [column: string]: GetRelationType } = {}
+      let select: string[] = []
 
       for (let column in _args.select) {
          const schemaValue = schema[column]
@@ -257,9 +258,24 @@ abstract class ModelBase {
             if (_args?.orderBy && _args.orderBy[column]) {
                relation_args[column].orderBy = _args.orderBy[column]
             }
+            const relation = model.getRelation(column)
+            relations[column] = relation;
+            if (!select.includes(relation.main.column)) {
+               select.unshift(`${model.alias}.${relation.main.column}`);
+            }
          } else {
             select.push(`${model.alias}.${column}`)
          }
+      }
+
+      if (select.length) {
+         const idField = model.idField();
+         let f = `${model.alias}.${idField}`
+         if (!select.includes(f)) {
+            select.unshift(f);
+         }
+      } else {
+         select = ["*"];
       }
 
       let orderBysql = "";
@@ -276,12 +292,11 @@ abstract class ModelBase {
 
       let sql = ''
       let main_sql = ''
+      const buildWhere = this.buildWhere(_args.where, model)
+      sql += buildWhere.wheres.length ? ` WHERE ${buildWhere.wheres.join(" AND ")}` : ""
+      sql += orderBysql
 
       if (!isRelationArgs) {
-         const buildWhere = this.buildWhere(_args.where, model)
-         sql += buildWhere.wheres.length ? ` WHERE ${buildWhere.wheres.join(" AND ")}` : ""
-         sql += orderBysql
-
          if (_args.limit) {
             const { maxFindLimit } = await this.xansql.getConfig()
             const take: number = (_args.limit.take || maxFindLimit) as any
@@ -291,69 +306,87 @@ abstract class ModelBase {
                sql += ` OFFSET ${skip}`
             }
          }
-         main_sql = `SELECT ${select.length ? select.join(",") : "*"} FROM ${model.table} ${model.alias} ${sql}`
+
+         main_sql = `SELECT ${select.join(",")} FROM ${model.table} ${model.alias} ${sql}`
 
       } else {
          const relation = args.relation as GetRelationType
-
-         let main_cte = `FETCH_${relation.main.table}`
-         let main_ctealias = `f${relation.main.alias}`
-         let parent_cte = `${main_cte} AS (${args.parent_sql})`
-
          if (_args.limit && _args.limit?.take) {
             let take = _args.limit.take || 50
             let skip = _args.limit.skip || 0
-            let skip_sql = skip ? `${relation.foregin.alias}_rank > ${skip} AND` : ""
-            main_sql = `WITH ${parent_cte},
-            ranked_${relation.foregin.table} AS (
-                SELECT
-                  ${select.length ? select.join(",") : "*"},
-                    ROW_NUMBER() OVER (PARTITION BY ${relation.foregin.alias}.${relation.foregin.column} ${orderBysql}) AS ${relation.foregin.alias}_rank
-                FROM ${relation.foregin.table} c
-                JOIN ${main_cte} ${main_ctealias} ON ${relation.foregin.alias}.${relation.foregin.column} = ${main_ctealias}.${relation.main.column}
-            )
-            SELECT ${select.length ? select.join(",") : "*"}
-            FROM ranked_${relation.foregin.table} ${relation.foregin.alias}
-            WHERE ${skip_sql} ${relation.foregin.alias}_rank <= ${take + skip}
-            ${orderBysql}`
+            main_sql = `
+            SELECT ${select.join(",")} FROM (
+                 SELECT
+                     ${select.join(",")},
+                   ROW_NUMBER() OVER (PARTITION BY ${relation.foregin.alias}.${relation.foregin.column} ${orderBysql}) AS ${relation.foregin.alias}_rank
+                 FROM ${relation.foregin.table} ${relation.foregin.alias}
+                 WHERE ${relation.foregin.alias}.${relation.foregin.column} IN (${args.parent_ids.join(",")})
+               ) AS ${relation.foregin.alias}
+               WHERE ${relation.foregin.alias}_rank > ${skip} AND ${relation.foregin.alias}_rank <= ${take + skip};
+            `
          } else {
-            main_sql = `WITH ${parent_cte} 
+            main_sql = `
             SELECT ${select.length ? select.join(",") : "*"} 
             FROM ${relation.foregin.table} ${relation.foregin.alias}
-            JOIN ${main_cte} ${main_ctealias} ON ${relation.foregin.alias}.${relation.foregin.column} = ${main_ctealias}.${relation.main.column}
+            JOIN ${relation.main.table} ${relation.main.alias} ON ${relation.foregin.alias}.${relation.foregin.column} = ${relation.main.alias}.${relation.main.column}
+            WHERE ${relation.main.alias}.${relation[relation.single ? "foregin" : "main"].column} IN(${args.parent_ids.join(",")})
             ${sql}`
          }
       }
 
-      const results = (await model.excute(main_sql)).result
+      const results = (await model.excute(main_sql)).result || []
+      if (!results || !results.length) {
+         return {
+            type: isRelationArgs ? "relation" : "main",
+            results: [],
+            excuted: {
+               sql: main_sql,
+               data: [] // deep copy
+            }
+         }
+      }
+
+      const ids: number[] = []
+      const resultSingleIndex: any = {}
+      const resultMultipleIndex: any = {}
+      for (let result of results) {
+         ids.push(result[(model as any).idField()])
+         for (let column in relation_args) {
+            const relation = relations[column]
+            if (!resultSingleIndex[column]) resultSingleIndex[column] = {}
+            if (relation.single) {
+               if (!resultSingleIndex[column][result[relation.main.column]]) resultSingleIndex[column][result[relation.main.column]] = []
+               resultSingleIndex[column][result[relation.main.column]].push(results.indexOf(result));
+            } else {
+               if (!resultMultipleIndex[column]) resultMultipleIndex[column] = {}
+               resultMultipleIndex[column][result[relation.main.column]] = results.indexOf(result)
+            }
+         }
+      }
 
       for (let column in relation_args) {
-         const relation = model.getRelation(column)
-         let rsql = `SELECT ${relation.main.alias}.${relation.main.column} FROM ${relation.main.table} ${relation.main.alias} ${sql}`
+         const relation = relations[column]
          const rel_model = this.xansql.getModel(relation.foregin.table)
          const rel_args = relation_args[column]
-         rel_args.where = rel_args.where || {}
          rel_args.select = rel_args.select || {}
          rel_args.select[relation.foregin.column] = true
-         const rel_results: BuildResult = await rel_model.find(new RelationArgs(rel_args, rsql, relation) as any) as any
-         if (relation.single) {
-            for (let mres of results) {
-               if (!rel_results.results?.length) {
-                  mres[column] = null
-               } else {
-                  mres[column] = rel_results.results[0]
+         rel_args.where = rel_args.where || {}
+         if (relation.single && rel_args.limit) {
+            delete rel_args.limit
+         }
+
+         const rel_results: BuildResult = await rel_model.find(new RelationArgs(rel_args, ids, relation) as any) as any
+         for (let result of rel_results.results || []) {
+            if (relation.single) {
+               const indexs = resultSingleIndex[column][result[relation.foregin.column]]
+               for (let index of indexs) {
+                  results[index][column] = result
                }
-            }
-         } else {
-            for (let rel_result of (rel_results.results || [])) {
-               let res: any = rel_result
-               const id = res[relation.foregin.column]
-               for (let mres of results) {
-                  if (!mres[column]) mres[column] = []
-                  if (mres[relation.main.column] === id) {
-                     mres[column].push(res)
-                  }
-               }
+            } else {
+               const index = resultMultipleIndex[column][result[relation.foregin.column]]
+               if (index === undefined) continue
+               if (!results[index][column]) results[index][column] = []
+               results[index][column].push(result);
             }
          }
       }
@@ -554,20 +587,18 @@ abstract class ModelBase {
 
       if (isArray(data)) {
          let res: any = []
-         let sql = ""
          for (let _data of data) {
             const { results, excuted } = await this.buildCreate({
                data: _data,
                select: select
             }, model)
             res = [...res, ...(results || [])]
-            sql += excuted.sql + "; "
          }
          const resultFormat: BuildResult = {
             type: isRelationArgs ? "relation" : "main",
             results: res,
             excuted: {
-               sql: sql,
+               sql: "",
                data: JSON.parse(JSON.stringify(res || [])) // deep copy
             }
          }

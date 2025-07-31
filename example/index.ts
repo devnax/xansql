@@ -4,6 +4,7 @@ import UserMetaModel from "./models/UserMeta"
 import ProductModel from "./models/Product"
 import CategoryModel from "./models/Category"
 import mysqldialect from "../src/dialects/Mysql"
+import SqliteDialect from "../src/dialects/Sqlite"
 import dotenv from 'dotenv'
 import TestCache from "./TestCache"
 
@@ -15,22 +16,22 @@ if (typeof process !== 'undefined' && process?.env) {
    }
 }
 
-const conn: string = (typeof process !== 'undefined' ? process.env.MYSQL_DB : 'http://localhost:3000/data') as string
+const mysqlConn: string = (typeof process !== 'undefined' ? process.env.MYSQL_DB : 'mysql://root:password@localhost:3306/xansql') as string
+const sqliteConn: string = 'db.sqlite'
 
-let mysql: any = {
-   dialect: 'mysql',
-   connection: conn
+const conn = {
+   mysql: {
+      connection: mysqlConn,
+      dialect: mysqldialect
+   },
+   sqlite: {
+      connection: sqliteConn,
+      dialect: SqliteDialect
+   }
 }
-
-let sqlite: any = {
-   dialect: 'sqlite',
-   connection: 'db.sqlite'
-}
-
 
 export const db = new xansql({
-   connection: conn,
-   dialect: mysqldialect,
+   ...conn.sqlite,
    cachePlugins: [
       // TestCache
    ],

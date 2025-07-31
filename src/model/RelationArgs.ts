@@ -2,13 +2,13 @@ import { GetRelationType } from "./type"
 
 class RelationArgs {
    args: any
-   parent_sql: string | null = null
    relation: GetRelationType | null = null
+   parent_ids: number[] = []
 
-   constructor(args: any, parent_sql?: string, relation?: GetRelationType) {
+   constructor(args: any, parent_ids?: number[], relation?: GetRelationType) {
       this.args = args
-      this.parent_sql = parent_sql || null
       this.relation = relation || null
+      this.parent_ids = parent_ids || []
    }
 }
 

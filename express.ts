@@ -68,12 +68,15 @@ const server = async (app) => {
             }
          },
          limit: {
-            // take: 100,
-
-            categories: {
+            take: 1000,
+            user: {
                take: 2,
                skip: 1
-            }
+            },
+            // categories: {
+            //    take: 2,
+            //    skip: 1
+            // }
          },
          where: {
             // name: "micle",
@@ -89,11 +92,9 @@ const server = async (app) => {
             // }
          },
          select: {
-            id: true,
             name: true,
             price: true,
             user: {
-               id: true,
                name: true,
                email: true,
             },
