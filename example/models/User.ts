@@ -1,6 +1,6 @@
 import { id, relation, string, timestamp } from "../../src";
 import Model from "../../src/model";
-import Schema from "../../src/schema";
+import Schema from "../../src/Schema";
 
 export interface UserData {
    id?: number;
@@ -15,10 +15,10 @@ export interface UserData {
 
 export const UserSchema = new Schema({
    id: id(),
-   name: string(),
-   email: string(),
+   name: string().index(),
+   email: string().index(),
    password: string(),
-   username: string().default(""),
+   username: string().index().default(""),
    created_at: timestamp().default('CURRENT_TIMESTAMP'),
    updated_at: timestamp().default('CURRENT_TIMESTAMP', true),
 })

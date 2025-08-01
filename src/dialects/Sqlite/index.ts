@@ -63,11 +63,11 @@ const constraints = (name: string, column: Column, table: string) => {
       //sql += ` ON UPDATE ${constraints.onUpdate}`;
    }
    if (constraints.references) {
-      const ref = constraints.references;
-      let foreign = `FOREIGN KEY (\`${name}\`) REFERENCES \`${ref.table}\`(\`${ref.column}\`)`;
+      // const ref = constraints.references;
+      // let foreign = `FOREIGN KEY (\`${name}\`) REFERENCES \`${ref.table}\`(\`${ref.column}\`)`;
       // if (constraints.onDelete) foreign += ` ON DELETE ${constraints.onDelete}`;
       // if (constraints.onUpdate) foreign += ` ON UPDATE ${constraints.onUpdate}`;
-      footer.push(foreign);
+      // footer.push(foreign);
    }
 
    if (constraints.index) indexes.push(`CREATE INDEX IF NOT EXISTS ${name}_index ON \`${table}\`(\`${name}\`)`);
@@ -108,8 +108,8 @@ const buildSchema = (model: Model): string => {
    if (indexes.length) {
       sql += `\n${indexes.join(";\n")};`;
    }
-   sql += `\nPRAGMA foreign_keys = ON;`;
-   sql += `\nPRAGMA journal_mode = WAL;`;
+   // sql += `\nPRAGMA foreign_keys = ON;`;
+   // sql += `\nPRAGMA journal_mode = WAL;`;
 
    return sql
 }
@@ -121,7 +121,7 @@ const SqliteDialect = async (xansql: xansql): Promise<DialectOptions> => {
    let excuter: any = null;
 
    return {
-      name: "sqlite",
+      buildSchema,
       excute: async (sql: any, model: Model): Promise<any> => {
          if (typeof window === "undefined") {
             if (!mod) {
@@ -133,7 +133,50 @@ const SqliteDialect = async (xansql: xansql): Promise<DialectOptions> => {
             return await xansql.excuteClient(sql, model);
          }
       },
-      buildSchema
+      addColumn: async (model: Model, columnName: string) => {
+         const schema = model.schema.get()
+         const column = schema[columnName];
+         if (!column) {
+            throw new Error(`Column ${columnName} not found in model ${model.table}`);
+         }
+         if (column instanceof Relation || column instanceof IDField) {
+            throw new Error(`Cannot add relation or IDField as a column: ${columnName}`);
+         }
+         return await model.excute(`ALTER TABLE \`${model.table}\` ADD COLUMN \`${columnName}\` ${getType(column)};`);
+      },
+      dropColumn: async (model: Model, columnName: string) => {
+         const schema = model.schema.get()
+         const column = schema[columnName];
+         if (!column) {
+            throw new Error(`Column ${columnName} not found in model ${model.table}`);
+         }
+         if (column instanceof Relation || column instanceof IDField) {
+            throw new Error(`Cannot drop relation or IDField as a column: ${columnName}`);
+         }
+         return await model.excute(`ALTER TABLE \`${model.table}\` DROP COLUMN \`${columnName}\`;`);
+      },
+      renameColumn: async (model: Model, oldName: string, newName: string) => {
+         const schema = model.schema.get()
+         const column = schema[oldName];
+         if (!column) {
+            throw new Error(`Column ${oldName} not found in model ${model.table}`);
+         }
+         return await model.excute(`ALTER TABLE \`${model.table}\` RENAME COLUMN \`${oldName}\` TO \`${newName}\`;`);
+      },
+      addIndex: async (model: Model, columnName: string) => {
+         const schema = model.schema.get()
+         const column = schema[columnName];
+         if (!column) {
+            throw new Error(`Column ${columnName} not found in model ${model.table}`);
+         }
+         if (column instanceof Relation || column instanceof IDField) {
+            throw new Error(`Cannot add index to relation or IDField: ${columnName}`);
+         }
+         return await model.excute(`CREATE INDEX IF NOT EXISTS ${model.table}_${columnName}_index ON \`${model.table}\` (\`${columnName}\`);`);
+      },
+      dropIndex: async (model: Model, columnName: string) => {
+         return await model.excute(`DROP INDEX IF EXISTS ${model.table}_${columnName}_index;`);
+      },
    }
 }
 

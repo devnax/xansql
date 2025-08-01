@@ -128,16 +128,9 @@ class xansql {
    async migrate(force = false) {
       const models = this.getModels()
       const tables = Array.from(models.keys())
-      if (this.isServer) {
-         const dialect = await this.getDialect()
-         for (let table of tables) {
-            const model = this.getModel(table)
-            if (force) {
-               await this.excute(`DROP TABLE IF EXISTS ${model.table}`, model);
-            }
-            const sql = dialect.buildSchema(model);
-            await this.excute(sql, model)
-         }
+      for (let table of tables) {
+         const model = this.getModel(table)
+         await model.migrate(force)
       }
    }
 

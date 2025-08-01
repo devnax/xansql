@@ -2,9 +2,13 @@ import xansql from ".";
 import Model from "./model";
 
 export type DialectOptions = {
-   name: string;
    excute: (query: string, model: Model) => Promise<any>;
    buildSchema: (model: Model) => string;
+   addColumn: (model: Model, columnName: string) => Promise<any>;
+   dropColumn: (model: Model, columnName: string) => Promise<any>;
+   renameColumn: (model: Model, oldName: string, newName: string) => Promise<any>;
+   addIndex: (model: Model, columnName: string) => Promise<any>;
+   dropIndex: (model: Model, columnName: string) => Promise<any>;
 }
 
 export type Dialect = (xansql: xansql) => DialectOptions | Promise<DialectOptions>;

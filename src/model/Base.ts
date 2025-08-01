@@ -21,9 +21,7 @@ abstract class ModelBase {
       this.xansql = xansql
    }
 
-   protected async excute(sql: string): Promise<any> {
-      return await this.xansql.excute(sql, this as any)
-   }
+
 
    idField() {
       if (this._idField) return this._idField
@@ -320,7 +318,7 @@ abstract class ModelBase {
                      ${select.join(",")},
                    ROW_NUMBER() OVER (PARTITION BY ${relation.foregin.alias}.${relation.foregin.column} ${orderBysql}) AS ${relation.foregin.alias}_rank
                  FROM ${relation.foregin.table} ${relation.foregin.alias}
-                 WHERE ${relation.foregin.alias}.${relation.foregin.column} IN (${args.parent_ids.join(",")})
+                 WHERE ${relation.foregin.alias}.${relation.foregin.column} IN (${args.IN.join(",")})
                ) AS ${relation.foregin.alias}
                WHERE ${relation.foregin.alias}_rank > ${skip} AND ${relation.foregin.alias}_rank <= ${take + skip};
             `
@@ -328,8 +326,7 @@ abstract class ModelBase {
             main_sql = `
             SELECT ${select.length ? select.join(",") : "*"} 
             FROM ${relation.foregin.table} ${relation.foregin.alias}
-            JOIN ${relation.main.table} ${relation.main.alias} ON ${relation.foregin.alias}.${relation.foregin.column} = ${relation.main.alias}.${relation.main.column}
-            WHERE ${relation.main.alias}.${relation[relation.single ? "foregin" : "main"].column} IN(${args.parent_ids.join(",")})
+            WHERE ${relation.foregin.alias}.${relation.foregin.column} IN (${args.IN.join(",")})
             ${sql}`
          }
       }
@@ -347,14 +344,28 @@ abstract class ModelBase {
       }
 
       const ids: number[] = []
+      const singleIds: number[] = []
+      const multipleIds: number[] = []
       const resultSingleIndex: any = {}
       const resultMultipleIndex: any = {}
       for (let result of results) {
          ids.push(result[(model as any).idField()])
+
          for (let column in relation_args) {
             const relation = relations[column]
-            if (!resultSingleIndex[column]) resultSingleIndex[column] = {}
+
             if (relation.single) {
+               if (!singleIds.includes(result[relation.main.column])) {
+                  singleIds.push(result[relation.main.column])
+               }
+            } else {
+               if (!multipleIds.includes(result[relation.main.column])) {
+                  multipleIds.push(result[(model as any).idField()])
+               }
+            }
+
+            if (relation.single) {
+               if (!resultSingleIndex[column]) resultSingleIndex[column] = {}
                if (!resultSingleIndex[column][result[relation.main.column]]) resultSingleIndex[column][result[relation.main.column]] = []
                resultSingleIndex[column][result[relation.main.column]].push(results.indexOf(result));
             } else {
@@ -374,6 +385,8 @@ abstract class ModelBase {
          if (relation.single && rel_args.limit) {
             delete rel_args.limit
          }
+
+         const ids = relation.single ? singleIds : multipleIds
 
          const rel_results: BuildResult = await rel_model.find(new RelationArgs(rel_args, ids, relation) as any) as any
          for (let result of rel_results.results || []) {

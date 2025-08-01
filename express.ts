@@ -69,14 +69,10 @@ const server = async (app) => {
          },
          limit: {
             take: 1000,
-            user: {
+            categories: {
                take: 2,
                skip: 1
-            },
-            // categories: {
-            //    take: 2,
-            //    skip: 1
-            // }
+            }
          },
          where: {
             // name: "micle",
@@ -100,7 +96,7 @@ const server = async (app) => {
             },
             categories: {
                id: true,
-               name: true
+               name: true,
             }
          },
       })

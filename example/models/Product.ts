@@ -1,13 +1,13 @@
 import { id, relation, string, timestamp } from "../../src";
 import Model from "../../src/model";
-import Schema, { integer } from "../../src/schema";
+import Schema, { integer } from "../../src/Schema";
 import { UserSchema } from "./User";
 
 
 export const ProductSchema = new Schema({
    id: id(),
-   name: string(),
-   price: string(),
+   name: string().index(),
+   price: string().index(),
    description: string().null(),
    user_id: integer().references('users', 'id').onDelete('CASCADE'),
    user: relation("user_id"),

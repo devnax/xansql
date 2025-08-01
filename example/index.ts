@@ -31,7 +31,7 @@ const conn = {
 }
 
 export const db = new xansql({
-   ...conn.sqlite,
+   ...conn.mysql,
    cachePlugins: [
       // TestCache
    ],

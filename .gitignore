@@ -1,3 +1,5 @@
 node_modules
 .mpack 
 .env
+db.sqlite*
+.db

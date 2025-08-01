@@ -1,12 +1,12 @@
 import { id, relation, string, timestamp } from "../../src";
 import Model from "../../src/model";
-import Schema, { integer } from "../../src/schema";
+import Schema, { integer } from "../../src/Schema";
 import { ProductSchema } from "./Product";
 
 
 export const categoriesSchema = new Schema({
    id: id(),
-   name: string(),
+   name: string().index(),
    description: string().null(),
    product_id: integer().references('products', 'id').onDelete('CASCADE'),
    product: relation("product_id"),
