@@ -290,11 +290,13 @@ abstract class ModelBase {
 
       let sql = ''
       let main_sql = ''
-      const buildWhere = this.buildWhere(_args.where, model)
-      sql += buildWhere.wheres.length ? ` WHERE ${buildWhere.wheres.join(" AND ")}` : ""
-      sql += orderBysql
+
 
       if (!isRelationArgs) {
+         const buildWhere = this.buildWhere(_args.where, model)
+         sql += buildWhere.wheres.length ? ` WHERE ${buildWhere.wheres.join(" AND ")}` : ""
+         sql += orderBysql
+
          if (_args.limit) {
             const { maxFindLimit } = await this.xansql.getConfig()
             const take: number = (_args.limit.take || maxFindLimit) as any
@@ -308,6 +310,10 @@ abstract class ModelBase {
          main_sql = `SELECT ${select.join(",")} FROM ${model.table} ${model.alias} ${sql}`
 
       } else {
+         const buildWhere = this.buildWhere(_args.where, model)
+         const where = buildWhere.wheres.length ? ` WHERE ${buildWhere.wheres.join(" AND ")}` : ""
+         sql += orderBysql
+
          const relation = args.relation as GetRelationType
          if (_args.limit && _args.limit?.take) {
             let take = _args.limit.take || 50
@@ -318,7 +324,7 @@ abstract class ModelBase {
                      ${select.join(",")},
                    ROW_NUMBER() OVER (PARTITION BY ${relation.foregin.alias}.${relation.foregin.column} ${orderBysql}) AS ${relation.foregin.alias}_rank
                  FROM ${relation.foregin.table} ${relation.foregin.alias}
-                 WHERE ${relation.foregin.alias}.${relation.foregin.column} IN (${args.IN.join(",")})
+                  ${where}
                ) AS ${relation.foregin.alias}
                WHERE ${relation.foregin.alias}_rank > ${skip} AND ${relation.foregin.alias}_rank <= ${take + skip};
             `
@@ -326,30 +332,36 @@ abstract class ModelBase {
             main_sql = `
             SELECT ${select.length ? select.join(",") : "*"} 
             FROM ${relation.foregin.table} ${relation.foregin.alias}
-            WHERE ${relation.foregin.alias}.${relation.foregin.column} IN (${args.IN.join(",")})
+            ${where}
             ${sql}`
          }
       }
 
       const results = (await model.excute(main_sql)).result || []
-      if (!results || !results.length) {
-         return {
+      const build: BuildResult = {
+         type: isRelationArgs ? "relation" : "main",
+         results,
+         structure: {
+            model: model.table,
+            columns: select,
+            ids: [],
+            field: "",
+            args: _args,
             type: isRelationArgs ? "relation" : "main",
-            results: [],
-            excuted: {
-               sql: main_sql,
-               data: [] // deep copy
-            }
+            relations: []
          }
       }
 
-      const ids: number[] = []
+      if (!results || !results.length) {
+         return build
+      }
+
       const singleIds: number[] = []
       const multipleIds: number[] = []
       const resultSingleIndex: any = {}
       const resultMultipleIndex: any = {}
       for (let result of results) {
-         ids.push(result[(model as any).idField()])
+         build.structure.ids.push(result[(model as any).idField()])
 
          for (let column in relation_args) {
             const relation = relations[column]
@@ -386,9 +398,13 @@ abstract class ModelBase {
             delete rel_args.limit
          }
 
-         const ids = relation.single ? singleIds : multipleIds
+         rel_args.where[relation.foregin.column] = { in: relation.single ? singleIds : multipleIds }
 
-         const rel_results: BuildResult = await rel_model.find(new RelationArgs(rel_args, ids, relation) as any) as any
+         const rel_results: BuildResult = await rel_model.find(new RelationArgs(rel_args, relation) as any) as any
+         rel_results.structure.field = column;
+         build.structure.relations.push(rel_results.structure)
+
+
          for (let result of rel_results.results || []) {
             if (relation.single) {
                const indexs = resultSingleIndex[column][result[relation.foregin.column]]
@@ -404,183 +420,7 @@ abstract class ModelBase {
          }
       }
 
-      return {
-         type: isRelationArgs ? "relation" : "main",
-         results: results,
-         excuted: {
-            sql: sql,
-            data: [] // deep copy
-         }
-      }
-   }
-
-   protected async _buildFind(args: FindArgs | RelationArgs, model: Model): Promise<BuildResult> {
-      // if (!args.where || !Object.keys(args.where).length) throw new Error("Where clause is required");
-      const isRelationArgs = args instanceof RelationArgs;
-      if (args instanceof RelationArgs) {
-         args = args.args as FindArgs;
-      }
-
-      const schema = model.schema.get()
-      const idField: string = model.idField() as any
-      let columns: string[] = []
-      let ralation_columns: { [foregin: string]: string } = {}
-
-      let relations: {
-         [column: string]: {
-            relation: GetRelationType,
-            args: FindArgs,
-         }
-      } = {}
-
-      for (let column in args.select) {
-         const schemaValue = schema[column]
-         if (!schemaValue) throw new Error(`Invalid column ${model.table}.${column}`)
-         if (schemaValue instanceof Relation) {
-            const relation = model.getRelation(column)
-
-            let _args: any = {}
-            if (args.select && column in args.select) {
-               _args.select = args.select[column]
-               if (isObject(_args.select) && !(relation.foregin.column in _args.select)) {
-                  _args.select = {
-                     [relation.foregin.column]: true,
-                     ..._args.select
-                  }
-               }
-            }
-            if (args.orderBy && column in args.orderBy) {
-               _args.orderBy = args.orderBy[column]
-            }
-            if (args.limit && column in args.limit) {
-               _args.limit = args.limit[column]
-            }
-            if (args.where && column in args.where) {
-               _args.where = args.where[column]
-            }
-
-            relations[column] = {
-               relation: relation,
-               args: _args
-            }
-            if (!columns.includes(relation.main.column)) {
-               columns = [
-                  relation.main.column,
-                  ...columns
-               ]
-            }
-            ralation_columns[relation.foregin.column] = relation.main.column
-         } else {
-            columns.push(column)
-         }
-      }
-
-      if (columns.length && !columns.includes(idField)) {
-         columns = [idField, ...columns]
-      }
-      let _fields = columns.length ? columns.join(',') : ["*"]
-      let sql = `SELECT ${_fields} FROM ${model.table} ${model.alias}`
-      const buildWhere = this.buildWhere(args.where, model)
-      sql += buildWhere.wheres.length ? ` WHERE ${buildWhere.wheres.join(" AND ")}` : ""
-
-      if (args.orderBy) {
-         let orderByFields: string[] = Object.keys(args.orderBy).filter((column) => !(schema[column] instanceof Relation))
-         let orderBy: string[] = orderByFields.map((column) => `${column} ${(args as any).orderBy[column]}`)
-         sql += orderByFields.length ? ` ORDER BY ${orderBy.join(",")}` : ""
-      }
-
-
-      if (!isRelationArgs) {
-         const { maxFindLimit } = await this.xansql.getConfig()
-         const take: number = (args?.limit?.take || maxFindLimit) as any
-         sql += ` LIMIT ${take}`
-         if (args.limit?.skip || args.limit?.page) {
-            let skip = args.limit.skip
-            sql += `OFFSET ${skip}`
-         }
-      }
-
-      // excute sql
-      const results = (await model.excute(sql)).result
-      const resultFormat: BuildResult = {
-         type: isRelationArgs ? "relation" : "main",
-         results,
-         excuted: {
-            sql: sql,
-            data: JSON.parse(JSON.stringify(results || [])) // deep copy
-         }
-      }
-      if (!resultFormat.results || !resultFormat.results.length) return resultFormat
-
-      let ins: { [foregin_column: string]: any[] /** ids */ } = {}
-
-      const resultIndex: any = {}
-      for (let foregin_column in ralation_columns) {
-         let main_column = ralation_columns[foregin_column]
-         if (!(foregin_column in ins)) {
-            ins[foregin_column] = []
-            for (let i = 0; i < results.length; i++) {
-               let result = results[i]
-               if (!ins[foregin_column].includes(result[main_column])) {
-                  ins[foregin_column].push(result[main_column])
-               }
-               if (!resultIndex[foregin_column]) resultIndex[foregin_column] = {}
-               resultIndex[foregin_column][result[main_column]] = i
-            }
-         }
-      }
-
-      for (let column in relations) {
-         const relation = relations[column]
-         let _model = this.xansql.getModel(relation.relation.foregin.table)
-         let foregin_column = relation.relation.foregin.column
-         let _in_values = ins[foregin_column] || []
-         let _in: any = { column: `${relation.relation.foregin.alias}.${foregin_column}`, values: _in_values }
-
-         if (!relation.args.where) relation.args.where = {}
-         if (foregin_column in relation.args.where) {
-            let rcol: any = relation.args.where[foregin_column]
-            if (isObject(rcol)) {
-               if (rcol.in) {
-                  rcol.in = [..._in.values, ...rcol.in]
-               } else {
-                  rcol.in = _in.values
-               }
-            } else {
-               rcol = { in: _in.values, equals: rcol }
-            }
-            relation.args.where[foregin_column] = rcol
-         } else {
-            relation.args.where[foregin_column] = {
-               in: _in.values
-            }
-         }
-
-         relation.args.limit = {}
-         const rel_results: BuildResult = await _model.find(new RelationArgs(relation.args) as any) as any
-
-         if (relation.relation.single) {
-            for (let mres of resultFormat.results) {
-               if (!rel_results.results?.length) {
-                  mres[column] = null
-               } else {
-                  mres[column] = rel_results.results[0]
-               }
-            }
-         } else {
-            for (let rel_result of (rel_results.results || [])) {
-               let res: any = rel_result
-               const id = res[foregin_column]
-               const index = resultIndex[foregin_column][id]
-               if (index !== undefined) {
-                  if (!resultFormat.results[index][column]) resultFormat.results[index][column] = []
-                  resultFormat.results[index][column].push(res)
-               }
-            }
-         }
-      }
-
-      return resultFormat
+      return build
    }
 
    protected async buildCreate(args: CreateArgs | RelationArgs, model: Model): Promise<BuildResult> {
@@ -599,22 +439,32 @@ abstract class ModelBase {
       } = {}
 
       if (isArray(data)) {
-         let res: any = []
+         const resultFormat: BuildResult = {
+            type: isRelationArgs ? "relation" : "main",
+            results: [],
+            structure: {
+               model: model.table,
+               columns: Object.keys(fields),
+               ids: [],
+               field: "",
+               args: args,
+               type: isRelationArgs ? "relation" : "main",
+               relations: []
+            },
+         }
          for (let _data of data) {
-            const { results, excuted } = await this.buildCreate({
+            const { results, structure } = await this.buildCreate({
                data: _data,
                select: select
             }, model)
-            res = [...res, ...(results || [])]
+            resultFormat.results = [...(resultFormat.results || []), ...(results || [])]
+            resultFormat.structure.ids = [...resultFormat.structure.ids, ...(structure.ids || [])]
+            resultFormat.structure.relations = [...resultFormat.structure.relations, ...(structure.relations || [])]
+            resultFormat.structure.columns = Array.from(new Set([...resultFormat.structure.columns, ...structure.columns]))
+            resultFormat.structure.field = structure.field || ""
+            resultFormat.structure.args = structure.args || args
          }
-         const resultFormat: BuildResult = {
-            type: isRelationArgs ? "relation" : "main",
-            results: res,
-            excuted: {
-               sql: "",
-               data: JSON.parse(JSON.stringify(res || [])) // deep copy
-            }
-         }
+
          return resultFormat
       } else {
          for (let column in data) {
@@ -665,10 +515,15 @@ abstract class ModelBase {
          const resultFormat: BuildResult = {
             type: isRelationArgs ? "relation" : "main",
             results: result,
-            excuted: {
-               sql: sql,
-               data: JSON.parse(JSON.stringify(result || [])) // deep copy
-            }
+            structure: {
+               model: model.table,
+               columns: Object.keys(fields),
+               ids: [excute.insertId],
+               field: "",
+               args: args,
+               type: isRelationArgs ? "relation" : "main",
+               relations: []
+            },
          }
 
          if (!resultFormat.results || !resultFormat.results.length) return resultFormat
@@ -679,10 +534,12 @@ abstract class ModelBase {
             for (let arg of rel_data) {
                arg[relation.foregin.column] = excuteResult[relation.main.column]
             }
-            const _foreginResult = await _model.create(new RelationArgs({ data: rel_data, select }) as any)
+            const _foreginResult: BuildResult = await _model.create(new RelationArgs({ data: rel_data, select }) as any) as any
             excuteResult[column] = _foreginResult
+            _foreginResult.structure.field = column
+            resultFormat.structure.relations.push(_foreginResult.structure)
          }
-         return excuteResult
+         return resultFormat
       }
    }
 
@@ -702,25 +559,34 @@ abstract class ModelBase {
       } = {}
 
       if (isArray(data)) {
-         let res: any = []
-         let sql = ""
+         const resultFormat: BuildResult = {
+            type: isRelationArgs ? "relation" : "main",
+            results: [],
+            structure: {
+               model: model.table,
+               columns: Object.keys(fields),
+               ids: [],
+               field: "",
+               args: args,
+               type: isRelationArgs ? "relation" : "main",
+               relations: []
+            },
+         }
          for (let _data of data) {
-            const { results, excuted } = await this.buildUpdate({
+            const _args = {
                data: _data,
                where,
                select
-            }, model)
-            res = [...res, ...(results || [])]
-            sql += excuted.sql + "; "
-         }
-         const resultFormat: BuildResult = {
-            type: isRelationArgs ? "relation" : "main",
-            results: res,
-            excuted: {
-               sql: sql,
-               data: JSON.parse(JSON.stringify(res || [])) // deep copy
             }
+            const { results, structure } = await this.buildUpdate(_args, model)
+            resultFormat.results = [...(resultFormat.results || []), ...(results || [])]
+            resultFormat.structure.ids = [...resultFormat.structure.ids, ...(structure.ids || [])]
+            resultFormat.structure.relations = [...resultFormat.structure.relations, ...(structure.relations || [])]
+            resultFormat.structure.columns = Array.from(new Set([...resultFormat.structure.columns, ...structure.columns]))
+            resultFormat.structure.field = structure.field || ""
+            resultFormat.structure.args = structure.args
          }
+
          return resultFormat
       } else {
          for (let column in data) {
@@ -748,16 +614,21 @@ abstract class ModelBase {
          const resultFormat: BuildResult = {
             type: isRelationArgs ? "relation" : "main",
             results: null,
-            excuted: {
-               sql: "",
-               data: []
-            }
+            structure: {
+               model: model.table,
+               columns: Object.keys(fields),
+               ids: [],
+               field: "",
+               args: args,
+               type: isRelationArgs ? "relation" : "main",
+               relations: []
+            },
          }
          if (values.length) {
             const buildWhere = this.buildWhere(where, model)
-            resultFormat.excuted.sql = `UPDATE ${model.table} ${model.alias} SET ${values.join(", ")}`
-            resultFormat.excuted.sql += ` WHERE ${buildWhere.wheres.join(" AND ")}`
-            const excute = await model.excute(resultFormat.excuted.sql)
+            let sql = `UPDATE ${model.table} ${model.alias} SET ${values.join(", ")}`
+            sql += ` WHERE ${buildWhere.wheres.join(" AND ")}`
+            const excute = await model.excute(sql)
             if (!excute.affectedRows) return resultFormat
          }
 
@@ -782,9 +653,10 @@ abstract class ModelBase {
             }
          }
 
-         let { results } = await this.buildFind(findArgs, model)
+         let { results, structure } = await this.buildFind(findArgs, model)
          if (!results || !results.length) return resultFormat
          resultFormat.results = results
+         resultFormat.structure = structure
 
          for (let res of resultFormat.results) {
             for (let column in relations) {
@@ -795,8 +667,10 @@ abstract class ModelBase {
                let rel_where: any = { ...columnWhere, [relation.foregin.column]: (res as any)[relation.main.column] }
                _rel_data[relation.foregin.column] = (res as any)[relation.main.column]
 
-               const _foreginResult = await _model.update({ data: _rel_data, where: rel_where, select });
+               const _foreginResult: any = await _model.update(new RelationArgs({ data: _rel_data, where: rel_where, select }) as any);
                (res as any)[column] = _foreginResult
+               _foreginResult.structure.field = column
+               resultFormat.structure.relations.push(_foreginResult.structure)
             }
          }
          return resultFormat

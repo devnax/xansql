@@ -1,13 +1,20 @@
 
 
+export type BuildResultStructure = {
+   model: string;
+   columns: string[];
+   ids: number[];
+   field: string;
+   args: object;
+   type: "main" | "relation";
+   relations: BuildResultStructure[];
+}
 
 export type BuildResult = {
    type: "main" | "relation";
+   cache_key?: string;
    results: ({ [key: string]: any })[] | null;
-   excuted: {
-      sql: string;
-      data: any;
-   }
+   structure: BuildResultStructure;
 }
 
 export interface WhereSubCondition {

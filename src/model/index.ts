@@ -1,5 +1,6 @@
 import { CountArgs, CreateArgs, DeleteArgs, FindArgs, ReturnCount, UpdateArgs } from "./type";
 import ModelBase from "./Base";
+import youid from "youid";
 
 
 export default class Model<DATA extends {} = {}> extends ModelBase {
@@ -10,13 +11,33 @@ export default class Model<DATA extends {} = {}> extends ModelBase {
    async find(args: FindArgs): Promise<DATA[] | null> {
       const build = await this.buildFind(args, this)
       if (build.type === "main") {
-         return build.results as DATA[];
+         const data = build.results as DATA[];
+         const cache_plugins = await this.xansql.getCachePlugins();
+         const key = cache_plugins.length ? youid(JSON.stringify(args)) : ""
+         build.cache_key = key;
+         for (const plugin of cache_plugins) {
+            if (plugin.onCache) {
+               const cache_value = await plugin.onCache(build);
+               if (cache_value) {
+                  return cache_value as DATA[];
+               }
+            }
+         }
+
+         for (const plugin of cache_plugins) {
+            if (plugin.onFind) {
+               await plugin.onFind(build);
+            }
+         }
+         return data
       }
       return build as any
    }
    async create(args: CreateArgs): Promise<DATA[]> {
       const build = await this.buildCreate(args, this)
       if (build.type === "main") {
+         console.log(build);
+
          return build.results as DATA[];
       }
       return build as any

@@ -24,11 +24,24 @@ const App = () => {
         <Button label="Insert" onClick={async () => {
 
           const user = await User.create({
-            data: {
-              name: "John Doe",
-              email: "well@gmail.com",
-              password: "123456",
-            }
+            data: [
+              {
+                name: "John Doe",
+                email: "well@gmail.com",
+                password: "123456",
+                metas: [
+                  {
+                    name: "Product 1",
+                    price: 100,
+                  },
+                ]
+              },
+              {
+                name: "John Doe",
+                email: "well@gmail.com",
+                password: "123456",
+              }
+            ]
           })
           console.log(user);
 

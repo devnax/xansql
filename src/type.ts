@@ -1,5 +1,6 @@
 import xansql from ".";
 import Model from "./model";
+import { BuildResult } from "./model/type";
 
 export type DialectOptions = {
    excute: (query: string, model: Model) => Promise<any>;
@@ -26,8 +27,8 @@ export type XansqlCacheFNArgs = {
 }
 
 export type XansqlCacheOptions = {
-   onCache: (info: XansqlCacheOnCacheArgs) => Promise<any>;
-   onFind: (info: XansqlCacheFNArgs) => Promise<void>;
+   onCache: (info: BuildResult) => Promise<any>;
+   onFind: (info: BuildResult) => Promise<void>;
    onDestroy: (info: XansqlCacheFNArgs) => Promise<void>;
 
    onCreate?: (info: XansqlCacheFNArgs) => Promise<void>;

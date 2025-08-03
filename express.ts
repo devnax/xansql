@@ -68,7 +68,7 @@ const server = async (app) => {
             }
          },
          limit: {
-            take: 1000,
+            take: 5,
             categories: {
                take: 2,
                skip: 1

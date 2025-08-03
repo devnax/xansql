@@ -18,10 +18,13 @@ class xansql {
    private cachePlugins: XansqlCacheOptions[] = []
    private securequ = { server: null, client: null }
    private dialect: any = null;
+   private cache_xansql: xansql | null = null;
+
    isServer: boolean = isServer()
 
    constructor(config: XansqlConfig) {
       this.raw_config = config;
+
    }
 
    async getConfig(): Promise<XansqlConfigOptions> {
@@ -44,11 +47,14 @@ class xansql {
       return this.dialect = this.dialect || await dialect(this);
    }
 
-   private async getCachePlugins(): Promise<XansqlCacheOptions[]> {
+   async getCachePlugins(): Promise<XansqlCacheOptions[]> {
       if (!this.cachePlugins.length) {
-         const { cachePlugins } = await this.getConfig();
+         const { cachePlugins, ..._config } = await this.getConfig();
+         if (cachePlugins?.length && !this.cache_xansql) {
+            this.cache_xansql = new xansql(_config)
+         }
          for (const cachePlugin of (cachePlugins || [])) {
-            const cacheOptions = await cachePlugin(this);
+            const cacheOptions = await cachePlugin(this.cache_xansql as xansql);
             if (!cacheOptions.onCache || !cacheOptions.onFind) {
                throw new Error("Cache plugin must implement onCache and onFind method");
             }
@@ -136,29 +142,8 @@ class xansql {
 
 
    async excute(sql: string, model: Model, requestData?: any): Promise<XansqlDialectExcuteReturn<any>> {
-      let type = sql.split(' ')[0].toUpperCase();
-      const cachePlugins = await this.getCachePlugins();
-      if (type === "SELECT") {
-         for (const cachePlugin of cachePlugins) {
-            const cachedData = await cachePlugin.onCache({ sql, model, requestData });
-            if (cachedData) return cachedData
-         }
-      }
-
       const dialect = await this.getDialect()
       const result = await dialect.excute(sql, model);
-
-      for (const cachePlugin of cachePlugins) {
-         if (type === "SELECT") {
-            await cachePlugin.onFind({ sql, result, model, requestData });
-         } else if (type === "INSERT" && cachePlugin.onCreate) {
-            await cachePlugin.onCreate({ sql, result, model, requestData });
-         } else if (type === "UPDATE" && cachePlugin.onUpdate) {
-            await cachePlugin.onUpdate({ sql, result, model, requestData });
-         } else if (type === "DELETE" && cachePlugin.onDelete) {
-            await cachePlugin.onDelete({ sql, result, model, requestData });
-         }
-      }
       return result
    }
 
