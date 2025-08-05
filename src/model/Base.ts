@@ -535,7 +535,7 @@ abstract class ModelBase {
                arg[relation.foregin.column] = excuteResult[relation.main.column]
             }
             const _foreginResult: BuildResult = await _model.create(new RelationArgs({ data: rel_data, select }) as any) as any
-            excuteResult[column] = _foreginResult
+            excuteResult[column] = _foreginResult.results
             _foreginResult.structure.field = column
             resultFormat.structure.relations.push(_foreginResult.structure)
          }
@@ -688,10 +688,15 @@ abstract class ModelBase {
       const resultFormat: BuildResult = {
          type: isRelationArgs ? "relation" : "main",
          results: result.results,
-         excuted: {
-            sql: "",
-            data: JSON.parse(JSON.stringify(result.results || [])) // deep copy
-         }
+         structure: {
+            model: model.table,
+            columns: [idField],
+            ids: [],
+            field: "",
+            args: args,
+            type: isRelationArgs ? "relation" : "main",
+            relations: []
+         },
       }
       if (!resultFormat.results || !resultFormat.results.length) return resultFormat
       // if (!result || !count._count) return 0
@@ -756,11 +761,8 @@ abstract class ModelBase {
       const excute = await model.excute(sql)
       if (!excute.affectedRows) {
          resultFormat.results = null
-         resultFormat.excuted.sql = sql
-         resultFormat.excuted.data = null
          return resultFormat
       }
-      resultFormat.excuted.sql = sql
       return resultFormat
    }
 
@@ -777,15 +779,19 @@ abstract class ModelBase {
       const resultFormat: BuildResult = {
          type: isRelationArgs ? "relation" : "main",
          results: [{ _count: 0 }],
-         excuted: {
-            sql: sql,
-            data: [{ _count: 0 }]// deep copy
-         }
+         structure: {
+            model: model.table,
+            columns: ["_count"],
+            ids: [],
+            field: "",
+            args: args,
+            type: isRelationArgs ? "relation" : "main",
+            relations: []
+         },
       }
 
       if (!excute.result || !excute.result.length) return resultFormat
       resultFormat.results = [{ _count: excute.result[0].count }]
-      resultFormat.excuted.data = JSON.parse(JSON.stringify(resultFormat.results || [])) // deep copy
 
       for (let _select in select) {
          let selectValue = select[_select]

@@ -2,6 +2,8 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { db, User } from './example';
 
+import './src/Zod/index.ts'; // Importing Zod for validation
+
 const Button = ({ label, onClick }) => {
   return (
     <button
@@ -31,8 +33,8 @@ const App = () => {
                 password: "123456",
                 metas: [
                   {
-                    name: "Product 1",
-                    price: 100,
+                    meta_key: "Product 1",
+                    meta_value: 100,
                   },
                 ]
               },
