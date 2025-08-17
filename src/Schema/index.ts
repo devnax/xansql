@@ -13,10 +13,10 @@ import SQSet from "./fields/Set";
 import SQTuple from "./fields/Tuple";
 import SQUnion from "./fields/Union";
 import SQIDField from "./fields/IDField";
-import XqlSchema from "./fields/Schema";
+import XqlJoin from "./fields/Join";
 import Schema from "./Schema";
 export { Schema }
-export const column = {
+export const x = {
    any: () => new SQAny(),
    array: (type: XVInstanceType, length?: number) => new SQArray(type, length),
    boolean: () => new SQBoolean(),
@@ -32,8 +32,8 @@ export const column = {
    union: (type: XVInstanceType[]) => new SQUnion(type),
 
    id: () => new SQIDField(),
-   schema: (table: string) => new XqlSchema(table),
+   join: (table: string) => new XqlJoin(table),
 
 }
 
-export default column;
+export default x;

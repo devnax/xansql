@@ -1,40 +1,49 @@
+import xtype from ".";
 import XqlIDField from "./fields/IDField";
-import { XansqlSchemaColumns } from "./types";
+import XqlJoin from "./fields/Join";
+import { XansqlSchemaObject } from "./types";
 
 class Schema {
+   private readonly schemaObject: XansqlSchemaObject;
    readonly table: string;
-   readonly columns: XansqlSchemaColumns;
    readonly IDColumn: string = '';
+   readonly columns = {
+      main: [] as string[],
+      relation: [] as string[],
+   }
+   readonly relationColumns: string[] = [];
 
-   constructor(table: string, columns: XansqlSchemaColumns) {
+   constructor(table: string, schema: XansqlSchemaObject) {
       this.table = table;
-      this.columns = columns;
+      this.schemaObject = schema;
 
-      for (let column in columns) {
-         const field = columns[column];
+      for (let column in schema) {
+         const field = schema[column];
          if (field instanceof XqlIDField) {
+            if (this.IDColumn) {
+               throw new Error(`Schema ${this.table} can only have one ID column`);
+            }
             this.IDColumn = column;
-            break
+         }
+
+         if (field instanceof XqlJoin) {
+            this.columns.relation.push(column);
+         } else {
+            this.columns.main.push(column);
          }
       }
+
+
       if (!this.IDColumn) {
          throw new Error(`Schema ${this.table} must have an id column`);
       }
    }
 
-   getColumn(name: string) {
-      if (!this.columns[name]) {
-         throw new Error(`Column ${name} does not exist in schema ${this.table}`);
-      }
-      return this.columns[name];
+   get() {
+      return this.schemaObject;
    }
 
-   hasColumn(name: string) {
-      return !!this.columns[name];
-   }
-
-
-   // toSQL(columns: Partial<XansqlSchemaColumns> = {}) {
+   // toSQL(columns: Partial<XansqlSchemaObject> = {}) {
    //    let sqlValues: { [key: string]: any } = {};
    //    for (const [key, value] of Object.entries(columns)) {
    //       const col = this.columns[key];

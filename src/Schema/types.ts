@@ -10,7 +10,7 @@ import XqlMap from "./fields/Map"
 import XqlNumber from "./fields/Number"
 import XqlObject from "./fields/Object"
 import XqlRecord from "./fields/Record"
-import XqlSchema from "./fields/Schema"
+import XqlJoin from "./fields/Join"
 import XqlSet from "./fields/Set"
 import XqlString from "./fields/String"
 import XqlTuple from "./fields/Tuple"
@@ -33,10 +33,10 @@ export type XqlFields =
    | XqlUnion
 
    | XqlIDField
-   | XqlSchema
+   | XqlJoin
 
 
 
-export type XansqlSchemaColumns = {
-   [key: string]: XqlFields | Schema
+export type XansqlSchemaObject = {
+   [key: string]: XqlFields
 }
