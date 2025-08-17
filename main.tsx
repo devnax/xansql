@@ -1,8 +1,45 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { db, User } from './example';
+import { column, Schema } from './src/xanv';
 
-import './src/Zod/index.ts'; // Importing Zod for validation
+const UserSchema = new Schema("users", {
+  id: column.id(),
+  name: column.string().index(),
+  email: column.string().unique(),
+  age: column.number().integer().default(18),
+  creator: column.schema("users"),
+});
+
+const UserMetaSchema = new Schema("user_metas", {
+  id: column.id(),
+  key: column.string().index(),
+  value: column.string(),
+  user: UserSchema,
+  customer: UserSchema
+});
+
+const ProductSchema = new Schema("products", {
+  id: column.id(),
+  name: column.string().index(),
+  price: column.number().default(0),
+  description: column.string(),
+  tags: column.set(column.string()),
+  createdAt: column.date().default(new Date()),
+  updatedAt: column.date().default(new Date()),
+  user: UserSchema
+});
+
+const OrderSchema = new Schema("orders", {
+  id: column.id(),
+  customer: UserSchema,
+  product: ProductSchema,
+  quantity: column.number().default(1),
+  totalPrice: column.number().default(0),
+  status: column.enum(["pending", "completed", "cancelled"]),
+  createdAt: column.date().default(new Date()),
+  updatedAt: column.date().default(new Date()),
+});
 
 const Button = ({ label, onClick }) => {
   return (

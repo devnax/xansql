@@ -1,4 +1,5 @@
 import Model from "./model";
+import { Schema } from "./Schema";
 import Column from "./Schema/core/Column";
 import { DialectOptions, XansqlCacheOptions, XansqlConfig, XansqlConfigOptions, XansqlDialectExcuteReturn, XansqlModelsFactory } from "./type";
 import { arrayMove, isServer } from "./utils";
@@ -10,7 +11,9 @@ let securequ: any = {
    server: null,
    client: null
 }
+class BaseModel {
 
+}
 class xansql {
    private models: XansqlModelsFactory = new Map()
    private raw_config: XansqlConfig;
@@ -25,6 +28,15 @@ class xansql {
    constructor(config: XansqlConfig) {
       this.raw_config = config;
 
+   }
+
+   model(schema: Schema, hooks?: any) {
+
+      return class Model extends BaseModel {
+         static find() {
+
+         }
+      }
    }
 
    async getConfig(): Promise<XansqlConfigOptions> {
