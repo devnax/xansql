@@ -1,11 +1,9 @@
 import { XVEnum } from "xanv"
 
 class XqlEnum extends XVEnum {
-   constraints = {
-      index: false
-   }
+
    index() {
-      this.constraints.index = true
+      this.meta.index = true
       return this
    }
 }

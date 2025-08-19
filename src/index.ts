@@ -1,10 +1,11 @@
-import Model from "./Model";
-import { Schema } from "./Schema";
+import Schema from "./Schema";
 import { XansqlConfig } from "./type";
+import { freezeObject } from "./utils/index";
 
 class xansql {
-   private _models = new Map<string, Model>();
+   private models = new Map<string, Schema>();
    private _config: XansqlConfig;
+   private aliases = new Map<string, string>();
 
    constructor(config: XansqlConfig) {
       this._config = config;
@@ -18,25 +19,49 @@ class xansql {
       return this.config.dialect;
    }
 
-   get models() {
-      return Array.from(this._models.values());
+   makeAlias(table: string) {
+      let wordLength = 1;
+      table = table.toLowerCase().replaceAll(/[^a-z0-9_]/g, '_')
+      while (true) {
+         let alias = table[wordLength]
+         if (!this.aliases.has(alias)) {
+            this.aliases.set(table, alias);
+            return alias;
+         }
+         wordLength++;
+
+         if (wordLength > table.length) {
+            throw new Error(`Cannot generate alias for table ${table}`);
+         }
+      }
    }
 
-   model(schema: Schema) {
-      const instance = new Model(schema, this);
-      if (this._models.has(schema.table)) {
+   model(model: Schema) {
+      if (!model.IDColumn) {
+         throw new Error("Schema must have an ID column");
+      }
+      if (this.models.has(model.table)) {
          throw new Error("Model already exists for this table");
       }
-      this._models.set(schema.table, instance);
-      return instance
+      model.alias = this.makeAlias(model.table);
+      model.xansql = this;
+      this.models.set(model.table, model);
+      freezeObject(model);
+      return model
    }
 
-   migrate() {
+   async migrate(force?: boolean) {
+      const models = this.models
+      const tables = Array.from(models.keys())
+      for (let table of tables) {
+         const model = models.get(table) as Schema
+         await model.migrate(force)
+      }
 
    }
 
-   excute() {
-
+   excute(sql: string, model: Schema, requestData?: any): any {
+      return null
    }
 
 }

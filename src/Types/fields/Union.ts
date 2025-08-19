@@ -1,11 +1,9 @@
 import { XVUnion } from "xanv"
 
 class XqlUnion extends XVUnion {
-   constraints = {
-      index: false
-   }
+
    index() {
-      this.constraints.index = true
+      this.meta.index = true
       return this
    }
 }

@@ -1,11 +1,9 @@
 import { XVObject } from "xanv"
 
 class XqlObject extends XVObject {
-   constraints = {
-      index: false
-   }
+
    index() {
-      this.constraints.index = true
+      this.meta.index = true
       return this
    }
 }

@@ -1,11 +1,9 @@
 import { XVFile } from "xanv"
 
 class XqlFile extends XVFile {
-   constraints = {
-      index: false
-   }
+
    index() {
-      this.constraints.index = true
+      this.meta.index = true
       return this
    }
 }

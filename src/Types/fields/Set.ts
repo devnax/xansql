@@ -1,11 +1,9 @@
 import { XVSet } from "xanv"
 
 class XqlSet extends XVSet {
-   constraints = {
-      index: false
-   }
+
    index() {
-      this.constraints.index = true
+      this.meta.index = true
       return this
    }
 }

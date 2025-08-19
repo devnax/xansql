@@ -1,11 +1,9 @@
 import { XVTuple } from "xanv"
 
 class XqlTuple extends XVTuple {
-   constraints = {
-      index: false
-   }
+
    index() {
-      this.constraints.index = true
+      this.meta.index = true
       return this
    }
 }

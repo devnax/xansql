@@ -1,11 +1,8 @@
 import { XVNumber } from "xanv"
 
 class XqlIDField extends XVNumber {
-   constraints = {
-      index: false,
-   }
    index() {
-      this.constraints.index = true
+      this.meta.index = true
       return this
    }
 }

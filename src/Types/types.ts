@@ -1,4 +1,3 @@
-import Schema from "./Schema"
 import XqlAny from "./fields/Any"
 import XqlArray from "./fields/Array"
 import XqlBoolean from "./fields/Boolean"

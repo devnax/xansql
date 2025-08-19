@@ -1,11 +1,9 @@
 import { XVDate } from "xanv"
 
 class XqlDate extends XVDate {
-   constraints = {
-      index: false
-   }
+
    index() {
-      this.constraints.index = true
+      this.meta.index = true
       return this
    }
 }

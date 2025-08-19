@@ -1,4 +1,16 @@
 import xansql from ".";
+import Schema from "./Schema";
+
+
+export type Dialect = {
+   excute: (query: string, schema: Schema) => Promise<any>;
+   buildSchema: (schema: Schema) => string;
+   addColumn: (schema: Schema, columnName: string) => Promise<any>;
+   dropColumn: (schema: Schema, columnName: string) => Promise<any>;
+   renameColumn: (schema: Schema, oldName: string, newName: string) => Promise<any>;
+   addIndex: (schema: Schema, columnName: string) => Promise<any>;
+   dropIndex: (schema: Schema, columnName: string) => Promise<any>;
+}
 
 export type XansqlConnectionOptions = {
    host: string,
@@ -9,7 +21,7 @@ export type XansqlConnectionOptions = {
 }
 
 export type XansqlConfigOptions = {
-   dialect: any;
+   dialect: Dialect;
    connection: string | XansqlConnectionOptions;
    cachePlugins?: any[];
    maxFindLimit?: number;

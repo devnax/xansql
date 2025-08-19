@@ -1,12 +1,13 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { x, Schema } from './src/Schema';
+import { x } from './src/Types';
 import xansql from './src';
-
+import Schema from './src/Schema';
+import MysqlDialect from './src/Dialects/Mysql';
 
 const UserSchema = new Schema("users", {
   id: x.id(),
-  name: x.string().index(),
+  name: x.string().min(10).index(),
   email: x.string().unique(),
   age: x.number().integer().default(18),
   creator: x.join("users").optional(),
@@ -21,15 +22,14 @@ const PostSchema = new Schema("posts", {
 });
 
 const db = new xansql({
-  dialect: 'sqlite',
+  dialect: MysqlDialect,
   connection: ""
 })
-
 
 const UserModel = db.model(UserSchema)
 const PostModel = db.model(PostSchema)
 
-
+db.migrate()
 const Button = ({ label, onClick }) => {
   return (
     <button

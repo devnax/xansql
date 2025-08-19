@@ -1,39 +1,33 @@
-import { XVEnumValues, XVInstanceType, XVObjectType } from "xanv";
-import SQAny from "./fields/Any";
-import SQString from "./fields/String";
-import SQBoolean from "./fields/Boolean";
-import SQArray from "./fields/Array";
-import SQDate from "./fields/Date";
-import SQEnum from "./fields/Enum";
-import SQMap from "./fields/Map";
-import SQNumber from "./fields/Number";
-import SQObject from "./fields/Object";
-import SQRecord from "./fields/Record";
-import SQSet from "./fields/Set";
-import SQTuple from "./fields/Tuple";
-import SQUnion from "./fields/Union";
-import SQIDField from "./fields/IDField";
-import XqlJoin from "./fields/Join";
-import Schema from "./Schema";
-export { Schema }
-export const x = {
-   any: () => new SQAny(),
-   array: (type: XVInstanceType, length?: number) => new SQArray(type, length),
-   boolean: () => new SQBoolean(),
-   date: () => new SQDate(),
-   enum: (values: XVEnumValues) => new SQEnum(values),
-   map: (key: XVInstanceType, value: XVInstanceType) => new SQMap(key, value),
-   number: (length?: number) => new SQNumber(length),
-   object: (arg?: XVObjectType) => new SQObject(arg),
-   record: (key: XVInstanceType, value: XVInstanceType) => new SQRecord(key, value),
-   set: (type: XVInstanceType) => new SQSet(type),
-   string: (length?: number) => new SQString(length),
-   tuple: (type: XVInstanceType[]) => new SQTuple(type),
-   union: (type: XVInstanceType[]) => new SQUnion(type),
+import SchemaBase from "./Base";
 
-   id: () => new SQIDField(),
-   join: (table: string) => new XqlJoin(table),
+class Schema extends SchemaBase {
 
+   async excute(sql: string): Promise<any> {
+      return await this.xansql.excute(sql, this as any)
+   }
+
+   async drop() {
+      if (typeof window === "undefined") {
+         throw new Error("This method can only be used on the server side.");
+      }
+      await this.excute(`DROP TABLE IF EXISTS ${this.table}`);
+   }
+
+   async migrate(force = false) {
+      if (typeof window === "undefined") {
+         throw new Error("This method can only be used on the server side.");
+      }
+      if (force) {
+         await this.drop();
+      }
+      const dialect = this.xansql.dialect
+      const sql = dialect.buildSchema(this);
+      await this.excute(sql)
+   }
+
+   find() {
+
+   }
 }
 
-export default x;
+export default Schema;

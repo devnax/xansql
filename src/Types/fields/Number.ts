@@ -1,16 +1,13 @@
 import { XVNumber } from "xanv"
 
 class XqlNumber extends XVNumber {
-   constraints = {
-      index: false,
-      unique: false,
-   }
+
    index() {
-      this.constraints.index = true
+      this.meta.index = true
       return this
    }
    unique() {
-      this.constraints.unique = true
+      this.meta.unique = true
       return this
    }
 }

@@ -1,11 +1,9 @@
 import { XVMap } from "xanv"
 
 class XqlMap extends XVMap {
-   constraints = {
-      index: false
-   }
+
    index() {
-      this.constraints.index = true
+      this.meta.index = true
       return this
    }
 }
