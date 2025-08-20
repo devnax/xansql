@@ -24,15 +24,15 @@ const buildColumn = (column: string, field: XqlFields): string => {
    const meta = field.meta || {};
    const nullable = meta.nullable || meta.optional ? 'NULL' : 'NOT NULL';
    const unique = meta.unique ? 'UNIQUE' : '';
-   const defaultValue = meta.default ? `DEFAULT '${meta.default}'` : '';
+   const defaultValue = meta.default !== undefined ? `DEFAULT '${meta.default}'` : '';
 
    const col = (column: string, sqlType: string) =>
       `"${column}" ${sqlType} ${nullable} ${unique} ${defaultValue}, `;
 
    let sql = '';
    if (field instanceof XqlIDField) {
-      // SQLite uses INTEGER PRIMARY KEY AUTOINCREMENT
-      sql += `"${column}" INTEGER PRIMARY KEY AUTOINCREMENT, `;
+      // PostgreSQL SERIAL for auto-increment primary key
+      sql += `"${column}" SERIAL PRIMARY KEY, `;
    } else if (field instanceof XqlJoin) {
       sql += col(column, "INTEGER");
    } else if (field instanceof XqlString) {
@@ -40,28 +40,30 @@ const buildColumn = (column: string, field: XqlFields): string => {
       if (!length || length > 65535) {
          sql += col(column, "TEXT");
       } else {
-         sql += col(column, "TEXT"); // SQLite ignores length, TEXT covers VARCHAR
+         sql += col(column, `VARCHAR(${length})`);
       }
    } else if (field instanceof XqlFile) {
-      sql += col(column, "TEXT");
+      sql += col(column, "VARCHAR(255)");
    } else if (field instanceof XqlNumber) {
       if (meta.integer) {
          sql += col(column, "INTEGER");
       } else if (meta.float) {
          sql += col(column, "REAL");
       } else {
-         sql += col(column, "NUMERIC");
+         sql += col(column, "NUMERIC(10,2)");
       }
    } else if (field instanceof XqlBoolean) {
-      sql += col(column, "INTEGER"); // SQLite has no BOOLEAN → use INTEGER (0/1)
+      sql += col(column, "BOOLEAN");
    } else if (field instanceof XqlDate) {
-      sql += col(column, "TEXT"); // store ISO string (SQLite has no native DATETIME)
+      sql += col(column, "TIMESTAMP");
    } else if (field instanceof XqlEnum) {
-      // SQLite has no ENUM → store as TEXT with CHECK constraint
-      const values = (field as any).values.map((v: any) => `'${v}'`).join(", ");
-      sql += `"${column}" TEXT CHECK("${column}" IN (${values})) ${nullable} ${unique} ${defaultValue}, `;
-   } else if (field instanceof XqlArray || field instanceof XqlSet || field instanceof XqlObject || field instanceof XqlMap || field instanceof XqlRecord) {
-      sql += col(column, "TEXT"); // store JSON string
+      // PostgreSQL ENUM type
+      const enumName = `${column}_enum`;
+      sql += `"${column}" ${enumName} ${nullable} ${unique} ${defaultValue}, `;
+   } else if (field instanceof XqlArray) {
+      sql += col(column, "TEXT[]"); // store array of text
+   } else if (field instanceof XqlSet || field instanceof XqlObject || field instanceof XqlMap || field instanceof XqlRecord) {
+      sql += col(column, "JSONB"); // use JSONB for objects/sets/maps
    } else {
       throw new Error(`Unsupported field type for column ${column}`);
    }
@@ -69,31 +71,41 @@ const buildColumn = (column: string, field: XqlFields): string => {
 }
 
 const buildSchema = (schema: Schema): string => {
-   let sql = `CREATE TABLE IF NOT EXISTS "${schema.table}" (`;
-   const columns = Object.entries(schema.schema);
+   let sql = '';
 
-   const indexable: any = {};
-
-   for (let [column, field] of columns) {
-      const meta = field.meta || {};
-      if (meta.index) {
-         indexable[column] = true;
+   // create ENUM types first
+   for (let [column, field] of Object.entries(schema.schema)) {
+      if (field instanceof XqlEnum) {
+         const enumName = `${column}_enum`;
+         const values = (field as any).values.map((v: any) => `'${v}'`).join(", ");
+         sql += `DO $$ BEGIN
+                     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = '${enumName}') THEN
+                         CREATE TYPE ${enumName} AS ENUM (${values});
+                     END IF;
+                   END$$;`
       }
-      sql += buildColumn(column, field);
    }
 
+   // create table
+   sql += `CREATE TABLE IF NOT EXISTS "${schema.table}" (`;
+   for (let [column, field] of Object.entries(schema.schema)) {
+      sql += buildColumn(column, field);
+   }
    sql = sql.slice(0, -2);
    sql += `);`;
 
-   for (let column in indexable) {
-      sql += `CREATE INDEX ${makeIndexKey(schema.table, column)} ON "${schema.table}"("${column}");`;
+   // create indexes
+   for (let [column, field] of Object.entries(schema.schema)) {
+      if (field.meta?.index) {
+         sql += `CREATE INDEX ${makeIndexKey(schema.table, column)} ON "${schema.table}"("${column}");`;
+      }
    }
 
    return sql;
 }
 
 let mod: any = null;
-const sqlitedialect = (xansql: Xansql): DialectOptions => {
+const postgresDialect = (xansql: Xansql): DialectOptions => {
    const config = xansql.config
    let excuter: any = null;
    const opt = {
@@ -112,23 +124,17 @@ const sqlitedialect = (xansql: Xansql): DialectOptions => {
 
       addColumn: async (schema: Schema, columnName: string) => {
          const column = schema.schema[columnName];
-         if (!column) {
-            throw new Error(`Column ${columnName} does not exist in model ${schema.table}`);
-         }
-         if (column instanceof XqlJoin || column instanceof XqlIDField) {
+         if (!column) throw new Error(`Column ${columnName} does not exist in model ${schema.table}`);
+         if (column instanceof XqlJoin || column instanceof XqlIDField)
             throw new Error(`Cannot add relation or IDField as a column: ${columnName}`);
-         };
-         const buildColumnSql = buildColumn(columnName, column);
-         // SQLite supports only ADD COLUMN (not DROP or CHANGE easily)
-         return await opt.excute(`ALTER TABLE "${schema.table}" ADD COLUMN ${buildColumnSql.slice(0, -2)};`, schema);
+         return await opt.excute(`ALTER TABLE "${schema.table}" ADD COLUMN ${buildColumn(columnName, column).slice(0, -2)};`, schema);
       },
 
-      dropColumn: async () => {
-         throw new Error("SQLite does not support DROP COLUMN directly. You need to recreate the table.");
+      dropColumn: async (schema: Schema, columnName: string) => {
+         return await opt.excute(`ALTER TABLE "${schema.table}" DROP COLUMN "${columnName}";`, schema);
       },
 
       renameColumn: async (schema: Schema, oldName: string, newName: string) => {
-         // SQLite ≥ 3.25 supports RENAME COLUMN
          return await opt.excute(`ALTER TABLE "${schema.table}" RENAME COLUMN "${oldName}" TO "${newName}";`, schema);
       },
 
@@ -143,4 +149,5 @@ const sqlitedialect = (xansql: Xansql): DialectOptions => {
 
    return opt;
 }
-export default sqlitedialect;
+
+export default postgresDialect;

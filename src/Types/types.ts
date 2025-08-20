@@ -1,4 +1,3 @@
-import XqlAny from "./fields/Any"
 import XqlArray from "./fields/Array"
 import XqlBoolean from "./fields/Boolean"
 import XqlDate from "./fields/Date"
@@ -16,7 +15,6 @@ import XqlTuple from "./fields/Tuple"
 import XqlUnion from "./fields/Union"
 
 export type XqlFields =
-   | XqlAny
    | XqlArray
    | XqlBoolean
    | XqlDate

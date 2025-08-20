@@ -1,8 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { x } from './src/Types';
-import xansql from './src';
-import Schema from './src/Schema';
+import { Xansql, Schema } from './src';
 import MysqlDialect from './src/Dialects/Mysql';
 
 const UserSchema = new Schema("users", {
@@ -21,7 +20,7 @@ const PostSchema = new Schema("posts", {
   customer: x.join('users').optional()
 });
 
-const db = new xansql({
+const db = new Xansql({
   dialect: MysqlDialect,
   connection: ""
 })

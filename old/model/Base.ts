@@ -21,8 +21,6 @@ abstract class ModelBase {
       this.xansql = xansql
    }
 
-
-
    idField() {
       if (this._idField) return this._idField
       const schema = this.schema.get()

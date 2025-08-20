@@ -1,8 +1,7 @@
-import xansql from ".";
 import Schema from "./Schema";
+import Xansql from "./Xansql";
 
-
-export type Dialect = {
+export type DialectOptions = {
    excute: (query: string, schema: Schema) => Promise<any>;
    buildSchema: (schema: Schema) => string;
    addColumn: (schema: Schema, columnName: string) => Promise<any>;
@@ -11,6 +10,8 @@ export type Dialect = {
    addIndex: (schema: Schema, columnName: string) => Promise<any>;
    dropIndex: (schema: Schema, columnName: string) => Promise<any>;
 }
+
+export type Dialect = (xansql: Xansql) => DialectOptions
 
 export type XansqlConnectionOptions = {
    host: string,

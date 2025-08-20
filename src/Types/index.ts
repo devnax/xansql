@@ -1,5 +1,4 @@
 import { XVEnumValues, XVInstanceType, XVObjectType } from "xanv";
-import SQAny from "./fields/Any";
 import SQString from "./fields/String";
 import SQBoolean from "./fields/Boolean";
 import SQArray from "./fields/Array";
@@ -15,7 +14,6 @@ import SQUnion from "./fields/Union";
 import SQIDField from "./fields/IDField";
 import XqlJoin from "./fields/Join";
 export const x = {
-   any: () => new SQAny(),
    array: (type: XVInstanceType, length?: number) => new SQArray(type, length),
    boolean: () => new SQBoolean(),
    date: () => new SQDate(),

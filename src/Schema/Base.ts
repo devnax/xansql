@@ -1,7 +1,7 @@
-import xansql from "..";
 import XqlIDField from "../Types/fields/IDField";
 import XqlJoin from "../Types/fields/Join";
 import { XansqlSchemaObject } from "../Types/types";
+import Xansql from "../Xansql";
 
 abstract class SchemaBase {
    readonly schema: XansqlSchemaObject;
@@ -12,7 +12,7 @@ abstract class SchemaBase {
       relation: [] as string[],
    }
 
-   xansql: xansql = null as any;
+   xansql: Xansql = null as any;
    alias: string = '';
 
    constructor(table: string, schema: XansqlSchemaObject) {
@@ -36,6 +36,17 @@ abstract class SchemaBase {
       if (!this.IDColumn) {
          throw new Error(`Schema ${this.table} must have an id column`);
       }
+   }
+
+   async excute(sql: string): Promise<any> {
+      return await this.xansql.excute(sql, this as any)
+   }
+
+   async drop() {
+      if (typeof window === "undefined") {
+         throw new Error("This method can only be used on the server side.");
+      }
+      await this.excute(`DROP TABLE IF EXISTS ${this.table}`);
    }
 
 }
