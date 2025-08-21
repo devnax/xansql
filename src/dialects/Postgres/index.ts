@@ -16,9 +16,7 @@ import XqlString from "../../Types/fields/String";
 import { XqlFields } from "../../Types/types";
 import Xansql from "../../Xansql";
 
-const makeIndexKey = (table: string, column: string) => {
-   return `idx_${table}_${column}`;
-}
+const makeIndexKey = (table: string, column: string) => `idx_${table}_${column}`
 
 const buildColumn = (column: string, field: XqlFields): string => {
    const meta = field.meta || {};
@@ -70,58 +68,62 @@ const buildColumn = (column: string, field: XqlFields): string => {
    return sql;
 }
 
-const buildSchema = (schema: Schema): string => {
-   let sql = '';
-
-   // create ENUM types first
-   for (let [column, field] of Object.entries(schema.schema)) {
-      if (field instanceof XqlEnum) {
-         const enumName = `${column}_enum`;
-         const values = (field as any).values.map((v: any) => `'${v}'`).join(", ");
-         sql += `DO $$ BEGIN
-                     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = '${enumName}') THEN
-                         CREATE TYPE ${enumName} AS ENUM (${values});
-                     END IF;
-                   END$$;`
-      }
-   }
-
-   // create table
-   sql += `CREATE TABLE IF NOT EXISTS "${schema.table}" (`;
-   for (let [column, field] of Object.entries(schema.schema)) {
-      sql += buildColumn(column, field);
-   }
-   sql = sql.slice(0, -2);
-   sql += `);`;
-
-   // create indexes
-   for (let [column, field] of Object.entries(schema.schema)) {
-      if (field.meta?.index) {
-         sql += `CREATE INDEX ${makeIndexKey(schema.table, column)} ON "${schema.table}"("${column}");`;
-      }
-   }
-
-   return sql;
-}
 
 let mod: any = null;
 const postgresDialect = (xansql: Xansql): DialectOptions => {
    const config = xansql.config
    let excuter: any = null;
-   const opt = {
-      buildSchema,
-      excute: async (sql: any, schema: Schema): Promise<any> => {
-         if (typeof window === "undefined") {
-            if (!mod) {
-               mod = (await import("./excuter")).default;
-               excuter = new mod(config);
-            }
-            return await excuter.excute(sql);
-         } else {
-            return await xansql.excuteClient(sql, schema);
-         }
-      },
 
+   const excute = async (sql: any, schema: Schema): Promise<any> => {
+      if (typeof window === "undefined") {
+         if (!mod) {
+            mod = (await import("./excuter")).default;
+            excuter = new mod(config);
+         }
+         return await excuter.excute(sql);
+      } else {
+         return await xansql.excuteClient(sql, schema);
+      }
+   }
+
+   const migrate = async (schema: Schema) => {
+      let sql = '';
+
+      // create ENUM types first
+      for (let [column, field] of Object.entries(schema.schema)) {
+         if (field instanceof XqlEnum) {
+            const enumName = `${column}_enum`;
+            const values = (field as any).values.map((v: any) => `'${v}'`).join(", ");
+            sql += `DO $$ BEGIN
+                     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = '${enumName}') THEN
+                         CREATE TYPE ${enumName} AS ENUM (${values});
+                     END IF;
+                   END$$;`
+         }
+      }
+
+      // create table
+      sql += `CREATE TABLE IF NOT EXISTS "${schema.table}" (`;
+      for (let [column, field] of Object.entries(schema.schema)) {
+         sql += buildColumn(column, field);
+      }
+      sql = sql.slice(0, -2);
+      sql += `);`;
+
+      // create indexes
+      for (let [column, field] of Object.entries(schema.schema)) {
+         if (field.meta?.index) {
+            sql += `CREATE INDEX ${makeIndexKey(schema.table, column)} ON "${schema.table}"("${column}");`;
+         }
+      }
+
+      await excute(sql, schema);
+   }
+
+
+   const opt = {
+      migrate,
+      excute,
       addColumn: async (schema: Schema, columnName: string) => {
          const column = schema.schema[columnName];
          if (!column) throw new Error(`Column ${columnName} does not exist in model ${schema.table}`);
@@ -129,19 +131,15 @@ const postgresDialect = (xansql: Xansql): DialectOptions => {
             throw new Error(`Cannot add relation or IDField as a column: ${columnName}`);
          return await opt.excute(`ALTER TABLE "${schema.table}" ADD COLUMN ${buildColumn(columnName, column).slice(0, -2)};`, schema);
       },
-
       dropColumn: async (schema: Schema, columnName: string) => {
          return await opt.excute(`ALTER TABLE "${schema.table}" DROP COLUMN "${columnName}";`, schema);
       },
-
       renameColumn: async (schema: Schema, oldName: string, newName: string) => {
          return await opt.excute(`ALTER TABLE "${schema.table}" RENAME COLUMN "${oldName}" TO "${newName}";`, schema);
       },
-
       addIndex: async (schema: Schema, columnName: string) => {
          return await opt.excute(`CREATE INDEX ${makeIndexKey(schema.table, columnName)} ON "${schema.table}"("${columnName}");`, schema);
       },
-
       dropIndex: async (schema: Schema, columnName: string) => {
          return await opt.excute(`DROP INDEX ${makeIndexKey(schema.table, columnName)};`, schema);
       }

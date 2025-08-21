@@ -1,11 +1,13 @@
 import Schema from "./Schema";
 import { XansqlConfig } from "./type";
+import XqlJoin from "./Types/fields/Join";
 import { freezeObject } from "./utils/index";
 
 class Xansql {
-   private models = new Map<string, Schema>();
+   private _models = new Map<string, Schema>();
    private _config: XansqlConfig;
-   private aliases = new Map<string, string>();
+   private _aliases = new Map<string, string>();
+   private _relations: Record<string, { [column: string]: any }> | null = null
 
    constructor(config: XansqlConfig) {
       this._config = config;
@@ -16,51 +18,94 @@ class Xansql {
    }
 
    get dialect() {
-      if (typeof this.config.dialect === 'function') {
-         return this.config.dialect(this);
+      const dialect = this.config.dialect;
+      if (typeof dialect === 'function') {
+         return dialect(this);
       }
-      return this.config.dialect;
+      return dialect;
    }
 
-   makeAlias(table: string) {
+   getRelations(tableName?: string): Record<string, { [column: string]: any }> {
+      if (!this._relations) {
+         this._relations = {};
+         for (let [table, schema] of Array.from(this._models.entries())) {
+            for (let [column, xanv] of Object.entries(schema.schema)) {
+               if (xanv instanceof XqlJoin) {
+                  const main = {
+                     single: true,
+                     main: {
+                        table,
+                        column,
+                     },
+                     foregin: {
+                        table: xanv.table,
+                        column: xanv.foreginColumn,
+                     }
+                  }
+
+                  const foregin = {
+                     single: false,
+                     foregin: {
+                        table,
+                        column,
+                     },
+                     main: {
+                        table: xanv.table,
+                        column: xanv.foreginColumn,
+                     }
+                  }
+
+                  const relation = this._relations[main.main.table] || {};
+                  relation[main.main.column] = main;
+                  this._relations[main.main.table] = relation
+
+                  const foreginRelation = this._relations[foregin.main.table] || {};
+                  foreginRelation[foregin.main.column] = foregin;
+                  this._relations[foregin.main.table] = foreginRelation
+               }
+            }
+         }
+      }
+      return tableName ? this._relations[tableName] : this._relations
+   }
+
+   private _makeAlias(table: string) {
       let wordLength = 1;
       table = table.toLowerCase().replaceAll(/[^a-z0-9_]/g, '_')
       while (true) {
          let alias = table[wordLength]
-         if (!this.aliases.has(alias)) {
-            this.aliases.set(table, alias);
+         if (!this._aliases.has(alias)) {
+            this._aliases.set(table, alias);
             return alias;
          }
          wordLength++;
-
          if (wordLength > table.length) {
             throw new Error(`Cannot generate alias for table ${table}`);
          }
       }
    }
 
-   model(model: Schema) {
+   model<S extends Schema>(model: S) {
       if (!model.IDColumn) {
          throw new Error("Schema must have an ID column");
       }
-      if (this.models.has(model.table)) {
+      if (this._models.has(model.table)) {
          throw new Error("Model already exists for this table");
       }
-      model.alias = this.makeAlias(model.table);
+      model.alias = this._makeAlias(model.table);
       model.xansql = this;
-      this.models.set(model.table, model);
-      freezeObject(model);
+      this._models.set(model.table, model);
+      // freezeObject(model);
       return model
    }
 
    async migrate(force?: boolean) {
-      const models = this.models
+      const models = this._models
       const tables = Array.from(models.keys())
       for (let table of tables) {
          const model = models.get(table) as Schema
          await model.migrate(force)
       }
-
    }
 
    async excute(sql: string, model: Schema, requestData?: any): Promise<any> {

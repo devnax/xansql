@@ -28,7 +28,7 @@ export const x = {
    union: (type: XVInstanceType[]) => new SQUnion(type),
 
    id: () => new SQIDField(),
-   join: (table: string) => new XqlJoin(table),
+   join: (table: string, foreginColumn: string) => new XqlJoin(table, foreginColumn),
 
 }
 

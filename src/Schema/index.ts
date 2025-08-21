@@ -1,21 +1,11 @@
 import SchemaBase from "./Base";
+import BuildWhere from "./Query/BuildWhere";
+import { FindArgs } from "./type";
 
 class Schema extends SchemaBase {
 
-   async migrate(force = false) {
-      if (typeof window === "undefined") {
-         throw new Error("This method can only be used on the server side.");
-      }
-      if (force) {
-         await this.drop();
-      }
-      const dialect = this.xansql.dialect
-      const sql = dialect.buildSchema(this);
-      await this.excute(sql)
-   }
-
-   find() {
-
+   find(args: FindArgs) {
+      BuildWhere(args.where, this);
    }
 }
 

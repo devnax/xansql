@@ -16,9 +16,7 @@ import XqlString from "../../Types/fields/String";
 import { XqlFields } from "../../Types/types";
 import Xansql from "../../Xansql";
 
-const makeIndexKey = (table: string, column: string) => {
-   return `idx_${table}_${column}`;
-}
+const makeIndexKey = (table: string, column: string) => `idx_${table}_${column}`
 
 const buildColumn = (column: string, field: XqlFields): string => {
    const meta = field.meta || {};
@@ -68,48 +66,50 @@ const buildColumn = (column: string, field: XqlFields): string => {
    return sql;
 }
 
-const buildSchema = (schema: Schema): string => {
-   let sql = `CREATE TABLE IF NOT EXISTS "${schema.table}" (`;
-   const columns = Object.entries(schema.schema);
-
-   const indexable: any = {};
-
-   for (let [column, field] of columns) {
-      const meta = field.meta || {};
-      if (meta.index) {
-         indexable[column] = true;
-      }
-      sql += buildColumn(column, field);
-   }
-
-   sql = sql.slice(0, -2);
-   sql += `);`;
-
-   for (let column in indexable) {
-      sql += `CREATE INDEX ${makeIndexKey(schema.table, column)} ON "${schema.table}"("${column}");`;
-   }
-
-   return sql;
-}
 
 let mod: any = null;
 const sqlitedialect = (xansql: Xansql): DialectOptions => {
    const config = xansql.config
    let excuter: any = null;
-   const opt = {
-      buildSchema,
-      excute: async (sql: any, schema: Schema): Promise<any> => {
-         if (typeof window === "undefined") {
-            if (!mod) {
-               mod = (await import("./excuter")).default;
-               excuter = new mod(config);
-            }
-            return await excuter.excute(sql);
-         } else {
-            return await xansql.excuteClient(sql, schema);
-         }
-      },
 
+
+   const excute = async (sql: any, schema: Schema): Promise<any> => {
+      if (typeof window === "undefined") {
+         if (!mod) {
+            mod = (await import("./excuter")).default;
+            excuter = new mod(config);
+         }
+         return await excuter.excute(sql);
+      } else {
+         return await xansql.excuteClient(sql, schema);
+      }
+   }
+
+   const migrate = async (schema: Schema) => {
+      let sql = `CREATE TABLE IF NOT EXISTS "${schema.table}" (`;
+      const columns = Object.entries(schema.schema);
+      const indexable: any = {};
+
+      for (let [column, field] of columns) {
+         const meta = field.meta || {};
+         if (meta.index) {
+            indexable[column] = true;
+         }
+         sql += buildColumn(column, field);
+      }
+
+      sql = sql.slice(0, -2);
+      sql += `);`;
+
+      for (let column in indexable) {
+         sql += `CREATE INDEX ${makeIndexKey(schema.table, column)} ON "${schema.table}"("${column}");`;
+      }
+      await excute(sql, schema);
+   }
+
+   return {
+      migrate,
+      excute,
       addColumn: async (schema: Schema, columnName: string) => {
          const column = schema.schema[columnName];
          if (!column) {
@@ -119,28 +119,20 @@ const sqlitedialect = (xansql: Xansql): DialectOptions => {
             throw new Error(`Cannot add relation or IDField as a column: ${columnName}`);
          };
          const buildColumnSql = buildColumn(columnName, column);
-         // SQLite supports only ADD COLUMN (not DROP or CHANGE easily)
-         return await opt.excute(`ALTER TABLE "${schema.table}" ADD COLUMN ${buildColumnSql.slice(0, -2)};`, schema);
+         return await excute(`ALTER TABLE "${schema.table}" ADD COLUMN ${buildColumnSql.slice(0, -2)};`, schema);
       },
-
       dropColumn: async () => {
          throw new Error("SQLite does not support DROP COLUMN directly. You need to recreate the table.");
       },
-
       renameColumn: async (schema: Schema, oldName: string, newName: string) => {
-         // SQLite ≥ 3.25 supports RENAME COLUMN
-         return await opt.excute(`ALTER TABLE "${schema.table}" RENAME COLUMN "${oldName}" TO "${newName}";`, schema);
+         return await excute(`ALTER TABLE "${schema.table}" RENAME COLUMN "${oldName}" TO "${newName}";`, schema);
       },
-
       addIndex: async (schema: Schema, columnName: string) => {
-         return await opt.excute(`CREATE INDEX ${makeIndexKey(schema.table, columnName)} ON "${schema.table}"("${columnName}");`, schema);
+         return await excute(`CREATE INDEX ${makeIndexKey(schema.table, columnName)} ON "${schema.table}"("${columnName}");`, schema);
       },
-
       dropIndex: async (schema: Schema, columnName: string) => {
-         return await opt.excute(`DROP INDEX ${makeIndexKey(schema.table, columnName)};`, schema);
+         return await excute(`DROP INDEX ${makeIndexKey(schema.table, columnName)};`, schema);
       }
    }
-
-   return opt;
 }
 export default sqlitedialect;

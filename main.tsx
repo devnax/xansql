@@ -9,15 +9,15 @@ const UserSchema = new Schema("users", {
   name: x.string().min(10).index(),
   email: x.string().unique(),
   age: x.number().integer().default(18),
-  creator: x.join("users").optional(),
+  creator: x.join("users", "creators").optional(),
 });
 
 const PostSchema = new Schema("posts", {
   id: x.id(),
   title: x.string().index(),
   content: x.string(),
-  user: x.join('users').optional(),
-  customer: x.join('users').optional()
+  user: x.join('users', 'posts').optional(),
+  customer: x.join('users', "customer_posts").optional()
 });
 
 const db = new Xansql({
@@ -28,7 +28,31 @@ const db = new Xansql({
 const UserModel = db.model(UserSchema)
 const PostModel = db.model(PostSchema)
 
-db.migrate()
+
+
+UserModel.find({
+  where: {
+    name: "Hello World",
+    creator: {
+      name: "John Doe"
+    },
+    // posts: {
+    //   title: "Hello World",
+    // }
+  },
+  select: {
+    id: true,
+    posts: {
+      select: {},
+    }
+  },
+  limit: {
+
+  },
+  orderBy: {
+    createdAt: 'desc'
+  }
+})
 const Button = ({ label, onClick }) => {
   return (
     <button

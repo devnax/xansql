@@ -3,7 +3,7 @@ import Xansql from "./Xansql";
 
 export type DialectOptions = {
    excute: (query: string, schema: Schema) => Promise<any>;
-   buildSchema: (schema: Schema) => string;
+   migrate: (schema: Schema) => Promise<void>;
    addColumn: (schema: Schema, columnName: string) => Promise<any>;
    dropColumn: (schema: Schema, columnName: string) => Promise<any>;
    renameColumn: (schema: Schema, oldName: string, newName: string) => Promise<any>;

@@ -49,6 +49,17 @@ abstract class SchemaBase {
       await this.excute(`DROP TABLE IF EXISTS ${this.table}`);
    }
 
+
+   async migrate(force = false) {
+      if (typeof window === "undefined") {
+         throw new Error("This method can only be used on the server side.");
+      }
+      if (force) {
+         await this.drop();
+      }
+      await this.xansql.dialect.migrate(this as any);
+   }
+
 }
 
 export default SchemaBase;
