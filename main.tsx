@@ -6,10 +6,11 @@ import MysqlDialect from './src/Dialects/Mysql';
 
 const UserSchema = new Schema("users", {
   id: x.id(),
-  name: x.string().min(10).index(),
+  name: x.string().index(),
   email: x.string().unique(),
   age: x.number().integer().default(18),
   creator: x.join("users", "creators").optional(),
+  created_at: x.date(),
 });
 
 const PostSchema = new Schema("posts", {
@@ -28,13 +29,27 @@ const db = new Xansql({
 const UserModel = db.model(UserSchema)
 const PostModel = db.model(PostSchema)
 
-
-
 UserModel.find({
   where: {
     name: "Hello World",
+
     creator: {
-      name: "John Doe"
+      name: "John Doe",
+      age: { gte: 18 },
+      creators: {
+        id: 1,
+        name: "Jane Doe",
+        creators: [
+          {
+            id: 2,
+            name: "Alice Smith"
+          },
+          {
+            id: 1,
+            name: "Alice Smith"
+          }
+        ]
+      },
     },
     // posts: {
     //   title: "Hello World",

@@ -5,6 +5,7 @@ const BuildWhereCondition = (column: string, conditions: WhereSubCondition, alia
    const subConditions = Object.keys(conditions)
       .map((subKey) => {
          const subValue = (conditions as any)[subKey];
+
          if (subValue === null) return `${alias}.${column} IS NULL`;
          if (subValue === undefined) return `${alias}.${column} IS NOT NULL`;
          if (subValue === "") return `${alias}.${column} = ''`;

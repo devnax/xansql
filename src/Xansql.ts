@@ -31,42 +31,60 @@ class Xansql {
          for (let [table, schema] of Array.from(this._models.entries())) {
             for (let [column, xanv] of Object.entries(schema.schema)) {
                if (xanv instanceof XqlJoin) {
+                  const joinSchema = this.getSchema(xanv.table);
                   const main = {
                      single: true,
+                     alias: schema.alias,
+                     foreginField: xanv.foreginColumn,
                      main: {
+                        alias: schema.alias,
                         table,
                         column,
+                        field: column,
                      },
                      foregin: {
+                        alias: joinSchema.alias,
                         table: xanv.table,
-                        column: xanv.foreginColumn,
+                        column: joinSchema.IDColumn,
+                        field: xanv.foreginColumn,
                      }
                   }
 
                   const foregin = {
                      single: false,
+                     main: {
+                        alias: joinSchema.alias,
+                        table: xanv.table,
+                        column: joinSchema.IDColumn,
+                        field: xanv.foreginColumn,
+                     },
                      foregin: {
+                        alias: schema.alias,
                         table,
                         column,
-                     },
-                     main: {
-                        table: xanv.table,
-                        column: xanv.foreginColumn,
+                        field: column,
                      }
                   }
 
                   const relation = this._relations[main.main.table] || {};
-                  relation[main.main.column] = main;
+                  relation[main.main.field] = main;
                   this._relations[main.main.table] = relation
 
                   const foreginRelation = this._relations[foregin.main.table] || {};
-                  foreginRelation[foregin.main.column] = foregin;
+                  foreginRelation[foregin.main.field] = foregin;
                   this._relations[foregin.main.table] = foreginRelation
                }
             }
          }
       }
       return tableName ? this._relations[tableName] : this._relations
+   }
+
+   getSchema(table: string): Schema {
+      if (!this._models.has(table)) {
+         throw new Error(`Model for table ${table} does not exist`);
+      }
+      return this._models.get(table) as Schema;
    }
 
    private _makeAlias(table: string) {
