@@ -33,12 +33,8 @@ export type CreateArgs = {
    select?: SelectType;
 }
 
-export type UpdateArgsData = {
-   [column: string]: ColumnDataType | UpdateArgsData;
-}
-
 export type UpdateArgs = {
-   data: UpdateArgsData | UpdateArgsData[];
+   data: Partial<DataArgs> | Partial<DataArgs>[];
    where: WhereArgs;
    select?: SelectType
 }

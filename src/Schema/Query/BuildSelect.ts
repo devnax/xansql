@@ -10,7 +10,6 @@ const BuildSelect = (args: SelectArgs, schema: Schema) => {
       sql: ""
    }
 
-
    const keys = Object.keys(args)
    if (keys.length === 0) {
       for (let column of schema.columns.main) {

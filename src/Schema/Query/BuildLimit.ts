@@ -31,11 +31,7 @@ const BuildLimit = (args: LimitArgs, schema: Schema) => {
       };
       const val = args[column] as LimitArgs
       const relation = relations[column]
-      const foreginModel = schema.xansql.getSchema(relation.foregin.table)
-      if (!foreginModel) {
-         throw new Error("Foregin model not found for relation " + column)
-      }
-      info.joins[column] = BuildLimit(val, foreginModel)
+      info.joins[column] = BuildLimit(val, relation.foregin.schema)
    }
 
    return info

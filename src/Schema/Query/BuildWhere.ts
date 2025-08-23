@@ -44,7 +44,6 @@ const BuildWhere = (where: WhereArgs, schema: Schema, aliases: { [key: string]: 
 
       if (relations[column]) {
          const relation = relations[column]
-         const foreginModel = schema.xansql.getSchema(relation.foregin.table)
          const isArray = Array.isArray(_whereVal)
          let _alias = ''
          let _sql = ''
@@ -56,13 +55,13 @@ const BuildWhere = (where: WhereArgs, schema: Schema, aliases: { [key: string]: 
                   throw new Error("Invalid value in where clause for relation array " + column)
                }
                aliases[schema.alias] = aliasnumber
-               const build = BuildWhere(w, foreginModel, aliases)
+               const build = BuildWhere(w, relation.foregin.schema, aliases)
                build.wheres.length && _ors.push(`(${build.wheres.join(" AND ")})`)
                _alias = _alias || build.alias
             }
             _sql = _ors.length ? `(${_ors.join(" OR ")})` : ""
          } else if (isObject(_whereVal)) {
-            const build = BuildWhere(_whereVal, foreginModel, aliases)
+            const build = BuildWhere(_whereVal, relation.foregin.schema, aliases)
             _alias = build.alias
             _sql = build.wheres.length ? build.wheres.join(" AND ") : ""
          }

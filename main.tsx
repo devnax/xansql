@@ -3,6 +3,26 @@ import { createRoot } from 'react-dom/client';
 import { x } from './src/Types';
 import { Xansql, Schema } from './src';
 import MysqlDialect from './src/Dialects/Mysql';
+import { PostModel } from './example'
+
+PostModel.create({
+  data: {
+    title: "Hello World",
+    content: "This is a test post",
+
+    user: {
+      name: "John Doe",
+      email: "",
+
+      posts: [
+        {
+          title: "Nested Post",
+          content: "This is a nested post"
+        }
+      ]
+    }
+  }
+})
 
 const Button = ({ label, onClick }) => {
   return (

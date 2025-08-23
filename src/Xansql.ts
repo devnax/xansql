@@ -44,12 +44,14 @@ class Xansql {
                         table,
                         column,
                         field: column,
+                        schema
                      },
                      foregin: {
                         alias: joinSchema.alias,
                         table: xanv.table,
                         column: joinSchema.IDColumn,
                         field: xanv.foreginColumn,
+                        schema: joinSchema
                      }
                   }
 
@@ -60,12 +62,14 @@ class Xansql {
                         table: xanv.table,
                         column: joinSchema.IDColumn,
                         field: xanv.foreginColumn,
+                        schema: joinSchema
                      },
                      foregin: {
                         alias: schema.alias,
                         table,
                         column,
                         field: column,
+                        schema
                      }
                   }
 
@@ -93,17 +97,17 @@ class Xansql {
    private _makeAlias(table: string) {
       let wordLength = 1;
       table = table.toLowerCase().replaceAll(/[^a-z0-9_]/g, '_')
+      let alias = table.slice(0, wordLength)
       while (true) {
-         let alias = table[wordLength]
-         if (!this._aliases.has(alias)) {
-            this._aliases.set(table, alias);
-            return alias;
-         }
+         if (!this._aliases.has(alias) || wordLength > table.length) break;
          wordLength++;
-         if (wordLength > table.length) {
-            throw new Error(`Cannot generate alias for table ${table}`);
-         }
+         alias = table.slice(0, wordLength);
       }
+      if (this._aliases.has(alias)) {
+         throw new Error(`Alias ${alias} already exists for table ${table}`);
+      }
+      this._aliases.set(table, alias);
+      return alias;
    }
 
    model<S extends Schema>(model: S) {

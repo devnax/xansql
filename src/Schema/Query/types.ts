@@ -55,6 +55,6 @@ export type SelectArgs = {
 export type ColumnDataType = string | number | boolean | Date | null
 
 export type DataArgs = {
-   [column: string]: ColumnDataType | DataArgs[];
+   [column: string]: ColumnDataType | DataArgs[] | DataArgs;
 }
 

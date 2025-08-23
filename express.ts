@@ -2,7 +2,7 @@ import dotenv from 'dotenv'
 dotenv.config()
 import fakeData from './faker'
 import express from 'express';
-import { db } from './example'
+import { db, PostModel, UserModel } from './example'
 
 const server = async (app) => {
    app.use('/static', express.static('public'));
@@ -58,6 +58,33 @@ const server = async (app) => {
    //    })
    //    res.send(del);
    // });
+
+   app.get('/find', async (req, res) => {
+      await UserModel.find({
+         where: {
+            // name: "John Doe",
+         }
+      })
+
+      res.send(`finded`);
+   });
+
+   app.get('/create', async (req, res) => {
+      await UserModel.create({
+         data: {
+            name: "John Doe",
+            email: "asd@a.com",
+            posts: [
+               {
+                  title: "Hello World",
+                  content: "This is my first post"
+               }
+            ]
+         }
+      })
+
+      res.send(`created`);
+   });
 
    app.get('/migrate', async (req, res) => {
       await db.migrate(true)

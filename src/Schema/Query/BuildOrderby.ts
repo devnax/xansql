@@ -3,7 +3,7 @@ import { OrderByArgs } from "./types";
 
 const BuildOrderby = (args: OrderByArgs, schema: Schema) => {
    const info: any = {
-      sql: "ORDER BY ",
+      sql: "",
       joins: {}
    }
 
@@ -21,15 +21,12 @@ const BuildOrderby = (args: OrderByArgs, schema: Schema) => {
          items.push(`${schema.alias}.${column} ${val.toUpperCase()}`)
       } else {
          const relation = relations[column]
-         const foreginModel = schema.xansql.getSchema(relation.foregin.table)
-         if (!foreginModel) {
-            throw new Error("Foregin model not found for relation " + column)
-         }
-         info.joins[column] = BuildOrderby(val, foreginModel)
+         info.joins[column] = BuildOrderby(val, relation.foregin.schema)
       }
    }
-
-   info.sql += items.join(", ")
+   if (items.length > 0) {
+      info.sql += `ORDER BY ${items.join(', ')}`
+   }
    return info
 }
 
