@@ -1,12 +1,7 @@
-import xansql from "../src"
-import UserModel, { UserData } from "./models/User"
-import UserMetaModel from "./models/UserMeta"
-import ProductModel from "./models/Product"
-import CategoryModel from "./models/Category"
-import mysqldialect from "../src/dialects/Mysql"
-import SqliteDialect from "../src/dialects/Sqlite"
 import dotenv from 'dotenv'
-import TestCache from "./TestCache"
+import { Xansql, Schema, xt } from '../src'
+import Mysqldialect from '../src/Dialects/Mysql';
+import SqliteDialect from '../src/Dialects/Sqlite';
 
 if (typeof process !== 'undefined' && process?.env) {
    try {
@@ -16,13 +11,28 @@ if (typeof process !== 'undefined' && process?.env) {
    }
 }
 
+const UserSchema = new Schema("users", {
+   id: xt.id(),
+   name: xt.string().index(),
+   email: xt.string().index().unique(),
+   created_at: xt.date(),
+});
+
+const PostSchema = new Schema("posts", {
+   id: xt.id(),
+   title: xt.string().index(),
+   content: xt.string(),
+   user: xt.join('users', 'posts').optional(),
+});
+
+
 const mysqlConn: string = (typeof process !== 'undefined' ? process.env.MYSQL_DB : 'mysql://root:password@localhost:3306/xansql') as string
 const sqliteConn: string = 'db.sqlite'
 
 const conn = {
    mysql: {
       connection: mysqlConn,
-      dialect: mysqldialect
+      dialect: Mysqldialect
    },
    sqlite: {
       connection: sqliteConn,
@@ -30,17 +40,7 @@ const conn = {
    }
 }
 
-export const db = new xansql({
-   ...conn.mysql,
-   cachePlugins: [
-      // TestCache
-   ],
-   client: {
-      basepath: '/data'
-   }
-})
+export const db = new Xansql(conn.sqlite)
 
-export const UserMeta = db.registerModel(UserMetaModel)
-export const Product = db.registerModel(ProductModel)
-export const Category = db.registerModel(CategoryModel)
-export const User = db.registerModel<UserData>(UserModel)
+export const UserModel = db.model(UserSchema)
+export const PostModel = db.model(PostSchema)

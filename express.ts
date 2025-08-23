@@ -2,6 +2,7 @@ import dotenv from 'dotenv'
 dotenv.config()
 import fakeData from './faker'
 import express from 'express';
+import { db } from './example'
 
 const server = async (app) => {
    app.use('/static', express.static('public'));
@@ -57,10 +58,11 @@ const server = async (app) => {
    //    })
    //    res.send(del);
    // });
-   // app.get('/migrate', async (req, res) => {
-   //    await db.migrate(true)
-   //    res.send(`Migrated`);
-   // });
+
+   app.get('/migrate', async (req, res) => {
+      await db.migrate(true)
+      res.send(`Migrated`);
+   });
 
 }
 export default server;

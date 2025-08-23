@@ -1,7 +1,8 @@
+import XanvType from "xanv/XanvType";
 import { formatValue, isObject } from "../../utils";
-import { WhereSubCondition } from "../type";
+import { WhereSubCondition } from "./types";
 
-const BuildWhereCondition = (column: string, conditions: WhereSubCondition, alias: string): string => {
+const BuildWhereCondition = (column: string, conditions: WhereSubCondition, alias: string, xanv: XanvType<any, any>): string => {
    const subConditions = Object.keys(conditions)
       .map((subKey) => {
          const subValue = (conditions as any)[subKey];
@@ -14,6 +15,7 @@ const BuildWhereCondition = (column: string, conditions: WhereSubCondition, alia
          if (isObject(subValue)) {
             throw new Error(`Invalid value ${subValue} for ${alias}.${column}`);
          }
+         xanv.parse(subValue);
          switch (subKey) {
             case 'equals':
                return `${alias}.${column} = ${formatValue(subValue)}`;

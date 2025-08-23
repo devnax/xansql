@@ -67,16 +67,14 @@ const buildColumn = (column: string, field: XqlFields): string => {
 }
 
 
-let mod: any = null;
 const sqlitedialect = (xansql: Xansql): DialectOptions => {
    const config = xansql.config
    let excuter: any = null;
 
-
    const excute = async (sql: any, schema: Schema): Promise<any> => {
       if (typeof window === "undefined") {
-         if (!mod) {
-            mod = (await import("./excuter")).default;
+         if (!excuter) {
+            let mod = (await import("./excuter")).default;
             excuter = new mod(config);
          }
          return await excuter.excute(sql);

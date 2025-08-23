@@ -5,18 +5,21 @@ import XqlMap from "../../Types/fields/Map"
 import XqlObject from "../../Types/fields/Object"
 import XqlRecord from "../../Types/fields/Record"
 import XqlSet from "../../Types/fields/Set"
+import XqlTuple from "../../Types/fields/Tuple"
 import { formatValue, isObject } from "../../utils"
-import { WhereArgs } from "../type"
+import { WhereArgs } from "./types"
 import BuildWhereCondition from "./BuildWhereCondition"
 
 const BuildWhere = (where: WhereArgs, schema: Schema, aliases: { [key: string]: number } = {}) => {
+   let hasAlias = Object.keys(aliases).length > 0
    let alias = `${schema.alias + (aliases[schema.alias] || "")}`
    aliases[schema.alias] = (aliases[schema.alias] || 0) + 1
    let info = {
       alias,
       wheres: [] as string[],
-      whereArgs: {} as any,
-      relations: {} as { [column: string]: { where: object } }
+      sql: "",
+      // whereArgs: {} as any,
+      // relations: {} as { [column: string]: { where: object } }
    }
 
    for (let column in where) {
@@ -31,53 +34,65 @@ const BuildWhere = (where: WhereArgs, schema: Schema, aliases: { [key: string]: 
          || xanv instanceof XqlSet
          || xanv instanceof XqlMap
          || xanv instanceof XqlRecord
+         || xanv instanceof XqlTuple
          || xanv instanceof XqlFile
 
       if (isNotAllowed) {
          throw new Error(`Invalid type in where clause for column ${column}`)
       }
+      const _whereVal: any = where[column]
 
-      if (Array.isArray(where[column])) {
-         const subConditions = where[column].map((v: any) => {
-            return BuildWhere(v, schema, { ...aliases }).wheres.join(" AND ")
-         }).join(" OR ")
-
-         console.log(subConditions);
-
-         info.wheres.push(`(${subConditions})`)
-      } else if (relations[column]) {
+      if (relations[column]) {
          const relation = relations[column]
          const foreginModel = schema.xansql.getSchema(relation.foregin.table)
-         const _where: any = where[column] || {}
-         if (!info.relations[column]) {
-            info.relations[column] = {
-               where: where[column] as any
+         const isArray = Array.isArray(_whereVal)
+         let _alias = ''
+         let _sql = ''
+         if (isArray) {
+            let _ors = []
+            let aliasnumber = aliases[schema.alias] || 0
+            for (let w of _whereVal) {
+               if (!isObject(w)) {
+                  throw new Error("Invalid value in where clause for relation array " + column)
+               }
+               aliases[schema.alias] = aliasnumber
+               const build = BuildWhere(w, foreginModel, aliases)
+               build.wheres.length && _ors.push(`(${build.wheres.join(" AND ")})`)
+               _alias = _alias || build.alias
             }
+            _sql = _ors.length ? `(${_ors.join(" OR ")})` : ""
+         } else if (isObject(_whereVal)) {
+            const build = BuildWhere(_whereVal, foreginModel, aliases)
+            _alias = build.alias
+            _sql = build.wheres.length ? build.wheres.join(" AND ") : ""
          }
-         const build = BuildWhere(_where, foreginModel, aliases)
-         let _alias = build.alias
-         info.wheres.push(`EXISTS (SELECT 1 FROM ${relation.foregin.table} ${_alias} WHERE ${_alias}.${relation.foregin.column} = ${alias}.${relation.main.column} ${build.wheres.length ? ` AND ${build.wheres.join(" AND ")}` : ""})`)
+         info.wheres.push(`EXISTS (SELECT 1 FROM ${relation.foregin.table} ${_alias} WHERE ${_alias}.${relation.foregin.column} = ${alias}.${relation.main.column} ${_sql ? ` AND ${_sql}` : ""})`)
       } else {
          let v = ``
-         if (isObject(where[column])) {
-            const subConditions = BuildWhereCondition(column, (where as any)[column], alias)
-            v = subConditions
+         if (isObject(_whereVal)) {
+            v = BuildWhereCondition(column, _whereVal, alias, xanv)
+         } else if (Array.isArray(_whereVal)) {
+            const subConditions = _whereVal.map((_v: any) => {
+               return isObject(_v) ? BuildWhereCondition(column, _v, alias, xanv) : `${alias}.${column} = ${formatValue(_v)}`
+            })
+            v = `(${subConditions.join(" OR ")})`
          } else {
-            xanv.parse(where[column])
-            if (where[column] === null) {
+            xanv.parse(_whereVal)
+            if (_whereVal === null) {
                v = `${alias}.${column} IS NULL`
-            } else if (where[column] === undefined) {
+            } else if (_whereVal === undefined) {
                v = `${alias}.${column} IS NOT NULL`
             } else {
-               v = `${alias}.${column} = ${formatValue(where[column])}`
+               v = `${alias}.${column} = ${formatValue(_whereVal)}`
             }
          }
          info.wheres.push(v)
       }
    }
 
-   console.log(info);
-
+   if (!hasAlias) {
+      info.sql = info.wheres.length ? `WHERE ${info.wheres.join(" AND ")}` : ""
+   }
    return info
 }
 

@@ -17,11 +17,14 @@ class Xansql {
       return typeof this._config === 'function' ? this._config() : this._config;
    }
 
+   private _dialect: any = null;
    get dialect() {
-      const dialect = this.config.dialect;
+      if (this._dialect) return this._dialect;
+      let dialect: any = this.config.dialect;
       if (typeof dialect === 'function') {
-         return dialect(this);
+         dialect = dialect(this);
       }
+      this._dialect = dialect;
       return dialect;
    }
 
@@ -126,8 +129,12 @@ class Xansql {
       }
    }
 
-   async excute(sql: string, model: Schema, requestData?: any): Promise<any> {
-      return null
+   async excute(sql: string, schema: Schema, requestData?: any): Promise<any> {
+      if (typeof window === "undefined") {
+         return await this.dialect.excute(sql, schema);
+      } else {
+         return await this.excuteClient(sql, schema);
+      }
    }
 
    async excuteClient(sql: string, model: Schema) {

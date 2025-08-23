@@ -72,7 +72,7 @@ const mysqldialect = (xansql: Xansql): DialectOptions => {
    let excuter: any = null;
 
    const excute = async (sql: any, schema: Schema): Promise<any> => {
-      if (typeof window === "undefined") {
+      if (typeof window !== "undefined") {
          if (!mod) {
             mod = (await import("./excuter")).default;
             excuter = new mod(config);
