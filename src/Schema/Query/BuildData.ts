@@ -8,7 +8,6 @@ export type BuildDataInfo = {
    columns: string[];
    values: (string | number)[];
    table: string;
-   alias: string;
    joins: { [column: string]: BuildDataInfo | BuildDataInfo[] };
 }
 
@@ -18,7 +17,6 @@ const BuildData = (args: DataArgs | DataArgs[], schema: Schema): BuildDataInfo |
       columns: [],
       values: [],
       table: schema.table,
-      alias: schema.table,
       joins: {},
    }
 
@@ -41,18 +39,23 @@ const BuildData = (args: DataArgs | DataArgs[], schema: Schema): BuildDataInfo |
          }
 
          let value: any = args[column];
-
          if (column in relations) {
             const relation = relations[column]
             if (relation.single && Array.isArray(value)) {
                throw new Error("Cannot use array in relation data directly. Use object instead.");
             }
-            const foreginModel = relation.foregin.schema;
-            const _info = BuildData(value, foreginModel);
+            const foreginSchema = relation.foregin.schema;
+
+            if (relation.single) {
+               throw new Error("Single relation is not supported in create data yet.");
+            }
+
+            const _info = BuildData(value, foreginSchema);
             info.joins[column] = _info
          } else {
+            const val = xanv.parse(value)
             info.columns.push(column);
-            info.values.push(value);
+            info.values.push(val);
          }
       }
    }
