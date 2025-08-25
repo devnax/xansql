@@ -15,28 +15,27 @@ const BuildWhereCondition = (column: string, conditions: WhereSubCondition, alia
          if (isObject(subValue)) {
             throw new Error(`Invalid value ${subValue} for ${alias}.${column}`);
          }
-         xanv.parse(subValue);
          switch (subKey) {
             case 'equals':
-               return `${alias}.${column} = ${formatValue(subValue)}`;
+               return `${alias}.${column} = ${formatValue(subValue, xanv)}`;
             case 'not':
-               return `${alias}.${column} != ${formatValue(subValue)}`;
+               return `${alias}.${column} != ${formatValue(subValue, xanv)}`;
             case 'lt':
-               return `${alias}.${column} < ${formatValue(subValue)}`;
+               return `${alias}.${column} < ${formatValue(subValue, xanv)}`;
             case 'lte':
-               return `${alias}.${column} <= ${formatValue(subValue)}`;
+               return `${alias}.${column} <= ${formatValue(subValue, xanv)}`;
             case 'gt':
-               return `${alias}.${column} > ${formatValue(subValue)}`;
+               return `${alias}.${column} > ${formatValue(subValue, xanv)}`;
             case 'gte':
-               return `${alias}.${column} >= ${formatValue(subValue)}`;
+               return `${alias}.${column} >= ${formatValue(subValue, xanv)}`;
             case 'in':
-               return `${alias}.${column} IN (${formatValue(subValue)})`;
+               return `${alias}.${column} IN (${formatValue(subValue, xanv)})`;
             case 'notIn':
-               return `${alias}.${column} NOT IN (${formatValue(subValue)})`;
+               return `${alias}.${column} NOT IN (${formatValue(subValue, xanv)})`;
             case 'between':
-               return `${alias}.${column} BETWEEN ${formatValue(subValue[0])} AND ${formatValue(subValue[1])}`;
+               return `${alias}.${column} BETWEEN ${formatValue(subValue[0], xanv)} AND ${formatValue(subValue[1], xanv)}`;
             case 'notBetween':
-               return `${alias}.${column} NOT BETWEEN ${formatValue(subValue[0])} AND ${formatValue(subValue[1])}`;
+               return `${alias}.${column} NOT BETWEEN ${formatValue(subValue[0], xanv)} AND ${formatValue(subValue[1], xanv)}`;
             case 'contains':
                return `${alias}.${column} LIKE '%${subValue}%'`;
             case 'notContains':

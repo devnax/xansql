@@ -14,14 +14,15 @@ class Schema extends SchemaBase {
       const info = BuildData(args.data || {}, this);
       const excute = async (info: BuildDataInfo) => {
          // validate required fields
-         for (let column in this.schema) {
-            const xanv = this.schema[column];
-            if (!info.columns.includes(column) && column !== this.IDColumn) {
+         const schema = this.xansql.getSchema(info.table);
+         for (let column in schema.schema) {
+            const xanv = schema.schema[column];
+            if (!info.columns.includes(column) && column !== schema.IDColumn) {
                try {
                   info.columns.push(column);
                   info.values.push(xanv.parse(null));
                } catch (err) {
-                  throw new Error(`Field ${column} is required in create data.`);
+                  throw new Error(`Field ${column} is required in create data. table: ${schema.table}`);
                }
             }
          }
@@ -35,61 +36,62 @@ class Schema extends SchemaBase {
             return;
          }
 
-         // find
-         let select_columns: any = {
-            [this.IDColumn]: true
-         };
-         if (args.select === 'full') {
-            for (let column of this.columns.main) {
-               select_columns[column] = true;
-            }
-         } else if (args.select === 'partial') {
-            for (let column of info.columns) {
-               select_columns[column] = true;
-            }
+         const result = { [schema.IDColumn]: insertId } as any;
+         const findWhere = {
+            [schema.IDColumn]: insertId
          }
-
-         const find = await this.findOne({
-            where: {
-               [this.IDColumn]: insertId
-            },
-            select: select_columns
-         })
-
-         const id = find?.[this.IDColumn] as number
 
          for (let column in info.joins) {
             const joinInfo = info.joins[column]
+            const relations = this.xansql.getRelations(info.table);
+            const relation = relations[column]
+            let mainField = relation.main.field
             if (Array.isArray(joinInfo)) {
+               let ids = []
                for (let joinItem of joinInfo) {
-                  const relations = this.xansql.getRelations(info.table);
-                  const relation = relations[column]
                   joinItem.columns.push(relation.foregin.column);
-                  joinItem.values.push(id);
+                  joinItem.values.push(insertId);
                   const res = await excute(joinItem)
-                  find![column] = find![column] || [];
-                  find![column].push(res)
+                  result[mainField] = result[mainField] || [];
+                  result[mainField].push(res?.result)
+                  ids.push(res?.result[relation.foregin.schema.IDColumn]);
                }
+
+               if (!findWhere[mainField]) findWhere[mainField] = {}
+               findWhere[mainField][relation.foregin.schema.IDColumn] = { in: ids }
             } else {
-               const relations = this.xansql.getRelations(info.table);
-               const relation = relations[column]
                joinInfo.columns.push(relation.foregin.column);
-               joinInfo.values.push(id);
+               joinInfo.values.push(insertId);
                const res = await excute(joinInfo)
-               find![column] = res
+               result[mainField] = res?.result
+
+               if (findWhere[mainField]) findWhere[mainField] = {}
+               findWhere[mainField][relation.foregin.schema.IDColumn] = res?.result[schema.IDColumn];
             }
          }
-         return find
+
+         return { result, findWhere }
       }
       let results: any;
       if (Array.isArray(info)) {
          results = [];
          for (let item of info) {
             const res = await excute(item);
-            results.push(res);
+            results.push(res?.result);
          }
       } else {
-         results = await excute(info);
+         const res = await excute(info);
+
+         if (args.select) {
+            let r = await this.findOne({
+               where: res?.findWhere,
+               select: args.select
+            })
+
+            // console.log(r);
+
+         }
+         results = res?.result;
       }
 
       return results;
@@ -100,12 +102,22 @@ class Schema extends SchemaBase {
       const where = BuildWhere(args.where || {}, this)
       const limit = BuildLimit(args.limit || {}, this)
       const orderby = BuildOrderby(args.orderBy || {}, this)
-
-      const sql = `${select.sql} ${where.sql} ${orderby.sql} LIMIT ${limit.skip}, ${limit.take}`
+      const sql = `${select.sql} ${where.sql} ${orderby.sql} ${limit.sql}`
       const { result } = await this.excute(sql)
+      const ins = {} as any;
 
-      for (let column of select.joins) {
-
+      for (let column in select.joins) {
+         const join = select.joins[column];
+         let sql = join.sql;
+         const schema = this.xansql.getSchema(join.table);
+         const where = BuildWhere({
+            ...join.args.where,
+         }, schema)
+         const orderby = BuildOrderby(join.args.orderBy || {}, schema)
+         // const limit = BuildLimit(join.args.limit || {}, schema)
+         sql = `${sql} ${where.sql} ${orderby.sql}`
+         const res = await this.excute(sql)
+         result[column] = res.result
       }
 
       return result;

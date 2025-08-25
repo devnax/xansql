@@ -1,4 +1,4 @@
-import { ColumnDataType, DataArgs, LimitArgs, OrderByArgs, SelectArgs, WhereArgs } from "./Query/types";
+import { DataArgs, LimitArgs, OrderByArgs, SelectArgs, WhereArgs } from "./Query/types";
 
 
 export type BuildResultStructure = {
@@ -26,17 +26,16 @@ export type FindArgs = {
    cache?: boolean;
 }
 
-export type SelectType = "partial" | "full";
 
 export type CreateArgs = {
    data: DataArgs | DataArgs[];
-   select?: SelectType;
+   select?: SelectArgs;
 }
 
 export type UpdateArgs = {
    data: Partial<DataArgs> | Partial<DataArgs>[];
    where: WhereArgs;
-   select?: SelectType
+   select?: SelectArgs
 }
 
 export type DeleteArgs = {

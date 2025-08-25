@@ -32,7 +32,7 @@ const BuildData = (args: DataArgs | DataArgs[], schema: Schema): BuildDataInfo |
          const xanv = schema.schema[column]
          const relations = schema.xansql.getRelations(schema.table)
          if (!xanv && !(column in relations)) {
-            throw new Error("Invalid column in where clause: " + column)
+            throw new Error("Invalid column in data clause: " + column)
          };
          if (xanv instanceof XqlIDField) {
             throw new Error("Cannot use ID field in data args directly. Use it in where clause instead.");

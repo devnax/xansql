@@ -80,35 +80,50 @@ const server = async (app) => {
    });
 
    app.get('/create', async (req, res) => {
-      await PostModel.create({
-         data: [
-            {
-               title: "Hello World",
-               content: "This is my first post"
-            },
-            {
-               title: "Hello World",
-               content: "This is my first post",
-            }
-         ]
-      })
-      // await UserModel.create({
-      //    data: {
-      //       name: "John Doe",
-      //       email: `john${Math.floor(Math.random() * 10000)}@doe.com`,
-      //       created_at: new Date().toISOString(),
-      //       posts: [
-      //          {
-      //             title: "Hello World",
-      //             content: "This is my first post"
-      //          },
-      //          {
-      //             title: "Hello World",
-      //             content: "This is my first post",
-      //          }
-      //       ]
-      //    }
+      // const result = await PostModel.create({
+      //    data: [
+      //       {
+      //          title: "Hello World",
+      //          content: "This is my first post"
+      //       },
+      //       {
+      //          title: "Hello World",
+      //          content: "This is my first post",
+      //       }
+      //    ],
+      //    select: "full"
       // })
+
+      const result = await UserModel.create({
+         select: {
+            name: true,
+            email: true,
+            user_posts: {
+               select: {
+                  title: true,
+                  content: true,
+               }
+            }
+         },
+         data: {
+            name: "John Doe",
+            email: `john${Math.floor(Math.random() * 10000)}@doe.com`,
+            created_at: new Date(),
+            user_posts: [
+               {
+                  title: "Hello World",
+                  content: "This is my first post"
+               },
+               {
+                  title: "Hello World",
+                  content: "This is my first post",
+               }
+            ]
+         }
+      })
+
+      console.log(result);
+
 
       res.send(`created`);
    });

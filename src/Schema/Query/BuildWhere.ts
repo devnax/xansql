@@ -72,17 +72,17 @@ const BuildWhere = (where: WhereArgs, schema: Schema, aliases: { [key: string]: 
             v = BuildWhereCondition(column, _whereVal, alias, xanv)
          } else if (Array.isArray(_whereVal)) {
             const subConditions = _whereVal.map((_v: any) => {
-               return isObject(_v) ? BuildWhereCondition(column, _v, alias, xanv) : `${alias}.${column} = ${formatValue(_v)}`
+               return isObject(_v) ? BuildWhereCondition(column, _v, alias, xanv) : `${alias}.${column} = ${formatValue(_v, xanv)}`
             })
             v = `(${subConditions.join(" OR ")})`
          } else {
-            xanv.parse(_whereVal)
+            // xanv.parse(_whereVal)
             if (_whereVal === null) {
                v = `${alias}.${column} IS NULL`
             } else if (_whereVal === undefined) {
                v = `${alias}.${column} IS NOT NULL`
             } else {
-               v = `${alias}.${column} = ${formatValue(_whereVal)}`
+               v = `${alias}.${column} = ${formatValue(_whereVal, xanv)}`
             }
          }
          info.wheres.push(v)

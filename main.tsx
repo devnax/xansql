@@ -42,7 +42,7 @@ const App = () => {
     <div style={{ fontFamily: 'monospace,math, sans-serif', textAlign: 'center', marginTop: '50px' }}>
 
       <div style={{ marginTop: "50px" }}>
-
+        {/* 
         <Button label="Find" onClick={async () => {
 
         }} />
@@ -52,7 +52,7 @@ const App = () => {
         }} />
         <Button label="Delete" onClick={async () => {
 
-        }} />
+        }} /> */}
       </div>
     </div>
   );

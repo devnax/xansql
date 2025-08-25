@@ -1,3 +1,4 @@
+import XanvType from "xanv/XanvType"
 
 
 export const isServer = () => typeof window === 'undefined'
@@ -7,14 +8,15 @@ export const isString = (v: any) => typeof v === 'string'
 export const isNumber = (v: any) => typeof v === 'number' && !isNaN(v)
 export const isBoolean = (v: any) => typeof v === 'boolean'
 
-export const formatValue = (v: any): any => {
+export const formatValue = (v: any, xanv?: XanvType<any, any>): any => {
+   if (isArray(v)) return v.map((item) => formatValue(item, xanv)).join(',')
+   !!xanv && xanv.parse(v);
    if (v instanceof Date) v = v.toISOString()
    if (isString(v)) return `'${escapeSqlValue(v)}'`
    if (isNumber(v)) return v
    if (isBoolean(v)) return v ? 'TRUE' : 'FALSE'
    if (v === null) return 'NULL'
    if (v === undefined) return 'NULL'
-   if (isArray(v)) return v.map((item) => formatValue(item)).join(',')
 }
 
 export const arrayMove = (arr: any[], fromIndex: number, toIndex: number) => {

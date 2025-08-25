@@ -12,17 +12,18 @@ if (typeof process !== 'undefined' && process?.env) {
 }
 
 const UserSchema = new Schema("users", {
-   id: xt.id(),
+   userId: xt.id(),
    name: xt.string().index(),
    email: xt.string().index().unique(),
+   age: xt.number().optional(),
    created_at: xt.date(),
 });
 
 const PostSchema = new Schema("posts", {
-   id: xt.id(),
+   postId: xt.id(),
    title: xt.string().index(),
    content: xt.string(),
-   user: xt.join('users', 'posts').optional(),
+   user: xt.join('users', 'user_posts').optional(),
 });
 
 

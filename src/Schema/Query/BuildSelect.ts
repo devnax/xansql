@@ -5,9 +5,10 @@ import { SelectArgs } from "./types"
 
 const BuildSelect = (args: SelectArgs, schema: Schema) => {
    const info: any = {
+      sql: "",
       columns: [],
-      joins: [],
-      sql: ""
+      table: schema.table,
+      joins: {}
    }
 
    const keys = Object.keys(args)
@@ -21,7 +22,7 @@ const BuildSelect = (args: SelectArgs, schema: Schema) => {
       const xanv = schema.schema[column]
       const relations = schema.xansql.getRelations(schema.table)
       if (!xanv && !(column in relations)) {
-         throw new Error("Invalid column in where clause: " + column)
+         throw new Error("Invalid column in select clause: " + column)
       };
 
       const _selectVal: any = args[column]
@@ -53,15 +54,14 @@ const BuildSelect = (args: SelectArgs, schema: Schema) => {
 
          const buildJoinSelect = BuildSelect(relationSelect, foreginModel)
 
-         info.joins.push({
-            info: buildJoinSelect,
+         info.joins[column] = {
+            ...buildJoinSelect,
             args: {
-               select: relationSelect,
                where: relationWhere,
-               limit: relationLimit,
-               orderBy: relationOrderBy
+               limit: relationLimit || {},
+               orderBy: relationOrderBy || {}
             }
-         })
+         }
       } else {
          if (_selectVal === true) {
             info.columns.push(`\`${schema.alias}\`.\`${column}\``)
@@ -72,7 +72,7 @@ const BuildSelect = (args: SelectArgs, schema: Schema) => {
          }
       }
    }
-   info.sql = `SELECT ${info.columns.join(", ")} FROM \`${schema.table}\` AS \`${schema.alias}\``
+   info.sql = `SELECT ${info.columns.join(", ") || "*"} FROM \`${schema.table}\` AS \`${schema.alias}\``
    return info
 }
 

@@ -20,7 +20,15 @@ const BuildLimit = (args: LimitArgs, schema: Schema) => {
    const info: any = {
       take: take || 50,
       skip: skip || 0,
+      sql: "",
       joins: {}
+   }
+
+   if (info.take) {
+      info.sql += ` LIMIT ${info.take}`
+      if (info.skip) {
+         info.sql += ` OFFSET ${info.skip}`
+      }
    }
 
    for (let column in args) {
