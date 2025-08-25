@@ -63,7 +63,17 @@ const server = async (app) => {
       await UserModel.find({
          where: {
             // name: "John Doe",
-         }
+         },
+         select: {
+            _all: true,
+            posts: {
+               select: {
+                  id: true,
+                  title: true,
+                  content: true,
+               }
+            }
+         },
       })
 
       res.send(`finded`);

@@ -45,17 +45,19 @@ const BuildData = (args: DataArgs | DataArgs[], schema: Schema): BuildDataInfo |
                throw new Error("Cannot use array in relation data directly. Use object instead.");
             }
             const foreginSchema = relation.foregin.schema;
-
             if (relation.single) {
                throw new Error("Single relation is not supported in create data yet.");
             }
-
             const _info = BuildData(value, foreginSchema);
             info.joins[column] = _info
          } else {
-            const val = xanv.parse(value)
-            info.columns.push(column);
-            info.values.push(val);
+            try {
+               const val = xanv.parse(value)
+               info.columns.push(column);
+               info.values.push(val);
+            } catch (error) {
+               throw new Error(`Field ${column} is invalid in create data.`);
+            }
          }
       }
    }

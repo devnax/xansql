@@ -18,7 +18,8 @@ class Schema extends SchemaBase {
             const xanv = this.schema[column];
             if (!info.columns.includes(column) && column !== this.IDColumn) {
                try {
-                  xanv.parse(undefined);
+                  info.columns.push(column);
+                  info.values.push(xanv.parse(null));
                } catch (err) {
                   throw new Error(`Field ${column} is required in create data.`);
                }

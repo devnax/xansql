@@ -25,7 +25,7 @@ class Excuter {
       });
       this.db = db;
       this.timer = setTimeout(() => {
-         this.db?.end();
+         this.db?.close();
          this.db = null;
       }, 1000 * 60 * 5); // 5 minutes
       return db
