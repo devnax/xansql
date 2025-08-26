@@ -75,9 +75,9 @@ abstract class SchemaBase {
 
       try {
          value = xanv.parse(value);
-         if (value === null || value === undefined) {
+         if (value === null) {
             return 'NULL';
-         } else if (this.iof(column, XqlIDField, XqlNumber)) {
+         } else if (value === undefined || this.iof(column, XqlIDField, XqlNumber)) {
             return value
          } else if (this.iof(column, XqlString, XqlEnum, XqlUnion)) {
             return `'${value.replace(/'/g, "''")}'`;

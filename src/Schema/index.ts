@@ -4,7 +4,7 @@ import SchemaBase from "./Base";
 import BuildData, { BuildDataInfo } from "./Query/BuildData";
 import BuildLimit from "./Query/BuildLimit";
 import BuildOrderby from "./Query/BuildOrderby";
-import BuildSelect from "./Query/BuildSelect";
+import BuildSelect, { BuildSelectInfo } from "./Query/BuildSelect";
 import BuildWhere from "./Query/BuildWhere";
 import { CreateArgs, FindArgs } from "./type";
 
@@ -79,12 +79,11 @@ class Schema extends SchemaBase {
          }
       } else {
          const res = await excute(info);
-
          if (args.select) {
-            // let r = await this.findOne({
-            //    where: res?.findWhere,
-            //    select: args.select
-            // })
+            let r = await this.findOne({
+               where: res?.findWhere,
+               select: args.select
+            })
 
             // console.log(r);
 
@@ -96,28 +95,39 @@ class Schema extends SchemaBase {
    }
 
    async find(args: FindArgs) {
-      const select = BuildSelect(args.select || {}, this);
-      const where = BuildWhere(args.where || {}, this)
-      const limit = BuildLimit(args.limit || {}, this)
-      const orderby = BuildOrderby(args.orderBy || {}, this)
-      const sql = `${select.sql} ${where.sql} ${orderby.sql} ${limit.sql}`
-      const { result } = await this.excute(sql)
-      const ins = {} as any;
 
-      for (let column in select.joins) {
-         const join = select.joins[column];
-         let sql = join.sql;
-         const schema = this.xansql.getSchema(join.table);
-         const where = BuildWhere({
-            ...join.args.where,
-         }, schema)
-         const orderby = BuildOrderby(join.args.orderBy || {}, schema)
-         // const limit = BuildLimit(join.args.limit || {}, schema)
-         sql = `${sql} ${where.sql} ${orderby.sql}`
-         const res = await this.excute(sql)
-         result[column] = res.result
+      const excute = async (_args: FindArgs) => {
+         const select = BuildSelect(_args.select || {}, this);
+         const where = BuildWhere(_args.where || {}, this)
+         const limit = BuildLimit(_args.limit || {}, this)
+         const orderby = BuildOrderby(_args.orderBy || {}, this)
+         const sql = `${select.sql} ${where.sql} ${orderby.sql} ${limit.sql}`
+
+         const { result } = await this.excute(sql)
+         let ids = result.map((r: any) => r[this.IDColumn])
+         for (let column in select.joins) {
+            const join = select.joins[column];
+            let sql = join.sql;
+            const schema = this.xansql.getSchema(join.table);
+            const relations = this.xansql.getRelations(this.table);
+            const relation = relations[column]
+
+            const where = BuildWhere({
+               ...join.args.where,
+               [relation.foregin.column]: {
+                  [relation.main.column]: { in: ids }
+               }
+            }, schema)
+            const orderby = BuildOrderby(join.args.orderBy || {}, schema)
+            sql = `${sql} ${where.sql} ${orderby.sql}`
+            const res = await this.excute(sql)
+
+            result[column] = res.result
+         }
+         return result
       }
 
+      const result = await excute(args)
       return result;
    }
 

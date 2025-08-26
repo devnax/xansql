@@ -20,8 +20,6 @@ export interface WhereSubCondition {
    isNotEmpty?: boolean;
    isTrue?: boolean;
    isFalse?: boolean;
-   like?: string;
-   notLike?: string;
 }
 
 export type WhereArgsValue = string | number | boolean | WhereSubCondition | null | Date | WhereArgs
@@ -48,7 +46,7 @@ export type SelectRelationArgs = {
 }
 
 export type SelectArgs = {
-   [column: string | "*"]: boolean | SelectRelationArgs
+   [column: string]: boolean | SelectRelationArgs
 }
 
 export type ColumnDataType = string | number | boolean | Date | null

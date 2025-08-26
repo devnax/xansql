@@ -62,7 +62,7 @@ const server = async (app) => {
    app.get('/find', async (req, res) => {
       await UserModel.find({
          where: {
-            // name: "John Doe",
+            name: true,
          },
          select: {
             _all: true,
@@ -100,8 +100,11 @@ const server = async (app) => {
             email: true,
             user_posts: {
                select: {
-                  title: true,
+                  // title: true,
                   content: true,
+                  user: {
+                     select: { name: true }
+                  }
                }
             }
          },
@@ -122,7 +125,7 @@ const server = async (app) => {
          }
       })
 
-      console.log(result);
+      // console.log(result);
 
 
       res.send(`created`);

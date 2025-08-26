@@ -79,12 +79,13 @@ const BuildWhere = (where: WhereArgs, schema: Schema, aliases: { [key: string]: 
             })
             v = `(${subConditions.join(" OR ")})`
          } else {
-            if (_whereVal === null) {
+            let val = schema.toSql(column, _whereVal)
+            if (val === "NULL") {
                v = `${alias}.${column} IS NULL`
-            } else if (_whereVal === undefined) {
+            } else if (val === undefined) {
                v = `${alias}.${column} IS NOT NULL`
             } else {
-               v = `${alias}.${column} = ${schema.toSql(column, _whereVal)}`
+               v = `${alias}.${column} = ${val}`
             }
          }
          info.wheres.push(v)

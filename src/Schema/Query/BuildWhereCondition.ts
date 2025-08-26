@@ -27,52 +27,48 @@ const BuildWhereCondition = (column: string, conditions: WhereSubCondition, alia
       } else {
          val = schema.toSql(column, val);
       }
-
+      let col = alias + "." + column;
       switch (subKey) {
          case 'equals':
-            return `${alias}.${column} = ${val}`;
+            return `${col} = ${val}`;
          case 'not':
-            return `${alias}.${column} != ${val}`;
+            return `${col} != ${val}`;
          case 'lt':
-            return `${alias}.${column} < ${val}`;
+            return `${col} < ${val}`;
          case 'lte':
-            return `${alias}.${column} <= ${val}`;
+            return `${col} <= ${val}`;
          case 'gt':
-            return `${alias}.${column} > ${val}`;
+            return `${col} > ${val}`;
          case 'gte':
-            return `${alias}.${column} >= ${val}`;
+            return `${col} >= ${val}`;
          case 'in':
-            return `${alias}.${column} IN (${val})`;
+            return `${col} IN (${val})`;
          case 'notIn':
-            return `${alias}.${column} NOT IN (${val})`;
+            return `${col} NOT IN (${val})`;
          case 'between':
-            return `${alias}.${column} BETWEEN ${val}`;
+            return `${col} BETWEEN (${val})`;
          case 'notBetween':
-            return `${alias}.${column} NOT BETWEEN ${val}`;
+            return `${col} NOT BETWEEN (${val})`;
          case 'contains':
-            return `${alias}.${column} LIKE '%${val}%'`;
+            return `${col} LIKE '%${val}%'`;
          case 'notContains':
-            return `${alias}.${column} NOT LIKE '%${val}%'`;
+            return `${col} NOT LIKE '%${val}%'`;
          case 'startsWith':
-            return `${alias}.${column} LIKE '${val}%'`;
+            return `${col} LIKE '${val}%'`;
          case 'endsWith':
-            return `${alias}.${column} LIKE '%${val}'`;
+            return `${col} LIKE '%${val}'`;
          case 'isNull':
-            return `${alias}.${column} IS NULL`;
+            return `${col} IS NULL`;
          case 'isNotNull':
-            return `${alias}.${column} IS NOT NULL`;
+            return `${col} IS NOT NULL`;
          case 'isEmpty':
-            return `${alias}.${column} = ''`;
+            return `(${col} IS NULL OR LENGTH(${col}) = 0)`;
          case 'isNotEmpty':
-            return `${alias}.${column} != ''`;
+            return `(WHERE ${col} IS NOT NULL AND LENGTH(${col}) > 0)`;
          case 'isTrue':
-            return `${alias}.${column} = TRUE`;
+            return `${col} = ${val}`;
          case 'isFalse':
-            return `${alias}.${column} = FALSE`;
-         case 'like':
-            return `${alias}.${column} LIKE '%${val}%'`;
-         case 'notLike':
-            return `${alias}.${column} NOT LIKE '%${val}%'`;
+            return `${col} = ${val}`;
          default:
             throw new Error("Invalid operator in where clause: " + subKey);
       }

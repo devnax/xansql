@@ -12,7 +12,7 @@ if (typeof process !== 'undefined' && process?.env) {
 }
 
 const UserSchema = new Schema("users", {
-   userId: xt.id(),
+   uid: xt.id(),
    name: xt.string().index(),
    email: xt.string().index().unique(),
    age: xt.number().optional(),
@@ -20,7 +20,7 @@ const UserSchema = new Schema("users", {
 });
 
 const PostSchema = new Schema("posts", {
-   postId: xt.id(),
+   pid: xt.id(),
    title: xt.string().index(),
    content: xt.string(),
    user: xt.join('users', 'user_posts').optional(),
