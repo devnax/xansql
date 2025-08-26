@@ -13,6 +13,7 @@ import XqlString from "../Types/fields/String";
 import XqlTuple from "../Types/fields/Tuple";
 import XqlUnion from "../Types/fields/Union";
 import { XansqlSchemaObject } from "../Types/types";
+import { ErrorWhene } from "../utils";
 import Xansql from "../Xansql";
 
 abstract class SchemaBase {
@@ -33,9 +34,7 @@ abstract class SchemaBase {
       for (let column in schema) {
          const field = schema[column];
          if (field instanceof XqlIDField) {
-            if (this.IDColumn) {
-               throw new Error(`Schema ${this.table} can only have one ID column`);
-            }
+            ErrorWhene(this.IDColumn, `Schema ${this.table} can only have one ID column`);
             this.IDColumn = column;
          }
 
@@ -45,9 +44,7 @@ abstract class SchemaBase {
             this.columns.main.push(column);
          }
       }
-      if (!this.IDColumn) {
-         throw new Error(`Schema ${this.table} must have an id column`);
-      }
+      ErrorWhene(!this.IDColumn, `Schema ${this.table} must have an id column`);
    }
 
    async excute(sql: string): Promise<any> {
@@ -55,66 +52,56 @@ abstract class SchemaBase {
    }
 
    async drop() {
-      if (typeof window !== "undefined") {
-         throw new Error("This method can only be used on the server side.");
-      }
+      ErrorWhene(typeof window !== "undefined", "This method can only be used on the server side.");
       await this.excute(`DROP TABLE IF EXISTS ${this.table}`);
    }
 
 
    async migrate(force = false) {
-      if (typeof window !== "undefined") {
-         throw new Error("This method can only be used on the server side.");
-      }
-      if (force) {
-         await this.drop();
-      }
+      ErrorWhene(typeof window !== "undefined", "This method can only be used on the server side.");
+      if (force) await this.drop();
       await this.xansql.dialect.migrate(this as any);
    }
 
    private iof(column: string, ...instances: any[]) {
-      const xanv = this.schema[column];
-      if (!xanv) {
-         throw new Error(`Column ${column} does not exist in schema ${this.table}`);
-      }
+      const xanv: any = this.schema[column];
       return instances.some(instance => xanv instanceof instance);
    }
 
    toSql(column: string, value: any) {
       const xanv = this.schema[column];
-      if (!xanv) {
-         throw new Error(`Column ${column} does not exist in schema ${this.table}`);
-      }
+      ErrorWhene(!xanv, `Column ${column} does not exist in schema ${this.table}`);
+      ErrorWhene(xanv instanceof XqlJoin, `Column ${column} is a relation and cannot be used in SQL queries`);
 
-      if (xanv instanceof XqlJoin) {
-         throw new Error(`Column ${column} is a relation and cannot be used in SQL queries`);
-      }
-
-      xanv.parse(value);
-
-      if (this.iof(column, XqlIDField, XqlNumber, XqlString, XqlEnum, XqlUnion)) {
-         return value
-      } else if (this.iof(column, XqlObject, XqlRecord, XqlArray, XqlMap, XqlSet, XqlTuple)) {
-         if (this.iof(column, XqlMap, XqlSet)) {
-            value = [...value]
+      try {
+         value = xanv.parse(value);
+         if (value === null || value === undefined) {
+            return 'NULL';
+         } else if (this.iof(column, XqlIDField, XqlNumber)) {
+            return value
+         } else if (this.iof(column, XqlString, XqlEnum, XqlUnion)) {
+            return `'${value.replace(/'/g, "''")}'`;
+         } else if (this.iof(column, XqlObject, XqlRecord, XqlArray, XqlMap, XqlSet, XqlTuple)) {
+            if (this.iof(column, XqlMap, XqlSet)) {
+               value = [...value]
+            }
+            value = JSON.stringify(value);
+            return `'${value.replace(/'/g, "''")}'`;
+         } else if (this.iof(column, XqlDate)) {
+            value = (value as Date).toISOString().slice(0, 19).replace('T', ' ')
+            return `'${value}'`;
+         } else if (this.iof(column, XqlBoolean)) {
+            return value ? 1 : 0;
          }
-         return JSON.stringify(value);
-      } else if (this.iof(column, XqlDate)) {
-         return (value as Date).toISOString().slice(0, 19).replace('T', ' ');
-      } else if (this.iof(column, XqlBoolean)) {
-         return value ? 1 : 0;
+      } catch (error: any) {
+         throw new Error(`Field ${column} is invalid. ${error.message}`);
       }
    }
 
    toValue(column: string, value: any) {
       const xanv = this.schema[column];
-      if (!xanv) {
-         throw new Error(`Column ${column} does not exist in schema ${this.table}`);
-      }
-
-      if (xanv instanceof XqlJoin) {
-         throw new Error(`Column ${column} is a relation and cannot be used in SQL queries`);
-      }
+      ErrorWhene(!xanv, `Column ${column} does not exist in schema ${this.table}`);
+      ErrorWhene(xanv instanceof XqlJoin, `Column ${column} is a relation and cannot be used in SQL queries`);
 
       if (value === null || value === undefined) {
          return null;
@@ -129,7 +116,7 @@ abstract class SchemaBase {
          } else if (this.iof(column, XqlSet)) {
             value = new Set(value);
          }
-         return value;
+         return value
       } else if (this.iof(column, XqlDate)) {
          return new Date(value);
       } else if (this.iof(column, XqlBoolean)) {

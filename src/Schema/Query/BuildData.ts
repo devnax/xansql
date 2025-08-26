@@ -52,7 +52,7 @@ const BuildData = (args: DataArgs | DataArgs[], schema: Schema): BuildDataInfo |
             info.joins[column] = _info
          } else {
             try {
-               const val = xanv.parse(value)
+               const val = schema.toSql(column, value);
                info.columns.push(column);
                info.values.push(val);
             } catch (error) {

@@ -13,24 +13,22 @@ class Schema extends SchemaBase {
    async create(args: CreateArgs) {
       const info = BuildData(args.data || {}, this);
       const excute = async (info: BuildDataInfo) => {
-         // validate required fields
          const schema = this.xansql.getSchema(info.table);
          for (let column in schema.schema) {
-            const xanv = schema.schema[column];
             if (!info.columns.includes(column) && column !== schema.IDColumn) {
                try {
+                  info.values.push(schema.toSql(column, null));
                   info.columns.push(column);
-                  info.values.push(xanv.parse(null));
                } catch (err) {
                   throw new Error(`Field ${column} is required in create data. table: ${schema.table}`);
                }
             }
          }
-
-         const res = await this.excute(`
+         let sql = `
             INSERT INTO ${info.table} (${info.columns.join(', ')}) 
-            VALUES (${info.values.map(v => formatValue(v)).join(', ')})
-         `)
+            VALUES (${info.values.join(', ')})
+         `
+         const res = await this.excute(sql)
          const insertId = res.insertId;
          if (!insertId) {
             return;
@@ -83,10 +81,10 @@ class Schema extends SchemaBase {
          const res = await excute(info);
 
          if (args.select) {
-            let r = await this.findOne({
-               where: res?.findWhere,
-               select: args.select
-            })
+            // let r = await this.findOne({
+            //    where: res?.findWhere,
+            //    select: args.select
+            // })
 
             // console.log(r);
 

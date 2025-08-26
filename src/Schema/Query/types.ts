@@ -22,7 +22,6 @@ export interface WhereSubCondition {
    isFalse?: boolean;
    like?: string;
    notLike?: string;
-   matches?: string;
 }
 
 export type WhereArgsValue = string | number | boolean | WhereSubCondition | null | Date | WhereArgs

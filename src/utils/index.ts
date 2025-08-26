@@ -46,3 +46,11 @@ export const freezeObject = (obj: any) => {
    });
    return Object.freeze(obj);
 }
+
+
+
+export const ErrorWhene = (_if: any, message: string) => {
+   if (_if) {
+      throw new Error(message);
+   }
+}
