@@ -87,6 +87,14 @@ class Xansql {
       return tableName ? this._relations[tableName] : this._relations
    }
 
+   getRelation(table: string, column: string) {
+      const relations = this.getRelations(table);
+      if (!(column in relations)) {
+         throw new Error("Relation not found: " + column + " in table " + table);
+      }
+      return relations[column];
+   }
+
    getSchema(table: string): Schema {
       if (!this._models.has(table)) {
          throw new Error(`Model for table ${table} does not exist`);

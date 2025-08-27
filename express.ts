@@ -80,19 +80,6 @@ const server = async (app) => {
    });
 
    app.get('/create', async (req, res) => {
-      // const result = await PostModel.create({
-      //    data: [
-      //       {
-      //          title: "Hello World",
-      //          content: "This is my first post"
-      //       },
-      //       {
-      //          title: "Hello World",
-      //          content: "This is my first post",
-      //       }
-      //    ],
-      //    select: "full"
-      // })
 
       const result = await UserModel.create({
          select: {
@@ -125,7 +112,7 @@ const server = async (app) => {
          }
       })
 
-      // console.log(result);
+      console.log(result);
 
 
       res.send(`created`);
