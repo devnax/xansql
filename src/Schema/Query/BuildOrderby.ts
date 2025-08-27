@@ -12,16 +12,16 @@ const BuildOrderby = (args: OrderByArgs, schema: Schema) => {
    for (let column in args) {
       const val = args[column]
       const xanv = schema.schema[column]
-      const relations = schema.xansql.getRelations(schema.table)
-      if (!xanv && !(column in relations)) {
+      const relation = schema.xansql.getRelation(schema.table, column)
+      if (!xanv && !relation) {
          throw new Error("Invalid column in orderBy clause: " + column)
       };
 
       if (val === "asc" || val === "desc") {
          items.push(`${schema.alias}.${column} ${val.toUpperCase()}`)
       } else {
-         const relation = relations[column]
-         info.joins[column] = BuildOrderby(val, relation.foregin.schema)
+         const foreginModel = schema.xansql.getSchema(relation.foregin.table)
+         info.joins[column] = BuildOrderby(val, foreginModel)
       }
    }
    if (items.length > 0) {

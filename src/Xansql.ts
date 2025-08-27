@@ -1,5 +1,5 @@
 import Schema from "./Schema";
-import { XansqlConfig } from "./type";
+import { RelationInfo, XansqlConfig } from "./type";
 import XqlJoin from "./Types/fields/Join";
 import { freezeObject } from "./utils/index";
 
@@ -32,54 +32,37 @@ class Xansql {
       if (!this._relations) {
          this._relations = {};
          for (let [table, schema] of Array.from(this._models.entries())) {
-            for (let [column, xanv] of Object.entries(schema.schema)) {
-               if (xanv instanceof XqlJoin) {
-                  const joinSchema = this.getSchema(xanv.table);
-                  const main = {
+            for (let [column, instance] of Object.entries(schema.schema)) {
+               if (instance instanceof XqlJoin) {
+                  const joinSchema = this.getSchema(instance.table);
+
+                  const relation = this._relations[schema.table] || {};
+                  relation[column] = {
                      single: true,
-                     alias: schema.alias,
-                     foreginField: xanv.foreginColumn,
                      main: {
-                        alias: schema.alias,
                         table,
                         column,
-                        field: column,
-                        schema
                      },
                      foregin: {
-                        alias: joinSchema.alias,
-                        table: xanv.table,
-                        column: joinSchema.IDColumn,
-                        field: xanv.foreginColumn,
-                        schema: joinSchema
+                        table: joinSchema.table,
+                        column: instance.foreginColumn,
                      }
-                  }
+                  };
+                  this._relations[schema.table] = relation
 
-                  const foregin = {
+                  const foreginRelation = this._relations[joinSchema.table] || {};
+                  foreginRelation[instance.foreginColumn] = {
                      single: false,
                      main: {
-                        alias: joinSchema.alias,
-                        table: xanv.table,
-                        column: joinSchema.IDColumn,
-                        field: xanv.foreginColumn,
-                        schema: joinSchema
+                        table: joinSchema.table,
+                        column: instance.foreginColumn,
                      },
                      foregin: {
-                        alias: schema.alias,
                         table,
                         column,
-                        field: column,
-                        schema
                      }
-                  }
-
-                  const relation = this._relations[main.main.table] || {};
-                  relation[main.main.field] = main;
-                  this._relations[main.main.table] = relation
-
-                  const foreginRelation = this._relations[foregin.main.table] || {};
-                  foreginRelation[foregin.main.field] = foregin;
-                  this._relations[foregin.main.table] = foreginRelation
+                  };
+                  this._relations[joinSchema.table] = foreginRelation
                }
             }
          }
@@ -89,10 +72,7 @@ class Xansql {
 
    getRelation(table: string, column: string) {
       const relations = this.getRelations(table);
-      if (!(column in relations)) {
-         throw new Error("Relation not found: " + column + " in table " + table);
-      }
-      return relations[column];
+      return relations[column] as RelationInfo
    }
 
    getSchema(table: string): Schema {

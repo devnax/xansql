@@ -3,6 +3,11 @@ dotenv.config()
 import fakeData from './faker'
 import express from 'express';
 import { db, PostModel, UserModel } from './example'
+import BuildWhere from './src/Schema/Query/BuildWhere';
+import BuildSelect from './src/Schema/Query/BuildSelect';
+import BuildOrderby from './src/Schema/Query/BuildOrderby';
+import BuildLimit from './src/Schema/Query/BuildLimit';
+import BuildData from './src/Schema/Query/BuildData';
 
 const server = async (app) => {
    app.use('/static', express.static('public'));
@@ -17,53 +22,114 @@ const server = async (app) => {
    //       method: req.method as any,
    //    })
 
-   //    res.status(response.status).end(response?.value);
-   // });
 
-   // app.get('/count', async (req, res) => {
-   //    const users = await User.find({
-   //       where: {
-   //          id: 1
-   //       },
-   //       select: {
-   //          metas: true,
-   //          products: {
-   //             categories: true
-   //          }
-   //       }
-   //    })
-   //    const usersCount = await User.count({
-   //       where: {
-   //          id: 1
-   //       },
-   //       select: {
-   //          metas: true,
-   //          products: {
-   //             categories: true
-   //          }
-   //       }
-   //    })
-   //    res.json({ usersCount, users });
-   // });
-   // app.get('/faker', async (req, res) => {
-   //    const users = fakeData(10000)
-   //    const d = await User.create({ data: users })
-   //    res.send(d);
-   // });
-   // app.get('/delete', async (req, res) => {
-   //    const del = await User.delete({
-   //       where: {
-   //          id: 2
-   //       }
-   //    })
-   //    res.send(del);
-   // });
+   app.get('/where', async (req, res) => {
+      const result = BuildWhere({
+         name: "John Doe",
+         user_posts: {
+            title: "as",
+            user: {
+               email: "example",
+               user_posts: [
+                  {
+                     title: {
+                        contains: "x"
+                     },
+
+                     user: [
+                        { name: "x" },
+                        {
+                           email: {
+                              endsWith: "m"
+                           }
+                        }
+                     ]
+                  },
+                  { content: "y" }
+               ]
+            }
+         }
+      }, UserModel)
+
+      res.json(result)
+   });
+
+   app.get('/select', async (req, res) => {
+      const result = BuildSelect({
+         name: true,
+         email: true,
+         user_posts: {
+            select: {
+               pid: true,
+               title: true,
+               content: true,
+               user: true
+            }
+         }
+      }, UserModel)
+
+      res.json(result)
+   });
+
+   app.get('/orderby', async (req, res) => {
+      const result = BuildOrderby({
+         name: "asc",
+         user_posts: {
+            pid: "desc",
+            user: {
+               email: "asc"
+            }
+         }
+      }, UserModel)
+
+      res.json(result)
+   });
+   app.get('/limit', async (req, res) => {
+      const result = BuildLimit({
+         take: 10,
+         skip: 5,
+         user_posts: {
+            take: 3,
+            user: {
+               skip: 2
+            }
+         }
+      }, UserModel)
+
+      res.json(result)
+   });
+   app.get('/data', async (req, res) => {
+      const result = BuildData({
+         name: "John Doe",
+         email: `john${Math.floor(Math.random() * 10000)}@doe.com`,
+         created_at: new Date(),
+         user_posts: [
+            {
+               title: "Hello World",
+               content: "This is my first post"
+            },
+            {
+               title: "Hello World 2",
+               content: "This is my second post",
+            }
+         ]
+      }, UserModel)
+
+      res.json(result)
+   });
+   app.get('/relation', async (req, res) => {
+      const result = db.getRelations()
+
+      res.json(result)
+   });
 
    app.get('/find', async (req, res) => {
       const result = await UserModel.find({
          where: {
          },
          select: {
+            name: true,
+            email: true,
             user_posts: {
                select: {
                   pid: true,
@@ -75,7 +141,7 @@ const server = async (app) => {
          },
       })
 
-      res.json({ users: result })
+      res.json(result)
    });
 
    app.get('/create', async (req, res) => {
@@ -113,8 +179,7 @@ const server = async (app) => {
 
       console.log(result);
 
-
-      res.send(`created`);
+      res.json(result)
    });
 
    app.get('/migrate', async (req, res) => {

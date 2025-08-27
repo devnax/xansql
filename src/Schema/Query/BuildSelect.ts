@@ -1,4 +1,5 @@
 import Schema from ".."
+import { RelationInfo } from "../../type"
 import { isObject } from "../../utils"
 import { GetRelationType } from "../type"
 import { LimitArgs, OrderByArgs, SelectArgs, WhereArgs } from "./types"
@@ -12,22 +13,24 @@ export type BuildSelectJoinInfo = BuildSelectInfo & {
    }
 }
 
+export type BuildSelectJoinType = {
+   [column: string]: BuildSelectJoinInfo
+}
+
 export interface BuildSelectInfo {
    sql: string
    columns: string[]
    table: string;
-   relationTable: string;
-   joins: {
-      [column: string]: BuildSelectJoinInfo
-   }
+   joins: BuildSelectJoinType;
+   relation?: RelationInfo
 }
 
-const BuildSelect = (args: SelectArgs, schema: Schema, relation?: GetRelationType) => {
-   const info: any = {
+const BuildSelect = (args: SelectArgs, schema: Schema, relation?: RelationInfo) => {
+   const info: BuildSelectInfo = {
       sql: "",
       columns: [],
       table: schema.table,
-      relationTable: relation ? relation.main.table : null,
+      relation,
       joins: {}
    }
 
@@ -41,16 +44,15 @@ const BuildSelect = (args: SelectArgs, schema: Schema, relation?: GetRelationTyp
 
    for (let column in args) {
       const xanv = schema.schema[column]
-      const relations = schema.xansql.getRelations(schema.table)
-      if (!xanv && !(column in relations)) {
+      const relation = schema.xansql.getRelation(schema.table, column)
+      if (!xanv && !relation) {
          throw new Error("Invalid column in select clause: " + column)
       };
 
       const _selectVal: any = args[column]
 
-      if (column in relations) {
-         const relation: any = relations[column]
-         const foreginModel = relation.foregin.schema
+      if (relation) {
+         const foreginModel = schema.xansql.getSchema(relation.foregin.table)
          const relationSelect = _selectVal?.select || {}
          const relationWhere = _selectVal?.where || {}
          const relationLimit = _selectVal?.limit || undefined
@@ -95,8 +97,14 @@ const BuildSelect = (args: SelectArgs, schema: Schema, relation?: GetRelationTyp
    }
 
    if (relation) {
-      let foregin = relation.foregin
-      info.columns.push(`\`${foregin.alias}\`.\`${foregin.column}\``)
+      const foregin = schema.xansql.getSchema(relation.foregin.table)
+      let col = `\`${foregin.alias}\`.\`${relation.foregin.column}\``
+      if (relation.single) {
+         col = `\`${schema.alias}\`.\`${foregin.IDColumn}\``
+      }
+      if (!info.columns.includes(col)) {
+         info.columns.push(col)
+      }
    }
 
    info.sql = `SELECT ${info.columns.join(", ") || "*"} FROM \`${schema.table}\` AS \`${schema.alias}\``

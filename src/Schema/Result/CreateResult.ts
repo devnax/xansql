@@ -58,29 +58,28 @@ class CreateResult {
       for (let column in info.joins) {
          const relation = model.xansql.getRelation(info.table, column);
          const joinInfo = info.joins[column]
-         let mainField = relation.main.field
 
          if (Array.isArray(joinInfo)) {
             let ids = []
             for (let joinItem of joinInfo) {
-               joinItem.columns.push(relation.foregin.column);
+               joinItem.columns.push(relation.column);
                joinItem.values.push(insertId);
                const res = await this.excute(joinItem)
-               result[mainField] = result[mainField] || [];
-               result[mainField].push(res?.result)
-               ids.push(res?.result[relation.foregin.schema.IDColumn]);
+               result[column] = result[column] || [];
+               result[column].push(res?.result)
+               ids.push(res?.result[relation.column]);
             }
 
-            if (!findWhere[mainField]) findWhere[mainField] = {}
-            findWhere[mainField][relation.foregin.schema.IDColumn] = { in: ids }
+            if (!findWhere[column]) findWhere[column] = {}
+            findWhere[column][relation.column] = { in: ids }
          } else {
-            joinInfo.columns.push(relation.foregin.column);
+            joinInfo.columns.push(relation.column);
             joinInfo.values.push(insertId);
             const res = await this.excute(joinInfo)
-            result[mainField] = res?.result
+            result[column] = res?.result
 
-            if (findWhere[mainField]) findWhere[mainField] = {}
-            findWhere[mainField][relation.foregin.schema.IDColumn] = res?.result[model.IDColumn];
+            if (findWhere[column]) findWhere[column] = {}
+            findWhere[column][relation.column] = res?.result[model.IDColumn];
          }
       }
 

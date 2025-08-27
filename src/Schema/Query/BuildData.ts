@@ -1,6 +1,5 @@
 import Schema from "..";
 import XqlIDField from "../../Types/fields/IDField";
-import { formatValue } from "../../utils";
 import { DataArgs } from "./types";
 
 
@@ -30,8 +29,8 @@ const BuildData = (args: DataArgs | DataArgs[], schema: Schema): BuildDataInfo |
    } else {
       for (const column in args) {
          const xanv = schema.schema[column]
-         const relations = schema.xansql.getRelations(schema.table)
-         if (!xanv && !(column in relations)) {
+         const relation = schema.xansql.getRelation(schema.table, column)
+         if (!xanv && !relation) {
             throw new Error("Invalid column in data clause: " + column)
          };
          if (xanv instanceof XqlIDField) {
@@ -39,12 +38,11 @@ const BuildData = (args: DataArgs | DataArgs[], schema: Schema): BuildDataInfo |
          }
 
          let value: any = args[column];
-         if (column in relations) {
-            const relation = relations[column]
+         if (relation) {
             if (relation.single && Array.isArray(value)) {
                throw new Error("Cannot use array in relation data directly. Use object instead.");
             }
-            const foreginSchema = relation.foregin.schema;
+            const foreginSchema = schema.xansql.getSchema(relation.foregin.table);
             if (relation.single) {
                throw new Error("Single relation is not supported in create data yet.");
             }

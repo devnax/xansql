@@ -1,18 +1,19 @@
-import { isObject } from "../../utils";
+import { escapeSqlValue, isObject } from "../../utils";
 import { WhereSubCondition } from "./types";
 import Schema from "..";
 
 const BuildWhereCondition = (column: string, conditions: WhereSubCondition, alias: string, schema: Schema): string => {
    const generate = Object.keys(conditions).map((subKey) => {
-      let val = (conditions as any)[subKey];
-      if (val === null) return `${alias}.${column} IS NULL`;
-      if (val === undefined) return `${alias}.${column} IS NOT NULL`;
-      if (val === "") return `${alias}.${column} = ''`;
-      if (val === false) return `${alias}.${column} = FALSE`;
-      if (val === true) return `${alias}.${column} = TRUE`;
-      if (isObject(val)) {
-         throw new Error(`Invalid value ${val} for ${alias}.${column}`);
+      let value = (conditions as any)[subKey];
+      if (value === null) return `${alias}.${column} IS NULL`;
+      if (value === undefined) return `${alias}.${column} IS NOT NULL`;
+      if (value === "") return `${alias}.${column} = ''`;
+      if (value === false) return `${alias}.${column} = FALSE`;
+      if (value === true) return `${alias}.${column} = TRUE`;
+      if (isObject(value)) {
+         throw new Error(`Invalid value ${value} for ${alias}.${column}`);
       }
+      let val: any = value;
       if (Array.isArray(val)) {
          if (['in', 'notIn'].includes(subKey)) {
             val = val.map((item) => schema.toSql(column, item)).join(", ");
@@ -27,6 +28,7 @@ const BuildWhereCondition = (column: string, conditions: WhereSubCondition, alia
       } else {
          val = schema.toSql(column, val);
       }
+
       let col = alias + "." + column;
       switch (subKey) {
          case 'equals':
@@ -50,13 +52,13 @@ const BuildWhereCondition = (column: string, conditions: WhereSubCondition, alia
          case 'notBetween':
             return `${col} NOT BETWEEN (${val})`;
          case 'contains':
-            return `${col} LIKE '%${val}%'`;
+            return `${col} LIKE '%${escapeSqlValue(value)}%'`;
          case 'notContains':
-            return `${col} NOT LIKE '%${val}%'`;
+            return `${col} NOT LIKE '%${escapeSqlValue(value)}%'`;
          case 'startsWith':
-            return `${col} LIKE '${val}%'`;
+            return `${col} LIKE '${escapeSqlValue(value)}%'`;
          case 'endsWith':
-            return `${col} LIKE '%${val}'`;
+            return `${col} LIKE '%${escapeSqlValue(value)}'`;
          case 'isNull':
             return `${col} IS NULL`;
          case 'isNotNull':

@@ -1,7 +1,8 @@
 import Schema from "..";
+import { RelationInfo } from "../../type";
 import BuildLimit from "../Query/BuildLimit";
 import BuildOrderby from "../Query/BuildOrderby";
-import BuildSelect, { BuildSelectJoinInfo } from "../Query/BuildSelect";
+import BuildSelect, { BuildSelectJoinInfo, BuildSelectJoinType } from "../Query/BuildSelect";
 import BuildWhere from "../Query/BuildWhere";
 import { FindArgs } from "../type";
 
@@ -18,58 +19,50 @@ class FindResult {
 
       const { result } = await this.schema.excute(sql)
       let ids = result.map((r: any) => r[this.schema.IDColumn])
+      await this.excute(select.table, select.joins, ids)
 
-      for (let column in select.joins) {
-         const joinRes = await this.excute(column, select.joins[column], ids)
-         const relation = this.schema.xansql.getRelation(this.schema.table, column);
-
-         // filter with column
-         const map: Record<string, any[]> = {}
-
-         for (let jr of joinRes?.result || []) {
-            const key = jr[relation.foregin.column];
-            if (!(key in map)) {
-               map[key] = []
-            }
-
-            delete jr[relation.foregin.column]
-            map[key].push(jr)
-         }
-
-         if (relation.single) {
-            for (let r of result) {
-               r[column] = map[r[this.schema.IDColumn]] ? map[r[this.schema.IDColumn]][0] || null : null
-            }
-         } else {
-            for (let r of result) {
-               r[column] = map[r[this.schema.IDColumn]] || []
-            }
-         }
-      }
-      return select
+      return result
    }
 
-   private async excute(column: string, join: BuildSelectJoinInfo, ids: any[]) {
-      const xansql = this.schema.xansql;
-      const schema = xansql.getSchema(join.table);
-      const relation = xansql.getRelation(join.relationTable, column);
-      const where = BuildWhere({
-         ...join.args.where,
-         [relation.foregin.column]: {
-            [relation.main.column]: { in: ids }
-         }
-      }, schema)
-      const orderby = BuildOrderby(join.args.orderBy || {}, schema)
-      const sql = `${join.sql} ${where.sql} ${orderby.sql}`
-      console.log(sql);
+   private async excute(table: string, joins: BuildSelectJoinType, ids: any[]) {
+      for (let column in joins) {
+         const join = joins[column]
+         const xansql = this.schema.xansql;
+         const schema = xansql.getSchema(join.table);
+         const relation = join.relation as RelationInfo
 
-      // const result = await this.schema.excute(sql)
-      // const rids = result.result.map((r: any) => r[schema.IDColumn])
-      for (let col in join.joins) {
-         const r = await this.excute(col, join.joins[col], [])
+         let whereClause: any = {}
+         if (relation.single) {
+            console.log(relation);
+
+            whereClause[relation.column] = { in: ids }
+         } else {
+            const pr = this.schema.xansql.getRelation(relation.table, relation.column)
+            whereClause[relation.column] = {
+               [pr.column]: { in: ids }
+            }
+         }
+
+         const where = BuildWhere({
+            ...join.args.where,
+            ...whereClause
+         }, schema)
+         const orderby = BuildOrderby(join.args.orderBy || {}, schema)
+         const sql = `${join.sql} ${where.sql} ${orderby.sql}`
+         const result = await this.schema.excute(sql)
+
+         if (Object.keys(join.joins).length > 0) {
+            const rids = result.result.map((r: any) => r[schema.IDColumn])
+            if (rids.length > 0) {
+               const r = await this.excute(join.table, join.joins, rids)
+               console.log(r);
+            }
+         }
+
+
+         return null
       }
 
-      return null
       // return result;
    }
 }

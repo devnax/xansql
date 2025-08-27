@@ -13,7 +13,7 @@ import XqlString from "../Types/fields/String";
 import XqlTuple from "../Types/fields/Tuple";
 import XqlUnion from "../Types/fields/Union";
 import { XansqlSchemaObject } from "../Types/types";
-import { ErrorWhene } from "../utils";
+import { ErrorWhene, escapeSqlValue } from "../utils";
 import Xansql from "../Xansql";
 
 abstract class SchemaBase {
@@ -74,19 +74,19 @@ abstract class SchemaBase {
       ErrorWhene(xanv instanceof XqlJoin, `Column ${column} is a relation and cannot be used in SQL queries`);
 
       try {
-         value = xanv.parse(value);
+         xanv.parse(value);
          if (value === null) {
             return 'NULL';
          } else if (value === undefined || this.iof(column, XqlIDField, XqlNumber)) {
             return value
          } else if (this.iof(column, XqlString, XqlEnum, XqlUnion)) {
-            return `'${value.replace(/'/g, "''")}'`;
+            return `'${escapeSqlValue(value)}'`;
          } else if (this.iof(column, XqlObject, XqlRecord, XqlArray, XqlMap, XqlSet, XqlTuple)) {
             if (this.iof(column, XqlMap, XqlSet)) {
                value = [...value]
             }
             value = JSON.stringify(value);
-            return `'${value.replace(/'/g, "''")}'`;
+            return `'${escapeSqlValue(value)}'`;
          } else if (this.iof(column, XqlDate)) {
             value = (value as Date).toISOString().slice(0, 19).replace('T', ' ')
             return `'${value}'`;

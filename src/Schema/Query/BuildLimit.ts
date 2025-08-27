@@ -33,13 +33,13 @@ const BuildLimit = (args: LimitArgs, schema: Schema) => {
 
    for (let column in args) {
       if (column === "take" || column === "skip") continue
-      const relations = schema.xansql.getRelations(schema.table)
-      if (!(column in relations)) {
+      const relation = schema.xansql.getRelation(schema.table, column)
+      if (!relation) {
          throw new Error("Invalid column in limit clause: " + column)
       };
       const val = args[column] as LimitArgs
-      const relation = relations[column]
-      info.joins[column] = BuildLimit(val, relation.foregin.schema)
+      const foreginModel = schema.xansql.getSchema(relation.foregin.table)
+      info.joins[column] = BuildLimit(val, foreginModel)
    }
 
    return info

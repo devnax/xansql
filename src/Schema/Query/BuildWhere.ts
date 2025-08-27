@@ -24,8 +24,8 @@ const BuildWhere = (where: WhereArgs, schema: Schema, aliases: { [key: string]: 
 
    for (let column in where) {
       const xanv = schema.schema[column]
-      const relations = schema.xansql.getRelations(schema.table)
-      if (!xanv && !(column in relations)) {
+      const relation = schema.xansql.getRelation(schema.table, column)
+      if (!xanv && !relation) {
          throw new Error("Invalid column in where clause: " + column)
       };
 
@@ -42,30 +42,38 @@ const BuildWhere = (where: WhereArgs, schema: Schema, aliases: { [key: string]: 
       }
       const _whereVal: any = where[column]
 
-      if (relations[column]) {
-         const relation = relations[column]
+      if (relation) {
+         let foreginModel = schema.xansql.getSchema(relation.foregin.table)
          const isArray = Array.isArray(_whereVal)
          let _alias = ''
          let _sql = ''
          if (isArray) {
             let _ors = []
-            let aliasnumber = aliases[schema.alias] || 0
             for (let w of _whereVal) {
                if (!isObject(w)) {
                   throw new Error("Invalid value in where clause for relation array " + column)
                }
-               aliases[schema.alias] = aliasnumber
-               const build = BuildWhere(w, relation.foregin.schema, aliases)
+               const build = BuildWhere(w, foreginModel, { ...aliases })
                build.wheres.length && _ors.push(`(${build.wheres.join(" AND ")})`)
                _alias = _alias || build.alias
             }
             _sql = _ors.length ? `(${_ors.join(" OR ")})` : ""
          } else if (isObject(_whereVal)) {
-            const build = BuildWhere(_whereVal, relation.foregin.schema, aliases)
+            const build = BuildWhere(_whereVal, foreginModel, aliases)
             _alias = build.alias
             _sql = build.wheres.length ? build.wheres.join(" AND ") : ""
          }
-         info.wheres.push(`EXISTS (SELECT 1 FROM ${relation.foregin.table} ${_alias} WHERE ${_alias}.${relation.foregin.column} = ${alias}.${relation.main.column} ${_sql ? ` AND ${_sql}` : ""})`)
+         let _self_col = `\`${_alias}\`.\`${relation.foregin.column}\``
+         if (relation.single) {
+            _self_col = `\`${_alias}\`.\`${foreginModel.IDColumn}\``
+         }
+
+         let foregin_col = `\`${alias}\`.\`${relation.main.column}\``
+         if (!relation.single) {
+            foregin_col = `\`${alias}\`.\`${schema.IDColumn}\``
+         }
+
+         info.wheres.push(`EXISTS (SELECT 1 FROM ${relation.foregin.table} ${_alias} WHERE ${_self_col} = ${foregin_col} ${_sql ? ` AND ${_sql}` : ""})`)
       } else {
          let v = ``
          if (isObject(_whereVal)) {

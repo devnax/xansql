@@ -33,3 +33,15 @@ export type XansqlConfigOptions = {
 
 export type XansqlConfigFunction = () => XansqlConfigOptions;
 export type XansqlConfig = XansqlConfigOptions | XansqlConfigFunction;
+
+export type RelationInfo = {
+   single: boolean,
+   main: {
+      table: string,
+      column: string,
+   },
+   foregin: {
+      table: string,
+      column: string,
+   }
+}
