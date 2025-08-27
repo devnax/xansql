@@ -15,7 +15,8 @@ export type BuildSelectJoinInfo = BuildSelectInfo & {
 export interface BuildSelectInfo {
    sql: string
    columns: string[]
-   table: string
+   table: string;
+   relationTable: string;
    joins: {
       [column: string]: BuildSelectJoinInfo
    }
@@ -26,6 +27,7 @@ const BuildSelect = (args: SelectArgs, schema: Schema, relation?: GetRelationTyp
       sql: "",
       columns: [],
       table: schema.table,
+      relationTable: relation ? relation.main.table : null,
       joins: {}
    }
 

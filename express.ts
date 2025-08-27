@@ -60,23 +60,22 @@ const server = async (app) => {
    // });
 
    app.get('/find', async (req, res) => {
-      await UserModel.find({
+      const result = await UserModel.find({
          where: {
-            name: true,
          },
          select: {
-            _all: true,
-            posts: {
+            user_posts: {
                select: {
-                  id: true,
+                  pid: true,
                   title: true,
                   content: true,
+                  user: true
                }
             }
          },
       })
 
-      res.send(`finded`);
+      res.json({ users: result })
    });
 
    app.get('/create', async (req, res) => {
