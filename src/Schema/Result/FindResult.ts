@@ -33,19 +33,22 @@ class FindResult {
 
          let whereClause: any = {}
          if (relation.single) {
-            console.log(relation);
+            console.log(join);
 
-            whereClause[relation.column] = { in: ids }
+            whereClause[relation.foregin.column] = { in: ids }
          } else {
-            const pr = this.schema.xansql.getRelation(relation.table, relation.column)
-            whereClause[relation.column] = {
-               [pr.column]: { in: ids }
+            const pr = this.schema.xansql.getRelation(relation.foregin.table, relation.foregin.column)
+            whereClause[relation.foregin.column] = {
+               // [pr.foregin.column]: { in: ids }
             }
          }
 
+         console.log(whereClause);
+
+
          const where = BuildWhere({
             ...join.args.where,
-            ...whereClause
+            // ...whereClause
          }, schema)
          const orderby = BuildOrderby(join.args.orderBy || {}, schema)
          const sql = `${join.sql} ${where.sql} ${orderby.sql}`

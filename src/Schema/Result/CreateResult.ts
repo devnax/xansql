@@ -62,24 +62,24 @@ class CreateResult {
          if (Array.isArray(joinInfo)) {
             let ids = []
             for (let joinItem of joinInfo) {
-               joinItem.columns.push(relation.column);
+               joinItem.columns.push(relation.foregin.column);
                joinItem.values.push(insertId);
                const res = await this.excute(joinItem)
                result[column] = result[column] || [];
                result[column].push(res?.result)
-               ids.push(res?.result[relation.column]);
+               ids.push(res?.result[relation.foregin.column]);
             }
 
             if (!findWhere[column]) findWhere[column] = {}
-            findWhere[column][relation.column] = { in: ids }
+            findWhere[column][relation.foregin.column] = { in: ids }
          } else {
-            joinInfo.columns.push(relation.column);
+            joinInfo.columns.push(relation.foregin.column);
             joinInfo.values.push(insertId);
             const res = await this.excute(joinInfo)
             result[column] = res?.result
 
             if (findWhere[column]) findWhere[column] = {}
-            findWhere[column][relation.column] = res?.result[model.IDColumn];
+            findWhere[column][relation.foregin.column] = res?.result[model.IDColumn];
          }
       }
 
