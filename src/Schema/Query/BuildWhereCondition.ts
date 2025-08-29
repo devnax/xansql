@@ -2,16 +2,16 @@ import { escapeSqlValue, isObject } from "../../utils";
 import { WhereSubCondition } from "./types";
 import Schema from "..";
 
-const BuildWhereCondition = (column: string, conditions: WhereSubCondition, alias: string, schema: Schema): string => {
+const BuildWhereCondition = (column: string, conditions: WhereSubCondition, schema: Schema): string => {
    const generate = Object.keys(conditions).map((subKey) => {
       let value = (conditions as any)[subKey];
-      if (value === null) return `${alias}.${column} IS NULL`;
-      if (value === undefined) return `${alias}.${column} IS NOT NULL`;
-      if (value === "") return `${alias}.${column} = ''`;
-      if (value === false) return `${alias}.${column} = FALSE`;
-      if (value === true) return `${alias}.${column} = TRUE`;
+      if (value === null) return `${schema.table}.${column} IS NULL`;
+      if (value === undefined) return `${schema.table}.${column} IS NOT NULL`;
+      if (value === "") return `${schema.table}.${column} = ''`;
+      if (value === false) return `${schema.table}.${column} = FALSE`;
+      if (value === true) return `${schema.table}.${column} = TRUE`;
       if (isObject(value)) {
-         throw new Error(`Invalid value ${value} for ${alias}.${column}`);
+         throw new Error(`Invalid value ${value} for ${schema.table}.${column}`);
       }
       let val: any = value;
       if (Array.isArray(val)) {
@@ -19,17 +19,17 @@ const BuildWhereCondition = (column: string, conditions: WhereSubCondition, alia
             val = val.map((item) => schema.toSql(column, item)).join(", ");
          } else if (['between', 'notBetween'].includes(subKey)) {
             if (val.length !== 2) {
-               throw new Error(`Invalid value ${val} for ${alias}.${column}. Between requires an array of two values.`);
+               throw new Error(`Invalid value ${val} for ${schema.table}.${column}. Between requires an array of two values.`);
             }
             val = val.map((item) => schema.toSql(column, item)).join(" AND ");
          } else {
-            throw new Error(`Invalid array value ${val} for ${alias}.${column} with operator ${subKey}`);
+            throw new Error(`Invalid array value ${val} for ${schema.table}.${column} with operator ${subKey}`);
          }
       } else {
          val = schema.toSql(column, val);
       }
 
-      let col = alias + "." + column;
+      let col = schema.table + "." + column;
       switch (subKey) {
          case 'equals':
             return `${col} = ${val}`;

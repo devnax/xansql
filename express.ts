@@ -140,15 +140,20 @@ const server = async (app) => {
             skip: 0
          },
          where: {
+            // uid: 199,
+            // user_posts: {
+            //    pid: 375,
+            // }
          },
          select: {
             name: true,
             email: true,
             user_posts: {
                orderBy: {
-                  // pid: "desc"
+                  pid: "asc"
                },
                limit: {
+                  take: 1,
                },
                select: {
                   pid: true,
@@ -186,11 +191,8 @@ const server = async (app) => {
             email: true,
             user_posts: {
                select: {
-                  // title: true,
                   content: true,
-                  user: {
-                     select: { name: true }
-                  }
+                  title: true,
                }
             }
          },
@@ -210,9 +212,29 @@ const server = async (app) => {
             ]
          }
       })
+      res.json(result)
+   });
 
-      console.log(result);
+   app.get('/delete', async (req, res) => {
 
+      const result = await UserModel.delete({
+         select: {
+            name: true,
+            email: true,
+            user_posts: {
+               select: {
+                  content: true,
+                  title: true,
+               }
+            }
+         },
+         where: {
+            uid: 197,
+            user_posts: {
+               pid: 391
+            }
+         }
+      })
       res.json(result)
    });
 

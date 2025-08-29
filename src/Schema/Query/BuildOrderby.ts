@@ -17,7 +17,7 @@ const BuildOrderby = (args: OrderByArgs, schema: Schema) => {
       };
 
       if (val === "asc" || val === "desc") {
-         items.push(`${schema.alias}.${column} ${val.toUpperCase()}`)
+         items.push(`${schema.table}.${column} ${val.toUpperCase()}`)
       } else {
          throw new Error("Invalid orderBy value for column " + column)
       }

@@ -10,16 +10,10 @@ import { isObject } from "../../utils"
 import { WhereArgs } from "./types"
 import BuildWhereCondition from "./BuildWhereCondition"
 
-const BuildWhere = (where: WhereArgs, schema: Schema, aliases: { [key: string]: number } = {}) => {
-   let hasAlias = Object.keys(aliases).length > 0
-   let alias = `${schema.alias + (aliases[schema.alias] || "")}`
-   aliases[schema.alias] = (aliases[schema.alias] || 0) + 1
+const BuildWhere = (where: WhereArgs, schema: Schema, isRelation = false) => {
    let info = {
-      alias,
       wheres: [] as string[],
       sql: "",
-      // whereArgs: {} as any,
-      // relations: {} as { [column: string]: { where: object } }
    }
 
    for (let column in where) {
@@ -53,46 +47,44 @@ const BuildWhere = (where: WhereArgs, schema: Schema, aliases: { [key: string]: 
                if (!isObject(w)) {
                   throw new Error("Invalid value in where clause for relation array " + column)
                }
-               const build = BuildWhere(w, FModel, { ...aliases })
+               const build = BuildWhere(w, FModel, true)
                build.wheres.length && _ors.push(`(${build.wheres.join(" AND ")})`)
-               _alias = _alias || build.alias
             }
             _sql = _ors.length ? `(${_ors.join(" OR ")})` : ""
          } else if (isObject(_whereVal)) {
-            const build = BuildWhere(_whereVal, FModel, aliases)
-            _alias = build.alias
+            const build = BuildWhere(_whereVal, FModel, true)
             _sql = build.wheres.length ? build.wheres.join(" AND ") : ""
          }
 
-         info.wheres.push(`EXISTS (SELECT 1 FROM ${foreign.table} ${_alias} WHERE ${_alias}.${foreign.relation.main} = ${alias}.${foreign.relation.target} ${_sql ? ` AND ${_sql}` : ""})`)
+         info.wheres.push(`EXISTS (SELECT 1 FROM ${foreign.table} WHERE ${foreign.table}.${foreign.relation.main} = ${schema.table}.${foreign.relation.target} ${_sql ? ` AND ${_sql}` : ""})`)
       } else {
          let v = ''
          if (isObject(_whereVal)) {
-            v = BuildWhereCondition(column, _whereVal, alias, schema)
+            v = BuildWhereCondition(column, _whereVal, schema)
          } else if (Array.isArray(_whereVal)) {
             const subConditions = _whereVal.map((_v: any) => {
                if (isObject(_v)) {
-                  return BuildWhereCondition(column, _v, alias, schema)
+                  return BuildWhereCondition(column, _v, schema)
                }
-               return `${alias}.${column} = ${schema.toSql(column, _v)}`
+               return `${schema.table}.${column} = ${schema.toSql(column, _v)}`
             })
             v = `(${subConditions.join(" OR ")})`
          } else {
             let val = schema.toSql(column, _whereVal)
             if (val === "NULL") {
-               v = `${alias}.${column} IS NULL`
+               v = `${schema.table}.${column} IS NULL`
             } else if (val === undefined) {
-               v = `${alias}.${column} IS NOT NULL`
+               v = `${schema.table}.${column} IS NOT NULL`
             } else {
-               v = `${alias}.${column} = ${val}`
+               v = `${schema.table}.${column} = ${val}`
             }
          }
          info.wheres.push(v)
       }
    }
 
-   if (!hasAlias) {
-      info.sql = info.wheres.length ? `WHERE ${info.wheres.join(" AND ")}` : ""
+   if (!isRelation && info.wheres.length) {
+      info.sql = `WHERE ${info.wheres.join(" AND ")}`
    }
    return info
 }

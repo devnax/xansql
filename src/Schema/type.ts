@@ -40,6 +40,7 @@ export type UpdateArgs = {
 
 export type DeleteArgs = {
    where: WhereArgs;
+   select?: SelectArgs;
 }
 
 export type CountSelectArgs = {

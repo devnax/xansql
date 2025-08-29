@@ -1,11 +1,7 @@
 import Schema from ".."
-import { ForeignInfo, RelationInfo } from "../../type"
-import { isObject } from "../../utils"
 import { LimitArgs, OrderByArgs, SelectArgs, WhereArgs } from "./types"
 
-
 export type BuildSelectJoinInfo = BuildSelectInfo & {
-   alias: string,
    in_column: string,
    parent: {
       table: string,
@@ -68,15 +64,13 @@ const BuildSelect = (args: SelectArgs, schema: Schema) => {
             }
          }
 
-
          const buildJoinSelect = BuildSelect(relationSelect, FModel)
-         let fcol = `${FModel.alias}.${foreign.relation.main}`
+         let fcol = `${FModel.table}.${foreign.relation.main}`
          if (!buildJoinSelect.columns.includes(fcol)) {
-            buildJoinSelect.columns.push(`${FModel.alias}.${foreign.relation.main}`)
+            buildJoinSelect.columns.push(fcol)
          }
-         buildJoinSelect.sql = `SELECT ${buildJoinSelect.columns.join(", ") || "*"} FROM ${FModel.table} AS ${FModel.alias}`
+         buildJoinSelect.sql = `SELECT ${buildJoinSelect.columns.join(", ") || "*"} FROM ${FModel.table}`
          info.joins[column] = {
-            alias: FModel.alias,
             in_column: foreign.relation.main,
             parent: {
                table: schema.table,
@@ -91,7 +85,7 @@ const BuildSelect = (args: SelectArgs, schema: Schema) => {
          }
       } else {
          if (_selectVal === true) {
-            info.columns.push(`${schema.alias}.${column}`)
+            info.columns.push(`${schema.table}.${column}`)
          } else if (_selectVal === false) {
             continue
          } else {
@@ -100,18 +94,17 @@ const BuildSelect = (args: SelectArgs, schema: Schema) => {
       }
    }
 
-
    if (info.columns.length === 0) {
       schema.columns.main.forEach((col) => {
-         info.columns.push(`${schema.alias}.${col}`)
+         info.columns.push(`${schema.table}.${col}`)
       })
    } else {
-      if (!info.columns.includes(`${schema.alias}.${schema.IDColumn}`)) {
-         info.columns.unshift(`${schema.alias}.${schema.IDColumn}`)
+      if (!info.columns.includes(schema.IDColumn)) {
+         info.columns.unshift(`${schema.table}.${schema.IDColumn}`)
       }
    }
 
-   info.sql = `SELECT ${info.columns.join(", ") || "*"} FROM ${schema.table} AS ${schema.alias}`
+   info.sql = `SELECT ${info.columns.join(", ") || "*"} FROM ${schema.table}`
    return info
 }
 

@@ -66,11 +66,11 @@ class FindResult {
          SELECT ${columns} FROM (
            SELECT
                ${columns},
-             ROW_NUMBER() OVER (PARTITION BY ${join.alias}.${join.in_column} ${orderBy.sql}) AS ${join.alias}_rank
-           FROM ${join.table} ${join.alias}
+             ROW_NUMBER() OVER (PARTITION BY ${join.table}.${join.in_column} ${orderBy.sql}) AS ${join.table}_rank
+           FROM ${join.table}
             ${where.sql}
-         ) AS ${join.alias}
-         WHERE ${join.alias}_rank > ${skip} AND ${join.alias}_rank <= ${take + skip};
+         ) AS ${join.table}
+         WHERE ${join.table}_rank > ${skip} AND ${join.table}_rank <= ${take + skip};
       `
       const { result } = await FModel.excute(sql)
 

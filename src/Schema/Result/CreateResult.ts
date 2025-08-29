@@ -1,10 +1,15 @@
 import Schema from "..";
+import { ForeignInfo } from "../../type";
 import BuildData, { BuildDataInfo } from "../Query/BuildData";
+import { SelectArgs } from "../Query/types";
 import { CreateArgs } from "../type";
+import FindResult from "./FindResult";
 
 class CreateResult {
-
-   constructor(readonly schema: Schema) { }
+   finder: FindResult
+   constructor(readonly schema: Schema) {
+      this.finder = new FindResult(schema)
+   }
 
    async result(args: CreateArgs) {
       const schema = this.schema
@@ -13,17 +18,52 @@ class CreateResult {
       if (Array.isArray(data)) {
          results = [];
          for (let item of data) {
-            const res = await this.excute(item);
-            // results.push(res?.result);
+            let excuted = await this.excute(item);
+            let result = await this.find(excuted, args.select);
+            results.push(result);
          }
       } else {
-         const res = await this.excute(data);
-         if (args.select) {
-
-         }
-         results = res?.result;
+         let excuted = await this.excute(data);
+         results = await this.find(excuted, args.select);
       }
       return results
+   }
+
+
+
+   private async excute(info: BuildDataInfo) {
+      info = this.validateInfo(info);
+      const model = this.schema.xansql.getSchema(info.table);
+      const sql = `INSERT INTO ${info.table} (${info.columns.join(', ')}) VALUES (${info.values.join(', ')})`
+      const res = await model.excute(sql)
+      const insertId = res.insertId;
+      if (!insertId) return;
+
+      const result = { [model.IDColumn]: insertId } as any;
+
+      for (let column in info.joins) {
+         const foreign = model.getForeign(column) as ForeignInfo
+         const joinInfo = info.joins[column]
+
+         if (Array.isArray(joinInfo)) {
+            let ids = []
+            for (let joinItem of joinInfo) {
+               joinItem.columns.push(foreign.column);
+               joinItem.values.push(insertId);
+               const res = await this.excute(joinItem)
+               result[column] = result[column] || [];
+               result[column].push(res)
+               ids.push(res[foreign.column]);
+            }
+         } else {
+            joinInfo.columns.push(foreign.column);
+            joinInfo.values.push(insertId);
+            const res = await this.excute(joinInfo)
+            result[column] = res
+         }
+      }
+
+      return result
    }
 
    private validateInfo(info: BuildDataInfo) {
@@ -41,53 +81,21 @@ class CreateResult {
       return info;
    }
 
-
-   private async excute(info: BuildDataInfo) {
-      info = this.validateInfo(info);
-      const model = this.schema.xansql.getSchema(info.table);
-      const sql = `INSERT INTO ${info.table} (${info.columns.join(', ')}) VALUES (${info.values.join(', ')})`
-      const res = await model.excute(sql)
-      const insertId = res.insertId;
-      if (!insertId) return;
-
-      const result = { [model.IDColumn]: insertId } as any;
-      const findWhere = {
-         [model.IDColumn]: insertId
-      }
-
-      for (let column in info.joins) {
-         const relation = model.xansql.getRelation(info.table, column);
-         const joinInfo = info.joins[column]
-
-         if (Array.isArray(joinInfo)) {
-            let ids = []
-            for (let joinItem of joinInfo) {
-               joinItem.columns.push(relation.foregin.column);
-               joinItem.values.push(insertId);
-               const res = await this.excute(joinItem)
-               result[column] = result[column] || [];
-               result[column].push(res?.result)
-               ids.push(res?.result[relation.foregin.column]);
+   async find(result: any, select?: SelectArgs) {
+      if (result && select) {
+         const id = result[this.schema.IDColumn];
+         const r = await this.finder.result({
+            select,
+            where: {
+               [this.schema.IDColumn]: id
             }
-
-            if (!findWhere[column]) findWhere[column] = {}
-            findWhere[column][relation.foregin.column] = { in: ids }
-         } else {
-            joinInfo.columns.push(relation.foregin.column);
-            joinInfo.values.push(insertId);
-            const res = await this.excute(joinInfo)
-            result[column] = res?.result
-
-            if (findWhere[column]) findWhere[column] = {}
-            findWhere[column][relation.foregin.column] = res?.result[model.IDColumn];
+         })
+         if (r?.length) {
+            result = r?.[0]
          }
       }
-
-      return { result, findWhere }
+      return result
    }
-
-
-
 }
 
 export default CreateResult;
