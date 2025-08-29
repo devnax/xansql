@@ -29,24 +29,21 @@ const BuildData = (args: DataArgs | DataArgs[], schema: Schema): BuildDataInfo |
    } else {
       for (const column in args) {
          const xanv = schema.schema[column]
-         const relation = schema.xansql.getRelation(schema.table, column)
-         if (!xanv && !relation) {
+         const foreign = schema.getForeign(column)
+         if (!xanv && !foreign) {
             throw new Error("Invalid column in data clause: " + column)
          };
          if (xanv instanceof XqlIDField) {
             throw new Error("Cannot use ID field in data args directly. Use it in where clause instead.");
          }
-
          let value: any = args[column];
-         if (relation) {
-            if (relation.single && Array.isArray(value)) {
-               throw new Error("Cannot use array in relation data directly. Use object instead.");
-            }
-            const foreginSchema = schema.xansql.getSchema(relation.foregin.table);
-            if (relation.single) {
+         if (foreign) {
+            const isSingleRelation = schema.isSingleRelation(column)
+            if (isSingleRelation) {
                throw new Error("Single relation is not supported in create data yet.");
             }
-            const _info = BuildData(value, foreginSchema);
+            const FModel = schema.xansql.getSchema(foreign.table);
+            const _info = BuildData(value, FModel);
             info.joins[column] = _info
          } else {
             try {

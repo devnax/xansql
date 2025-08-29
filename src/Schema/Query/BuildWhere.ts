@@ -6,7 +6,7 @@ import XqlObject from "../../Types/fields/Object"
 import XqlRecord from "../../Types/fields/Record"
 import XqlSet from "../../Types/fields/Set"
 import XqlTuple from "../../Types/fields/Tuple"
-import { formatValue, isObject } from "../../utils"
+import { isObject } from "../../utils"
 import { WhereArgs } from "./types"
 import BuildWhereCondition from "./BuildWhereCondition"
 
@@ -24,8 +24,8 @@ const BuildWhere = (where: WhereArgs, schema: Schema, aliases: { [key: string]: 
 
    for (let column in where) {
       const xanv = schema.schema[column]
-      const relation = schema.xansql.getRelation(schema.table, column)
-      if (!xanv && !relation) {
+      const foreign = schema.getForeign(column)
+      if (!xanv && !foreign) {
          throw new Error("Invalid column in where clause: " + column)
       };
 
@@ -42,8 +42,8 @@ const BuildWhere = (where: WhereArgs, schema: Schema, aliases: { [key: string]: 
       }
       const _whereVal: any = where[column]
 
-      if (relation) {
-         let foreginModel = schema.xansql.getSchema(relation.foregin.table)
+      if (foreign) {
+         let FModel = schema.xansql.getSchema(foreign.table)
          const isArray = Array.isArray(_whereVal)
          let _alias = ''
          let _sql = ''
@@ -53,29 +53,20 @@ const BuildWhere = (where: WhereArgs, schema: Schema, aliases: { [key: string]: 
                if (!isObject(w)) {
                   throw new Error("Invalid value in where clause for relation array " + column)
                }
-               const build = BuildWhere(w, foreginModel, { ...aliases })
+               const build = BuildWhere(w, FModel, { ...aliases })
                build.wheres.length && _ors.push(`(${build.wheres.join(" AND ")})`)
                _alias = _alias || build.alias
             }
             _sql = _ors.length ? `(${_ors.join(" OR ")})` : ""
          } else if (isObject(_whereVal)) {
-            const build = BuildWhere(_whereVal, foreginModel, aliases)
+            const build = BuildWhere(_whereVal, FModel, aliases)
             _alias = build.alias
             _sql = build.wheres.length ? build.wheres.join(" AND ") : ""
          }
-         let _self_col = `\`${_alias}\`.\`${relation.foregin.column}\``
-         if (relation.single) {
-            _self_col = `\`${_alias}\`.\`${foreginModel.IDColumn}\``
-         }
 
-         let foregin_col = `\`${alias}\`.\`${relation.main.column}\``
-         if (!relation.single) {
-            foregin_col = `\`${alias}\`.\`${schema.IDColumn}\``
-         }
-
-         info.wheres.push(`EXISTS (SELECT 1 FROM ${relation.foregin.table} ${_alias} WHERE ${_self_col} = ${foregin_col} ${_sql ? ` AND ${_sql}` : ""})`)
+         info.wheres.push(`EXISTS (SELECT 1 FROM ${foreign.table} ${_alias} WHERE ${_alias}.${foreign.relation.main} = ${alias}.${foreign.relation.target} ${_sql ? ` AND ${_sql}` : ""})`)
       } else {
-         let v = ``
+         let v = ''
          if (isObject(_whereVal)) {
             v = BuildWhereCondition(column, _whereVal, alias, schema)
          } else if (Array.isArray(_whereVal)) {

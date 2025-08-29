@@ -63,7 +63,21 @@ const server = async (app) => {
                pid: true,
                title: true,
                content: true,
-               user: true
+               user: {
+                  select: {
+                     name: true,
+                     user_posts: {
+                        select: {
+                           title: true,
+                           user: {
+                              select: {
+                                 name: true,
+                              }
+                           }
+                        }
+                     }
+                  }
+               }
             }
          }
       }, UserModel)
@@ -74,12 +88,6 @@ const server = async (app) => {
    app.get('/orderby', async (req, res) => {
       const result = BuildOrderby({
          name: "asc",
-         user_posts: {
-            pid: "desc",
-            user: {
-               email: "asc"
-            }
-         }
       }, UserModel)
 
       res.json(result)
@@ -88,12 +96,6 @@ const server = async (app) => {
       const result = BuildLimit({
          take: 10,
          skip: 5,
-         user_posts: {
-            take: 3,
-            user: {
-               skip: 2
-            }
-         }
       }, UserModel)
 
       res.json(result)
@@ -122,25 +124,57 @@ const server = async (app) => {
 
       res.json(result)
    });
+   app.get('/foreigns', async (req, res) => {
+      const result = db.foreigns
+
+      res.json(result)
+   });
 
    app.get('/find', async (req, res) => {
       const result = await UserModel.find({
+         orderBy: {
+            uid: "desc"
+         },
+         limit: {
+            take: 500,
+            skip: 0
+         },
          where: {
          },
          select: {
             name: true,
             email: true,
             user_posts: {
+               orderBy: {
+                  // pid: "desc"
+               },
+               limit: {
+               },
                select: {
                   pid: true,
                   title: true,
                   content: true,
-                  user: true
                }
             }
          },
       })
-
+      // const result = await PostModel.find({
+      //    where: {},
+      //    select: {
+      //       title: true,
+      //       user: {
+      //          select: {
+      //             name: true,
+      //             user_posts: {
+      //                select: {
+      //                   title: true,
+      //                   // user: true
+      //                }
+      //             }
+      //          }
+      //       }
+      //    }
+      // })
       res.json(result)
    });
 

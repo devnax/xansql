@@ -1,3 +1,4 @@
+import { ForeignInfo } from "../type";
 import XqlArray from "../Types/fields/Array";
 import XqlBoolean from "../Types/fields/Boolean";
 import XqlDate from "../Types/fields/Date";
@@ -61,6 +62,18 @@ abstract class SchemaBase {
       ErrorWhene(typeof window !== "undefined", "This method can only be used on the server side.");
       if (force) await this.drop();
       await this.xansql.dialect.migrate(this as any);
+   }
+
+   isSingleRelation(column: string) {
+      return Boolean(this.schema[column]) && (this.schema[column] instanceof XqlJoin)
+   }
+
+   getForeign(column: string): ForeignInfo | null {
+      const foreigns = this.xansql.foreigns
+      const foreign = foreigns[this.table] || {}
+      const info = foreign[column];
+      // ErrorWhene(!info, `Column ${column} is not a foreign key in table ${this.table}`);
+      return info;
    }
 
    private iof(column: string, ...instances: any[]) {

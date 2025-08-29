@@ -1,16 +1,21 @@
 import Schema from ".."
-import { RelationInfo } from "../../type"
+import { ForeignInfo, RelationInfo } from "../../type"
 import { isObject } from "../../utils"
-import { GetRelationType } from "../type"
 import { LimitArgs, OrderByArgs, SelectArgs, WhereArgs } from "./types"
 
 
 export type BuildSelectJoinInfo = BuildSelectInfo & {
-   args: {
-      where: WhereArgs,
-      limit?: LimitArgs,
-      orderBy?: OrderByArgs
+   alias: string,
+   in_column: string,
+   parent: {
+      table: string,
+      single: boolean,
+      column: string,
+      relation: string
    }
+   where: WhereArgs,
+   limit: LimitArgs,
+   orderBy: OrderByArgs
 }
 
 export type BuildSelectJoinType = {
@@ -22,15 +27,13 @@ export interface BuildSelectInfo {
    columns: string[]
    table: string;
    joins: BuildSelectJoinType;
-   relation?: RelationInfo
 }
 
-const BuildSelect = (args: SelectArgs, schema: Schema, relation?: RelationInfo) => {
+const BuildSelect = (args: SelectArgs, schema: Schema) => {
    const info: BuildSelectInfo = {
       sql: "",
-      columns: [],
       table: schema.table,
-      relation,
+      columns: [],
       joins: {}
    }
 
@@ -44,39 +47,51 @@ const BuildSelect = (args: SelectArgs, schema: Schema, relation?: RelationInfo) 
 
    for (let column in args) {
       const xanv = schema.schema[column]
-      const relation = schema.xansql.getRelation(schema.table, column)
-      if (!xanv && !relation) {
+      // const relation = schema.xansql.getRelation(schema.table, column)
+      const foreign = schema.getForeign(column)
+      if (!xanv && !foreign) {
          throw new Error("Invalid column in select clause: " + column)
       };
 
       const _selectVal: any = args[column]
 
-      if (relation) {
-         const foreginModel = schema.xansql.getSchema(relation.foregin.table)
+      if (foreign) {
+         const FModel = schema.xansql.getSchema(foreign.table)
          const relationSelect = _selectVal?.select || {}
          const relationWhere = _selectVal?.where || {}
          const relationLimit = _selectVal?.limit || undefined
          const relationOrderBy = _selectVal?.orderBy || undefined
 
          if (Object.keys(relationSelect).length === 0 || _selectVal === true) {
-            for (let col of foreginModel.columns.main) {
+            for (let col of FModel.columns.main) {
                relationSelect[col] = true
             }
          }
 
-         const buildJoinSelect = BuildSelect(relationSelect, foreginModel, relation)
 
+         const buildJoinSelect = BuildSelect(relationSelect, FModel)
+         let fcol = `${FModel.alias}.${foreign.relation.main}`
+         if (!buildJoinSelect.columns.includes(fcol)) {
+            buildJoinSelect.columns.push(`${FModel.alias}.${foreign.relation.main}`)
+         }
+         buildJoinSelect.sql = `SELECT ${buildJoinSelect.columns.join(", ") || "*"} FROM ${FModel.table} AS ${FModel.alias}`
          info.joins[column] = {
+            alias: FModel.alias,
+            in_column: foreign.relation.main,
+            parent: {
+               table: schema.table,
+               single: schema.isSingleRelation(column),
+               column,
+               relation: foreign.relation.target
+            },
+            where: relationWhere,
+            limit: relationLimit || {},
+            orderBy: relationOrderBy || {},
             ...buildJoinSelect,
-            args: {
-               where: relationWhere,
-               limit: relationLimit || {},
-               orderBy: relationOrderBy || {}
-            }
          }
       } else {
          if (_selectVal === true) {
-            info.columns.push(`\`${schema.alias}\`.\`${column}\``)
+            info.columns.push(`${schema.alias}.${column}`)
          } else if (_selectVal === false) {
             continue
          } else {
@@ -88,26 +103,15 @@ const BuildSelect = (args: SelectArgs, schema: Schema, relation?: RelationInfo) 
 
    if (info.columns.length === 0) {
       schema.columns.main.forEach((col) => {
-         info.columns.push(`\`${schema.alias}\`.\`${col}\``)
+         info.columns.push(`${schema.alias}.${col}`)
       })
    } else {
-      if (!info.columns.includes(`\`${schema.alias}\`.\`${schema.IDColumn}\``)) {
-         info.columns.unshift(`\`${schema.alias}\`.\`${schema.IDColumn}\``)
+      if (!info.columns.includes(`${schema.alias}.${schema.IDColumn}`)) {
+         info.columns.unshift(`${schema.alias}.${schema.IDColumn}`)
       }
    }
 
-   if (relation) {
-      const foregin = schema.xansql.getSchema(relation.foregin.table)
-      let col = `\`${foregin.alias}\`.\`${relation.foregin.column}\``
-      if (relation.single) {
-         col = `\`${schema.alias}\`.\`${foregin.IDColumn}\``
-      }
-      if (!info.columns.includes(col)) {
-         info.columns.push(col)
-      }
-   }
-
-   info.sql = `SELECT ${info.columns.join(", ") || "*"} FROM \`${schema.table}\` AS \`${schema.alias}\``
+   info.sql = `SELECT ${info.columns.join(", ") || "*"} FROM ${schema.table} AS ${schema.alias}`
    return info
 }
 

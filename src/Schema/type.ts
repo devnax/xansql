@@ -52,22 +52,6 @@ export type CountArgs = {
 }
 
 
-export type GetRelationType = {
-   single: boolean;
-   main: {
-      table: string;
-      column: string;
-      alias: string;
-      field: string;
-   };
-   foregin: {
-      table: string;
-      column: string;
-      alias: string;
-      field: string;
-   };
-}
-
 export type ReturnCount = {
    [column: string | '_count']: number | ReturnCount;
 }

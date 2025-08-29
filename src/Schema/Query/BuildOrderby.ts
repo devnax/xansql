@@ -4,7 +4,6 @@ import { OrderByArgs } from "./types";
 const BuildOrderby = (args: OrderByArgs, schema: Schema) => {
    const info: any = {
       sql: "",
-      joins: {}
    }
 
    const items = []
@@ -12,16 +11,15 @@ const BuildOrderby = (args: OrderByArgs, schema: Schema) => {
    for (let column in args) {
       const val = args[column]
       const xanv = schema.schema[column]
-      const relation = schema.xansql.getRelation(schema.table, column)
-      if (!xanv && !relation) {
+      const foreign = schema.getForeign(column)
+      if (!xanv && !foreign) {
          throw new Error("Invalid column in orderBy clause: " + column)
       };
 
       if (val === "asc" || val === "desc") {
          items.push(`${schema.alias}.${column} ${val.toUpperCase()}`)
       } else {
-         const foreginModel = schema.xansql.getSchema(relation.foregin.table)
-         info.joins[column] = BuildOrderby(val, foreginModel)
+         throw new Error("Invalid orderBy value for column " + column)
       }
    }
    if (items.length > 0) {

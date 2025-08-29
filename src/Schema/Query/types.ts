@@ -30,11 +30,10 @@ export interface WhereArgs {
 export type LimitArgs = {
    take?: number;
    skip?: number;
-   [column: string]: LimitArgs | number | undefined
 }
 
 export type OrderByArgs = {
-   [column: string]: "asc" | "desc" | OrderByArgs;
+   [column: string]: "asc" | "desc";
 }
 
 export type SelectRelationArgs = {

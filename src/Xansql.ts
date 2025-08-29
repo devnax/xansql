@@ -1,5 +1,5 @@
 import Schema from "./Schema";
-import { RelationInfo, XansqlConfig } from "./type";
+import { ForeignsInfo, RelationInfo, XansqlConfig } from "./type";
 import XqlJoin from "./Types/fields/Join";
 import { freezeObject } from "./utils/index";
 
@@ -8,6 +8,7 @@ class Xansql {
    private _config: XansqlConfig;
    private _aliases = new Map<string, string>();
    private _relations: Record<string, { [column: string]: any }> | null = null
+   private _foreigns: ForeignsInfo | null = null
 
    constructor(config: XansqlConfig) {
       this._config = config;
@@ -26,6 +27,42 @@ class Xansql {
       }
       this._dialect = dialect;
       return dialect;
+   }
+
+   get foreigns(): ForeignsInfo {
+      if (!this._foreigns) {
+         this._foreigns = {};
+         for (let [table, schema] of Array.from(this._models.entries())) {
+            for (let [column, instance] of Object.entries(schema.schema)) {
+               if (instance instanceof XqlJoin) {
+                  const joinSchema = this.getSchema(instance.table);
+
+                  const main = this._foreigns[schema.table] || {};
+                  main[column] = {
+                     table: joinSchema.table,
+                     column: instance.foreginColumn,
+                     relation: {
+                        main: joinSchema.IDColumn,
+                        target: column,
+                     }
+                  };
+                  this._foreigns[schema.table] = main
+
+                  const foreign = this._foreigns[joinSchema.table] || {};
+                  foreign[instance.foreginColumn] = {
+                     table,
+                     column,
+                     relation: {
+                        main: column,
+                        target: joinSchema.IDColumn,
+                     },
+                  };
+                  this._foreigns[joinSchema.table] = foreign
+               }
+            }
+         }
+      }
+      return this._foreigns
    }
 
    getRelations(tableName?: string): Record<string, { [column: string]: any }> {
