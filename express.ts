@@ -189,6 +189,7 @@ const server = async (app) => {
          select: {
             name: true,
             email: true,
+            option: true,
             user_posts: {
                select: {
                   content: true,
@@ -200,6 +201,10 @@ const server = async (app) => {
             name: "John Doe",
             email: `john${Math.floor(Math.random() * 10000)}@doe.com`,
             created_at: new Date(),
+            option: {
+               theme: "dark",
+               notifications: false,
+            },
             user_posts: [
                {
                   title: "Hello World",
@@ -259,9 +264,12 @@ const server = async (app) => {
             email: `john${Math.floor(Math.random() * 10000)}@doe.com`,
             user_posts: {
                data: {
-                  title: "Updated Title",
+                  title: `Updated Title ${Math.floor(Math.random() * 10000)}`,
                   content: "Updated Content",
                },
+               where: {
+                  // pid: 5
+               }
             }
          }
       })

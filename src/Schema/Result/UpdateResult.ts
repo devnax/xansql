@@ -37,14 +37,45 @@ class UpdateResult {
          })
 
          const res = result[0] || null
-         console.log(res);
+         const id = res ? res[schema.IDColumn] : null
+         if (!id) return result
 
          for (const column in build.joins) {
+            const join = build.joins[column]
+            const foreign = schema.getForeign(column) as ForeignInfo
+            const FModel = schema.xansql.getSchema(foreign.table);
 
+            if (join.where) {
+               join.where[foreign.column] = {
+                  [foreign.relation.target]: id
+               }
+            } else {
+               join.where = {
+                  [foreign.column]: {
+                     [foreign.relation.target]: id
+                  }
+               }
+            }
+
+            const updateResult = new UpdateResult(FModel)
+            await updateResult.result({
+               data: join.data,
+               where: join.where,
+               select: {
+                  [FModel.IDColumn]: true
+               }
+            })
          }
-      }
 
-      return where
+         if (args.select) {
+            return await this.finder.result({
+               where: { [schema.IDColumn]: id },
+               select: args.select
+            })
+         }
+         return res
+      }
+      return null
    }
 
 

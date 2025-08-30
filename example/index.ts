@@ -11,6 +11,13 @@ if (typeof process !== 'undefined' && process?.env) {
    }
 }
 
+const UserOptionSchema = new Schema("user_options", {
+   uoid: xt.id(),
+   theme: xt.string().default('light'),
+   notifications: xt.boolean().default(true),
+   user: xt.join('users', 'option').unique(),
+});
+
 const UserSchema = new Schema("users", {
    uid: xt.id(),
    name: xt.string().index(),
@@ -43,5 +50,6 @@ const conn = {
 
 export const db = new Xansql(conn.sqlite)
 
+export const UserOptionModel = db.model(UserOptionSchema)
 export const UserModel = db.model(UserSchema)
 export const PostModel = db.model(PostSchema)
