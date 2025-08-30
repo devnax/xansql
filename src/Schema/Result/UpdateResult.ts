@@ -1,12 +1,13 @@
 import Schema from "..";
 import { ForeignInfo } from "../../type";
+import XqlIDField from "../../Types/fields/IDField";
 import BuildData, { BuildDataInfo } from "../Query/BuildData";
 import BuildLimit from "../Query/BuildLimit";
 import BuildOrderby from "../Query/BuildOrderby";
 import BuildSelect, { BuildSelectJoinInfo } from "../Query/BuildSelect";
 import BuildWhere from "../Query/BuildWhere";
-import { SelectArgs } from "../Query/types";
-import { UpdateArgs } from "../type";
+import { SelectArgs, WhereArgs } from "../Query/types";
+import { UpdateArgs, UpdateDataArgs } from "../type";
 import FindResult from "./FindResult";
 
 class UpdateResult {
@@ -17,89 +18,78 @@ class UpdateResult {
 
    async result(args: UpdateArgs) {
       const schema = this.schema
-      const data = BuildData(args.data as any || {}, schema);
-      let results: any;
-      if (Array.isArray(data)) {
-         results = [];
-         for (let item of data) {
-            let excuted = await this.excute(item);
-            let result = await this.find(excuted, args.select);
-            results.push(result);
+      const build = this.buildData(args.data, schema)
+      const where = BuildWhere(args.where, schema)
+      const data = BuildData(build.data, schema) as BuildDataInfo
+      const sql = `
+         UPDATE ${schema.table}
+         SET ${data.columns.map((col, i) => `${col} = ${data.values[i]}`).join(", ")}
+         ${where ? `${where.sql}` : ""}
+      `;
+
+      const excute = await schema.excute(sql)
+      if (excute?.affectedRows && excute.affectedRows > 0) {
+         const result = await this.finder.result({
+            where: args.where,
+            select: {
+               [schema.IDColumn]: true
+            }
+         })
+
+         const res = result[0] || null
+         console.log(res);
+
+         for (const column in build.joins) {
+
          }
-      } else {
-         let excuted = await this.excute(data);
-         results = await this.find(excuted, args.select);
       }
-      return results
+
+      return where
    }
 
 
    private async excute(info: BuildDataInfo) {
-      info = this.validateInfo(info);
-      const model = this.schema.xansql.getSchema(info.table);
-      const values = info.columns.map((col, idx) => `${col}=${info.values[idx]}`).join(', ')
-      const sql = `UPDATE ${info.table} SET ${values} WHERE `
-      const res = await model.excute(sql)
-      const insertId = res.insertId;
-      if (!insertId) return;
 
-      const result = { [model.IDColumn]: insertId } as any;
+   }
 
-      for (let column in info.joins) {
-         const foreign = model.getForeign(column) as ForeignInfo
-         const joinInfo = info.joins[column]
+   private buildData(data: UpdateDataArgs, schema: Schema) {
 
-         if (Array.isArray(joinInfo)) {
-            let ids = []
-            for (let joinItem of joinInfo) {
-               joinItem.columns.push(foreign.column);
-               joinItem.values.push(insertId);
-               const res = await this.excute(joinItem)
-               result[column] = result[column] || [];
-               result[column].push(res)
-               ids.push(res[foreign.column]);
+      const info: any = {
+         data: {},
+         joins: {} as { [column: string]: { info: any, where: WhereArgs } }
+      }
+
+      for (let column in data) {
+         const xanv = schema.schema[column]
+         const foreign = schema.getForeign(column)
+         if (!xanv && !foreign) {
+            throw new Error("Invalid column in data clause: " + column)
+         };
+         if (xanv instanceof XqlIDField) {
+            throw new Error("Cannot use ID field in data args directly. Use it in where clause instead.");
+         }
+
+         if (foreign) {
+            const isSingleRelation = schema.isSingleRelation(column)
+            if (isSingleRelation) {
+               throw new Error("Single relation is not supported in update data yet.");
             }
+            const FModel = schema.xansql.getSchema(foreign.table);
+            const value: any = data[column];
+            if (typeof value !== "object" || Array.isArray(value) || !value.data || (typeof value.data !== "object")) {
+               throw new Error(`Relation column "${column}" in update data must be an object with data and optional where properties.`);
+            }
+            const _info = this.buildData(value.data as UpdateDataArgs, FModel);
+            info.joins[column] = { ..._info, where: value.where }
          } else {
-            joinInfo.columns.push(foreign.column);
-            joinInfo.values.push(insertId);
-            const res = await this.excute(joinInfo)
-            result[column] = res
+            info.data[column] = data[column]
          }
       }
 
-      return result
+      return info
    }
 
-   private validateInfo(info: BuildDataInfo) {
-      const model = this.schema.xansql.getSchema(info.table);
-      for (let column in model.schema) {
-         if (!info.columns.includes(column) && column !== model.IDColumn) {
-            try {
-               info.values.push(model.toSql(column, null));
-               info.columns.push(column);
-            } catch (err) {
-               throw new Error(`Field ${column} is required in create data. table: ${model.table}`);
-            }
-         }
-      }
-      return info;
-   }
 
-   async find(result: any, select?: SelectArgs) {
-      if (result && select) {
-         const id = result[this.schema.IDColumn];
-         const r = await this.finder.result({
-            select,
-            where: {
-               [this.schema.IDColumn]: id
-            }
-         })
-         if (r?.length) {
-            result = r?.[0]
-         }
-      }
-      return result
-   }
 }
 
 export default UpdateResult;

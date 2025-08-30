@@ -238,6 +238,36 @@ const server = async (app) => {
       res.json(result)
    });
 
+   app.get('/update', async (req, res) => {
+
+      const result = await UserModel.update({
+         select: {
+            name: true,
+            email: true,
+            user_posts: {
+               select: {
+                  content: true,
+                  title: true,
+               }
+            }
+         },
+         where: {
+            uid: 4,
+         },
+         data: {
+            name: "John Updated",
+            email: `john${Math.floor(Math.random() * 10000)}@doe.com`,
+            user_posts: {
+               data: {
+                  title: "Updated Title",
+                  content: "Updated Content",
+               },
+            }
+         }
+      })
+      res.json(result)
+   });
+
    app.get('/migrate', async (req, res) => {
       await db.migrate(true)
       res.send(`Migrated`);

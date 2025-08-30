@@ -10,7 +10,7 @@ export type BuildDataInfo = {
    joins: { [column: string]: BuildDataInfo | BuildDataInfo[] };
 }
 
-const BuildData = (args: DataArgs | DataArgs[], schema: Schema): BuildDataInfo | BuildDataInfo[] => {
+const BuildData = (args: Partial<DataArgs> | Partial<DataArgs>[], schema: Schema): BuildDataInfo | BuildDataInfo[] => {
 
    const info: BuildDataInfo = {
       columns: [],

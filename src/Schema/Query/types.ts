@@ -48,9 +48,18 @@ export type SelectArgs = {
    [column: string]: boolean | SelectRelationArgs
 }
 
-export type ColumnDataType = string | number | boolean | Date | null
+export type DataValue =
+   | string
+   | number
+   | boolean
+   | Date
+   | null
+   | Map<any, any>
+   | Set<any>
+   | File
+   | Record<string | number, any>
+   | any[]
 
 export type DataArgs = {
-   [column: string]: ColumnDataType | DataArgs[] | DataArgs;
+   [column: string]: DataValue | DataArgs[] | DataArgs;
 }
-
