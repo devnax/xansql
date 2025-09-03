@@ -15,6 +15,7 @@ const UserOptionSchema = new Schema("options", {
    uoid: xt.id(),
    theme: xt.string().default('light'),
    notifications: xt.boolean().default(true),
+   // user: xt.join('users', 'options').unique(),
 });
 
 const UserSchema = new Schema("users", {
@@ -24,7 +25,7 @@ const UserSchema = new Schema("users", {
    age: xt.number().optional(),
    created_at: xt.date(),
 
-   options: xt.hasOne('options', 'user').optional(),
+   options: xt.hasOne('options', 'user').optional(), // uoid
 });
 
 const PostSchema = new Schema("posts", {
