@@ -13,6 +13,8 @@ import SQTuple from "./fields/Tuple";
 import SQUnion from "./fields/Union";
 import SQIDField from "./fields/IDField";
 import XqlJoin from "./fields/Join";
+import XqlHasOne from "./fields/HasOne";
+import XqlHasMany from "./fields/HasMany";
 export const x = {
    array: (type: XVInstanceType, length?: number) => new SQArray(type, length),
    boolean: () => new SQBoolean(),
@@ -29,6 +31,9 @@ export const x = {
 
    id: () => new SQIDField(),
    join: (table: string, foreginColumn: string) => new XqlJoin(table, foreginColumn),
+
+   hasOne: (table: string, column: string) => new XqlHasOne(table, column),
+   hasMany: (table: string, column: string) => new XqlHasMany(table, column),
 
 }
 

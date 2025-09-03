@@ -11,11 +11,10 @@ if (typeof process !== 'undefined' && process?.env) {
    }
 }
 
-const UserOptionSchema = new Schema("user_options", {
+const UserOptionSchema = new Schema("options", {
    uoid: xt.id(),
    theme: xt.string().default('light'),
    notifications: xt.boolean().default(true),
-   user: xt.join('users', 'option').unique(),
 });
 
 const UserSchema = new Schema("users", {
@@ -24,13 +23,15 @@ const UserSchema = new Schema("users", {
    email: xt.string().index().unique(),
    age: xt.number().optional(),
    created_at: xt.date(),
+
+   options: xt.hasOne('options', 'user').optional(),
 });
 
 const PostSchema = new Schema("posts", {
    pid: xt.id(),
    title: xt.string().index(),
    content: xt.string(),
-   user: xt.join('users', 'user_posts').optional(),
+   user: xt.hasMany('users', 'user_posts').optional(),
 });
 
 
