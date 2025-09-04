@@ -1,93 +1,224 @@
 import Schema from "..";
 import { ForeignInfo } from "../../type";
-import BuildData, { BuildDataInfo } from "../Query/BuildData";
+import XqlIDField from "../../Types/fields/IDField";
 import { SelectArgs } from "../Query/types";
 import { CreateArgs } from "../type";
 import FindResult from "./FindResult";
 
+
+type MetaInfo = {
+   table: string;
+   insertId?: number,
+   column?: string
+}
+
+type RelationItems = { [column: string]: { foreign: ForeignInfo, data: CreateArgs } }
+
 class CreateResult {
    finder: FindResult
-   constructor(readonly schema: Schema) {
+   model: Schema
+   constructor(schema: Schema) {
+      this.model = schema
       this.finder = new FindResult(schema)
    }
 
    async result(args: CreateArgs) {
-      const schema = this.schema
-      const data = BuildData(args.data || {}, schema);
-      let results: any;
-      if (Array.isArray(data)) {
-         results = [];
-         for (let item of data) {
-            let excuted = await this.excute(item);
-            let result = await this.find(excuted, args.select);
-            results.push(result);
+      let ids = await this.excute(args)
+      if (ids.length && args.select) {
+         const findArgs = {
+            where: {
+               [this.model.IDColumn]: {
+                  in: ids
+               }
+            },
+            select: args.select
          }
-      } else {
-         let excuted = await this.excute(data);
-         results = await this.find(excuted, args.select);
       }
-      return results
+
+      return ids
    }
 
+   private async excute(args: CreateArgs, meta?: MetaInfo) {
+      const model = this.model
+      const data = args.data
 
+      if (Array.isArray(data)) {
+         let ids: number[] = []
+         for (let item of data) {
+            let insertId = await this.excute({ data: item }, meta)
+            if (insertId) ids.push(insertId)
+         }
+         return ids
+      } else {
+         const { columns, values, hasManyRelations, hasOneRelations } = this.formatData(data, meta)
+         await this.excuteHasOne(hasOneRelations, columns, values)
+         let sql = `INSERT INTO ${model.table} (${columns.join(",")}) VALUES (${values.join(",")})`
+         const result = await model.xansql.excute(sql, model)
+         if (!result.insertId) {
+            for (let col in hasOneRelations) {
+               const foreign = hasOneRelations[col].foreign
+               const FModel = this.model.xansql.getSchema(foreign.table)
+               const delid = values[columns.indexOf(foreign.relation.target)]
+               let delSql = `DELETE FROM ${FModel.table} WHERE ${foreign.relation.main} = ${delid}`
+               await this.model.xansql.excute(delSql, FModel)
+            }
+            throw new Error(`Insert failed for table: ${model.table}`);
+         }
+         try {
+            await this.excuteHasMany(hasManyRelations, result.insertId)
+         } catch (error) {
+            //delete hasOne relations
+            for (let col in hasOneRelations) {
+               const foreign = hasOneRelations[col].foreign
+               const FModel = this.model.xansql.getSchema(foreign.table)
+               const delid = values[columns.indexOf(foreign.relation.target)]
+               let delSql = `DELETE FROM ${FModel.table} WHERE ${foreign.relation.main} = ${delid}`
+               await this.model.xansql.excute(delSql, FModel)
+            }
 
-   private async excute(info: BuildDataInfo) {
-      info = this.validateInfo(info);
-      const model = this.schema.xansql.getSchema(info.table);
-      const sql = `INSERT INTO ${info.table} (${info.columns.join(', ')}) VALUES (${info.values.join(', ')})`
-      const res = await model.excute(sql)
-      const insertId = res.insertId;
-      if (!insertId) return;
+            //delete main record
+            let delSql = `DELETE FROM ${model.table} WHERE ${model.IDColumn} = ${result.insertId}`
+            await this.model.xansql.excute(delSql, model)
 
-      const result = { [model.IDColumn]: insertId } as any;
+            throw error
+         }
 
-      for (let column in info.joins) {
+         if (!meta) {
+            return [result.insertId]
+         }
+         return result.insertId || null
+      }
+   }
+
+   private formatData(data: CreateArgs["data"], meta?: MetaInfo) {
+      const model = this.model
+      const schema = model.schema
+      const columns: string[] = []
+      const values: any[] = []
+      const hasManyRelations: RelationItems = {}
+      const hasOneRelations: RelationItems = {}
+
+      for (const column in data) {
          const foreign = model.getForeign(column) as ForeignInfo
-         const joinInfo = info.joins[column]
+         const dataValue = (data as any)[column]
 
-         if (Array.isArray(joinInfo)) {
-            let ids = []
-            for (let joinItem of joinInfo) {
-               joinItem.columns.push(foreign.column);
-               joinItem.values.push(insertId);
-               const res = await this.excute(joinItem)
-               result[column] = result[column] || [];
-               result[column].push(res)
-               ids.push(res[foreign.column]);
+         if (schema[column] instanceof XqlIDField) {
+            continue;
+         }
+
+         if (foreign) {
+            if (meta && foreign.table === meta.table) {
+               throw new Error(`Circular reference detected for relation ${column} in create data. table: ${model.table}`);
+            }
+
+            if (foreign.type === "hasOne" && dataValue && typeof dataValue === 'object' && !Array.isArray(dataValue)) {
+               hasOneRelations[column] = {
+                  foreign,
+                  data: dataValue
+               }
+            } else if (foreign.type === "hasMany" && Array.isArray(dataValue) || typeof dataValue === 'object') {
+               hasManyRelations[column] = {
+                  foreign,
+                  data: dataValue
+               }
+            } else {
+               throw new Error(`Invalid data for relation ${column} in create data. table: ${model.table}`);
             }
          } else {
-            joinInfo.columns.push(foreign.column);
-            joinInfo.values.push(insertId);
-            const res = await this.excute(joinInfo)
-            result[column] = res
+            columns.push(column)
+            values.push(model.toSql(column, dataValue))
          }
       }
 
-      return result
+      if (meta?.insertId && meta?.column) {
+         columns.push(meta.column)
+         values.push(meta.insertId)
+      }
+
+      this.validateInfo(columns, values)
+
+      return { columns, values, hasManyRelations, hasOneRelations }
    }
 
-   private validateInfo(info: BuildDataInfo) {
-      const model = this.schema.xansql.getSchema(info.table);
-      for (let column in model.schema) {
-         if (!info.columns.includes(column) && column !== model.IDColumn) {
+   private async excuteHasOne(items: RelationItems, columns: string[], values: any[]) {
+      const insertedItems: RelationItems = {}
+      try {
+         for (let rel_col in items) {
+            const rel = items[rel_col]
+            const foreign = rel.foreign
+            const FModel = this.model.xansql.getSchema(foreign.table)
+            const instance = new CreateResult(FModel)
+            const insertId = await instance.excute({ data: rel.data }, {
+               table: this.model.table,
+            })
+            if (insertId) {
+               columns.push(foreign.relation.target)
+               values.push(insertId || null);
+            }
+            insertedItems[rel_col] = rel
+         }
+      } catch (error) {
+         for (let col in insertedItems) {
+            const foreign = insertedItems[col].foreign
+            const FModel = this.model.xansql.getSchema(foreign.table)
+            const delid = values[columns.indexOf(foreign.relation.target)]
+            let delSql = `DELETE FROM ${FModel.table} WHERE ${foreign.relation.main} = ${delid}`
+            await this.model.xansql.excute(delSql, FModel)
+         }
+         throw error
+      }
+   }
+
+   private async excuteHasMany(items: RelationItems, insertId: number) {
+
+      const insertedItems: RelationItems = {}
+      try {
+         for (let rel_col in items) {
+            const rel = items[rel_col]
+            let foreign = rel.foreign
+            const FModel = this.model.xansql.getSchema(foreign.table)
+            const instance = new CreateResult(FModel)
+            await instance.excute({ data: rel.data }, {
+               table: this.model.table,
+               insertId,
+               column: foreign.column
+            })
+            insertedItems[rel_col] = rel
+         }
+      } catch (error) {
+         for (let col in insertedItems) {
+            const foreign = insertedItems[col].foreign
+            const FModel = this.model.xansql.getSchema(foreign.table)
+            let delSql = `DELETE FROM ${FModel.table} WHERE ${foreign.relation.main} = ${insertId}`
+            await this.model.xansql.excute(delSql, FModel)
+         }
+         throw error
+      }
+   }
+
+   private validateInfo(columns: string[], values: any[]) {
+      let model = this.model
+      const schema = model.schema
+      for (let col in schema) {
+         const foreign = model.getForeign(col) as ForeignInfo
+         if (!columns.includes(col) && col !== model.IDColumn && !foreign) {
             try {
-               info.values.push(model.toSql(column, null));
-               info.columns.push(column);
+               values.push(model.toSql(col, null));
+               columns.push(col);
             } catch (err) {
-               throw new Error(`Field ${column} is required in create data. table: ${model.table}`);
+               throw new Error(`Field ${col} is required in create data. table: ${model.table}`);
             }
          }
       }
-      return info;
    }
 
    async find(result: any, select?: SelectArgs) {
       if (result && select) {
-         const id = result[this.schema.IDColumn];
+         const id = result[this.model.IDColumn];
          const r = await this.finder.result({
             select,
             where: {
-               [this.schema.IDColumn]: id
+               [this.model.IDColumn]: id
             }
          })
          if (r?.length) {

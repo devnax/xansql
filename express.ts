@@ -196,7 +196,7 @@ const server = async (app) => {
          data: {
             name: "John Doe",
             email: `john${Math.floor(Math.random() * 10000)}@doe.com`,
-            created_at: new Date(),
+            // created_at: new Date(),
             option: {
                theme: "dark",
                notifications: false,
@@ -204,7 +204,7 @@ const server = async (app) => {
             user_posts: [
                {
                   title: "Hello World",
-                  content: "This is my first post"
+                  content: "This is my first post",
                },
                {
                   title: "Hello World",

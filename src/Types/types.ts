@@ -13,6 +13,10 @@ import XqlSet from "./fields/Set"
 import XqlString from "./fields/String"
 import XqlTuple from "./fields/Tuple"
 import XqlUnion from "./fields/Union"
+import XqlHasMany from "./fields/HasMany"
+import XqlHasOne from "./fields/HasOne"
+import XqlCreatedAt from "./fields/CreatedAt"
+import XqlUpdatedAt from "./fields/UpdatedAt"
 
 export type XqlFields =
    | XqlArray
@@ -30,7 +34,10 @@ export type XqlFields =
    | XqlUnion
 
    | XqlIDField
-   | XqlJoin
+   | XqlHasMany
+   | XqlHasOne
+   | XqlCreatedAt
+   | XqlUpdatedAt
 
 
 

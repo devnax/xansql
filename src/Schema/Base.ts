@@ -87,10 +87,10 @@ abstract class SchemaBase {
       ErrorWhene(xanv instanceof XqlJoin, `Column ${column} is a relation and cannot be used in SQL queries`);
 
       try {
-         xanv.parse(value);
-         if (value === null) {
+         value = xanv.parse(value);
+         if (value === undefined || value === null) {
             return 'NULL';
-         } else if (value === undefined || this.iof(column, XqlIDField, XqlNumber)) {
+         } else if (this.iof(column, XqlIDField, XqlNumber)) {
             return value
          } else if (this.iof(column, XqlString, XqlEnum, XqlUnion)) {
             return `'${escapeSqlValue(value)}'`;

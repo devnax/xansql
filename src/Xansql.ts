@@ -34,56 +34,41 @@ class Xansql {
    get foreigns(): ForeignsInfo {
       if (!this._foreigns) {
          this._foreigns = {};
-         for (let [table, schema] of Array.from(this._models.entries())) {
-            for (let [column, instance] of Object.entries(schema.schema)) {
-               if (instance instanceof XqlHasMany || instance instanceof XqlHasOne) {
-                  const joinSchema = this.getSchema(instance.table);
+         for (let [table, model] of Array.from(this._models.entries())) {
+            for (let [column, join] of Object.entries(model.schema)) {
 
-                  const main = this._foreigns[schema.table] || {};
+               if (join instanceof XqlHasOne || join instanceof XqlHasMany) {
+                  const hasMany = join instanceof XqlHasMany;
+                  const FModel = this.getSchema(join.table);
+                  const main = this._foreigns[model.table] || {};
+                  const foreign = this._foreigns[FModel.table] || {};
+
+                  if (join.column in foreign) {
+                     throw new Error(`Foreign key already exists for ${FModel.table}.${join.column}`);
+                  }
+
                   main[column] = {
-                     table: joinSchema.table,
-                     column: instance.column,
+                     type: "hasOne",
+                     table: FModel.table,
+                     column: join.column,
                      relation: {
-                        main: joinSchema.IDColumn,
+                        main: FModel.IDColumn,
                         target: column,
                      }
                   };
-                  this._foreigns[schema.table] = main
 
-                  const foreign = this._foreigns[joinSchema.table] || {};
-                  foreign[instance.column] = {
+                  foreign[join.column] = {
+                     type: hasMany ? "hasMany" : "hasOne",
                      table,
                      column,
                      relation: {
                         main: column,
-                        target: joinSchema.IDColumn,
+                        target: FModel.IDColumn,
                      },
                   };
-                  this._foreigns[joinSchema.table] = foreign
-               } else if (instance instanceof XqlHasOne) {
-                  //    const joinSchema = this.getSchema(instance.table);
 
-                  //    const main = this._foreigns[schema.table] || {};
-                  //    main[column] = {
-                  //       table: joinSchema.table,
-                  //       column: instance.column,
-                  //       relation: {
-                  //          main: instance.column,
-                  //          target: joinSchema.IDColumn,
-                  //       }
-                  //    };
-                  //    this._foreigns[schema.table] = main
-
-                  //    const foreign = this._foreigns[joinSchema.table] || {};
-                  //    foreign[instance.column] = {
-                  //       table,
-                  //       column,
-                  //       relation: {
-                  //          main: joinSchema.IDColumn,
-                  //          target: column,
-                  //       },
-                  //    };
-                  //    this._foreigns[joinSchema.table] = foreign
+                  this._foreigns[model.table] = main
+                  this._foreigns[FModel.table] = foreign
                }
             }
          }
@@ -94,12 +79,13 @@ class Xansql {
    __getRelations(tableName?: string): Record<string, { [column: string]: any }> {
       if (!this._relations) {
          this._relations = {};
-         for (let [table, schema] of Array.from(this._models.entries())) {
-            for (let [column, instance] of Object.entries(schema.schema)) {
+         for (let [table, model] of Array.from(this._models.entries())) {
+            for (let [column, instance] of Object.entries(model.schema)) {
                if (instance instanceof XqlJoin) {
-                  const joinSchema = this.getSchema(instance.table);
+                  const FModel = this.getSchema(instance.table);
+                  const relation = this._relations[model.table] || {};
+                  const foreign = this._relations[FModel.table] || {};
 
-                  const relation = this._relations[schema.table] || {};
                   relation[column] = {
                      single: true,
                      main: {
@@ -107,17 +93,15 @@ class Xansql {
                         column,
                      },
                      foregin: {
-                        table: joinSchema.table,
+                        table: FModel.table,
                         column: instance.foreginColumn,
                      }
                   };
-                  this._relations[schema.table] = relation
 
-                  const foreginRelation = this._relations[joinSchema.table] || {};
-                  foreginRelation[instance.foreginColumn] = {
+                  foreign[instance.foreginColumn] = {
                      single: false,
                      main: {
-                        table: joinSchema.table,
+                        table: FModel.table,
                         column: instance.foreginColumn,
                      },
                      foregin: {
@@ -125,7 +109,9 @@ class Xansql {
                         column,
                      }
                   };
-                  this._relations[joinSchema.table] = foreginRelation
+
+                  this._relations[model.table] = relation
+                  this._relations[FModel.table] = foreign
                }
             }
          }

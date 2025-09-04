@@ -48,6 +48,7 @@ export type RelationInfo = {
 
 
 export type ForeignInfo = {
+   type: "hasOne" | "hasMany",
    table: string,
    column: string,
    relation: {

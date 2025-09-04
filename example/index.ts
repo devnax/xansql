@@ -22,9 +22,11 @@ const UserSchema = new Schema("users", {
    uid: xt.id(),
    name: xt.string().index(),
    email: xt.string().index().unique(),
-   age: xt.number().optional(),
-   created_at: xt.date(),
-   option: xt.hasOne('options', 'user').optional(), // uoid
+   age: xt.number().optional().nullable(),
+   option: xt.hasOne('options', 'user').optional(),
+
+   created_at: xt.createdAt(),
+   updated_at: xt.updatedAt(),
 });
 
 const PostSchema = new Schema("posts", {

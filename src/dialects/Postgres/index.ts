@@ -5,8 +5,9 @@ import XqlBoolean from "../../Types/fields/Boolean";
 import XqlDate from "../../Types/fields/Date";
 import XqlEnum from "../../Types/fields/Enum";
 import XqlFile from "../../Types/fields/File";
+import XqlHasMany from "../../Types/fields/HasMany";
+import XqlHasOne from "../../Types/fields/HasOne";
 import XqlIDField from "../../Types/fields/IDField";
-import XqlJoin from "../../Types/fields/Join";
 import XqlMap from "../../Types/fields/Map";
 import XqlNumber from "../../Types/fields/Number";
 import XqlObject from "../../Types/fields/Object";
@@ -31,7 +32,7 @@ const buildColumn = (column: string, field: XqlFields): string => {
    if (field instanceof XqlIDField) {
       // PostgreSQL SERIAL for auto-increment primary key
       sql += `"${column}" SERIAL PRIMARY KEY, `;
-   } else if (field instanceof XqlJoin) {
+   } else if (field instanceof XqlHasOne || field instanceof XqlHasMany) {
       sql += col(column, "INTEGER");
    } else if (field instanceof XqlString) {
       let length = meta.length || meta.max;
@@ -127,7 +128,7 @@ const postgresDialect = (xansql: Xansql): DialectOptions => {
       addColumn: async (schema: Schema, columnName: string) => {
          const column = schema.schema[columnName];
          if (!column) throw new Error(`Column ${columnName} does not exist in model ${schema.table}`);
-         if (column instanceof XqlJoin || column instanceof XqlIDField)
+         if (column instanceof XqlHasOne || column instanceof XqlHasMany || column instanceof XqlIDField)
             throw new Error(`Cannot add relation or IDField as a column: ${columnName}`);
          return await opt.excute(`ALTER TABLE "${schema.table}" ADD COLUMN ${buildColumn(columnName, column).slice(0, -2)};`, schema);
       },

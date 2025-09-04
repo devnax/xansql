@@ -28,12 +28,8 @@ export const arrayMove = (arr: any[], fromIndex: number, toIndex: number) => {
 
 export const escapeSqlValue = (value: string): string => {
    return value
-      .replace(/\\/g, '\\\\')   // Escape backslash
-      .replace(/'/g, `''`)      // Escape single quote by doubling it
-      .replace(/"/g, `\\"`)     // Escape double quote
-      .replace(/\n/g, '\\n')    // Escape newlines
-      .replace(/\r/g, '\\r')    // Escape carriage returns
-      .replace(/\x00/g, '\\0');
+      .replace(/'/g, "''")   // Escape single quote
+      .replace(/\x00/g, '\\0'); // Escape null byte (rare but can break SQL)
 }
 
 
