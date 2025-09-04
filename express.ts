@@ -8,6 +8,7 @@ import BuildSelect from './src/Schema/Query/BuildSelect';
 import BuildOrderby from './src/Schema/Query/BuildOrderby';
 import BuildLimit from './src/Schema/Query/BuildLimit';
 import BuildData from './src/Schema/Query/BuildData';
+import WhereArgs from './src/Schema/Result/WhereArgs';
 
 const server = async (app) => {
    app.use('/static', express.static('public'));
@@ -24,34 +25,73 @@ const server = async (app) => {
 
 
    app.get('/where', async (req, res) => {
-      const result = BuildWhere({
+      const where = new WhereArgs(UserModel, {
          name: "John Doe",
-         user_posts: {
-            title: "as",
+         meta: {
+            theme: [
+               {
+                  contains: "dark"
+               },
+               {
+                  contains: "light"
+               }
+            ],
             user: {
-               email: "example",
-               user_posts: [
-                  {
-                     title: {
-                        contains: "x"
-                     },
-
-                     user: [
-                        { name: "x" },
-                        {
-                           email: {
-                              endsWith: "m"
-                           }
-                        }
-                     ]
-                  },
-                  { content: "y" }
-               ]
+               name: "x"
             }
-         }
-      }, UserModel)
+         },
+         // user_posts: {
+         //    title: "as",
+         //    user: {
+         //       email: "example",
+         //       user_posts: [
+         //          {
+         //             title: {
+         //                contains: "x"
+         //             },
 
-      res.json(result)
+         //             user: [
+         //                { name: "x" },
+         //                {
+         //                   email: {
+         //                      endsWith: "m"
+         //                   }
+         //                }
+         //             ]
+         //          },
+         //          { content: "y" }
+         //       ]
+         //    }
+         // }
+      })
+      // const result = BuildWhere({
+      //    name: "John Doe",
+      //    user_posts: {
+      //       title: "as",
+      //       user: {
+      //          email: "example",
+      //          user_posts: [
+      //             {
+      //                title: {
+      //                   contains: "x"
+      //                },
+
+      //                user: [
+      //                   { name: "x" },
+      //                   {
+      //                      email: {
+      //                         endsWith: "m"
+      //                      }
+      //                   }
+      //                ]
+      //             },
+      //             { content: "y" }
+      //          ]
+      //       }
+      //    }
+      // }, UserModel)
+
+      res.json(where.sql)
    });
 
    app.get('/select', async (req, res) => {
@@ -136,6 +176,7 @@ const server = async (app) => {
             skip: 0
          },
          where: {
+            name: "John Doe",
             // uid: 199,
             // user_posts: {
             //    pid: 375,
@@ -144,6 +185,7 @@ const server = async (app) => {
          select: {
             name: true,
             email: true,
+            meta: true,
             user_posts: {
                orderBy: {
                   pid: "asc"
@@ -185,7 +227,7 @@ const server = async (app) => {
          select: {
             name: true,
             email: true,
-            option: true,
+            // meta: true,
             user_posts: {
                select: {
                   content: true,
@@ -197,7 +239,7 @@ const server = async (app) => {
             name: "John Doe",
             email: `john${Math.floor(Math.random() * 10000)}@doe.com`,
             // created_at: new Date(),
-            option: {
+            meta: {
                theme: "dark",
                notifications: false,
             },

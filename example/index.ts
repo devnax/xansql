@@ -11,11 +11,10 @@ if (typeof process !== 'undefined' && process?.env) {
    }
 }
 
-const UserOptionSchema = new Schema("options", {
+const UserOptionSchema = new Schema("metas", {
    uoid: xt.id(),
    theme: xt.string().default('light'),
    notifications: xt.boolean().default(true),
-   // user: xt.join('users', 'options').unique(),
 });
 
 const UserSchema = new Schema("users", {
@@ -23,7 +22,7 @@ const UserSchema = new Schema("users", {
    name: xt.string().index(),
    email: xt.string().index().unique(),
    age: xt.number().optional().nullable(),
-   option: xt.hasOne('options', 'user').optional(),
+   meta: xt.hasOne('metas', 'user').optional(),
 
    created_at: xt.createdAt(),
    updated_at: xt.updatedAt(),

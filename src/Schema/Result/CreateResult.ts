@@ -1,7 +1,6 @@
 import Schema from "..";
 import { ForeignInfo } from "../../type";
 import XqlIDField from "../../Types/fields/IDField";
-import { SelectArgs } from "../Query/types";
 import { CreateArgs } from "../type";
 import FindResult from "./FindResult";
 
@@ -24,21 +23,23 @@ class CreateResult {
 
    async result(args: CreateArgs) {
       let ids = await this.excute(args)
-      if (ids.length && args.select) {
+      if (ids.length) {
          const findArgs = {
             where: {
                [this.model.IDColumn]: {
                   in: ids
                }
             },
-            select: args.select
+            select: args.select || {}
          }
+
+         return await this.finder.result(findArgs)
       }
 
-      return ids
+      throw new Error("Create failed, no records created.");
    }
 
-   private async excute(args: CreateArgs, meta?: MetaInfo) {
+   async excute(args: CreateArgs, meta?: MetaInfo) {
       const model = this.model
       const data = args.data
 
@@ -88,56 +89,6 @@ class CreateResult {
          }
          return result.insertId || null
       }
-   }
-
-   private formatData(data: CreateArgs["data"], meta?: MetaInfo) {
-      const model = this.model
-      const schema = model.schema
-      const columns: string[] = []
-      const values: any[] = []
-      const hasManyRelations: RelationItems = {}
-      const hasOneRelations: RelationItems = {}
-
-      for (const column in data) {
-         const foreign = model.getForeign(column) as ForeignInfo
-         const dataValue = (data as any)[column]
-
-         if (schema[column] instanceof XqlIDField) {
-            continue;
-         }
-
-         if (foreign) {
-            if (meta && foreign.table === meta.table) {
-               throw new Error(`Circular reference detected for relation ${column} in create data. table: ${model.table}`);
-            }
-
-            if (foreign.type === "hasOne" && dataValue && typeof dataValue === 'object' && !Array.isArray(dataValue)) {
-               hasOneRelations[column] = {
-                  foreign,
-                  data: dataValue
-               }
-            } else if (foreign.type === "hasMany" && Array.isArray(dataValue) || typeof dataValue === 'object') {
-               hasManyRelations[column] = {
-                  foreign,
-                  data: dataValue
-               }
-            } else {
-               throw new Error(`Invalid data for relation ${column} in create data. table: ${model.table}`);
-            }
-         } else {
-            columns.push(column)
-            values.push(model.toSql(column, dataValue))
-         }
-      }
-
-      if (meta?.insertId && meta?.column) {
-         columns.push(meta.column)
-         values.push(meta.insertId)
-      }
-
-      this.validateInfo(columns, values)
-
-      return { columns, values, hasManyRelations, hasOneRelations }
    }
 
    private async excuteHasOne(items: RelationItems, columns: string[], values: any[]) {
@@ -196,6 +147,56 @@ class CreateResult {
       }
    }
 
+   private formatData(data: CreateArgs["data"], meta?: MetaInfo) {
+      const model = this.model
+      const schema = model.schema
+      const columns: string[] = []
+      const values: any[] = []
+      const hasManyRelations: RelationItems = {}
+      const hasOneRelations: RelationItems = {}
+
+      for (const column in data) {
+         const foreign = model.getForeign(column) as ForeignInfo
+         const dataValue = (data as any)[column]
+
+         if (schema[column] instanceof XqlIDField) {
+            continue;
+         }
+
+         if (foreign) {
+            if (meta && foreign.table === meta.table) {
+               throw new Error(`Circular reference detected for relation ${column} in create data. table: ${model.table}`);
+            }
+
+            if (foreign.type === "hasOne" && dataValue && typeof dataValue === 'object' && !Array.isArray(dataValue)) {
+               hasOneRelations[column] = {
+                  foreign,
+                  data: dataValue
+               }
+            } else if (foreign.type === "hasMany" && Array.isArray(dataValue) || typeof dataValue === 'object') {
+               hasManyRelations[column] = {
+                  foreign,
+                  data: dataValue
+               }
+            } else {
+               throw new Error(`Invalid data for relation ${column} in create data. table: ${model.table}`);
+            }
+         } else {
+            columns.push(column)
+            values.push(model.toSql(column, dataValue))
+         }
+      }
+
+      if (meta?.insertId && meta?.column) {
+         columns.push(meta.column)
+         values.push(meta.insertId)
+      }
+
+      this.validateInfo(columns, values)
+
+      return { columns, values, hasManyRelations, hasOneRelations }
+   }
+
    private validateInfo(columns: string[], values: any[]) {
       let model = this.model
       const schema = model.schema
@@ -212,21 +213,6 @@ class CreateResult {
       }
    }
 
-   async find(result: any, select?: SelectArgs) {
-      if (result && select) {
-         const id = result[this.model.IDColumn];
-         const r = await this.finder.result({
-            select,
-            where: {
-               [this.model.IDColumn]: id
-            }
-         })
-         if (r?.length) {
-            result = r?.[0]
-         }
-      }
-      return result
-   }
 }
 
 export default CreateResult;

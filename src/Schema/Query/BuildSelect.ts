@@ -43,7 +43,6 @@ const BuildSelect = (args: SelectArgs, schema: Schema) => {
 
    for (let column in args) {
       const xanv = schema.schema[column]
-      // const relation = schema.xansql.getRelation(schema.table, column)
       const foreign = schema.getForeign(column)
       if (!xanv && !foreign) {
          throw new Error("Invalid column in select clause: " + column)
