@@ -119,11 +119,7 @@ const server = async (app) => {
 
       res.json(result)
    });
-   app.get('/relation', async (req, res) => {
-      const result = db.getRelations()
 
-      res.json(result)
-   });
    app.get('/foreigns', async (req, res) => {
       const result = db.foreigns
 

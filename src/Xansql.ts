@@ -1,5 +1,7 @@
 import Schema from "./Schema";
 import { ForeignsInfo, RelationInfo, XansqlConfig } from "./type";
+import XqlHasMany from "./Types/fields/HasMany";
+import XqlHasOne from "./Types/fields/HasOne";
 import XqlJoin from "./Types/fields/Join";
 import { freezeObject } from "./utils/index";
 
@@ -34,13 +36,13 @@ class Xansql {
          this._foreigns = {};
          for (let [table, schema] of Array.from(this._models.entries())) {
             for (let [column, instance] of Object.entries(schema.schema)) {
-               if (instance instanceof XqlJoin) {
+               if (instance instanceof XqlHasMany || instance instanceof XqlHasOne) {
                   const joinSchema = this.getSchema(instance.table);
 
                   const main = this._foreigns[schema.table] || {};
                   main[column] = {
                      table: joinSchema.table,
-                     column: instance.foreginColumn,
+                     column: instance.column,
                      relation: {
                         main: joinSchema.IDColumn,
                         target: column,
@@ -49,7 +51,7 @@ class Xansql {
                   this._foreigns[schema.table] = main
 
                   const foreign = this._foreigns[joinSchema.table] || {};
-                  foreign[instance.foreginColumn] = {
+                  foreign[instance.column] = {
                      table,
                      column,
                      relation: {
@@ -58,6 +60,30 @@ class Xansql {
                      },
                   };
                   this._foreigns[joinSchema.table] = foreign
+               } else if (instance instanceof XqlHasOne) {
+                  //    const joinSchema = this.getSchema(instance.table);
+
+                  //    const main = this._foreigns[schema.table] || {};
+                  //    main[column] = {
+                  //       table: joinSchema.table,
+                  //       column: instance.column,
+                  //       relation: {
+                  //          main: instance.column,
+                  //          target: joinSchema.IDColumn,
+                  //       }
+                  //    };
+                  //    this._foreigns[schema.table] = main
+
+                  //    const foreign = this._foreigns[joinSchema.table] || {};
+                  //    foreign[instance.column] = {
+                  //       table,
+                  //       column,
+                  //       relation: {
+                  //          main: joinSchema.IDColumn,
+                  //          target: column,
+                  //       },
+                  //    };
+                  //    this._foreigns[joinSchema.table] = foreign
                }
             }
          }
@@ -65,7 +91,7 @@ class Xansql {
       return this._foreigns
    }
 
-   getRelations(tableName?: string): Record<string, { [column: string]: any }> {
+   __getRelations(tableName?: string): Record<string, { [column: string]: any }> {
       if (!this._relations) {
          this._relations = {};
          for (let [table, schema] of Array.from(this._models.entries())) {
@@ -107,8 +133,8 @@ class Xansql {
       return tableName ? this._relations[tableName] : this._relations
    }
 
-   getRelation(table: string, column: string) {
-      const relations = this.getRelations(table);
+   __getRelation(table: string, column: string) {
+      const relations = this.__getRelations(table);
       return relations[column] as RelationInfo
    }
 

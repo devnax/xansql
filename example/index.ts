@@ -24,8 +24,7 @@ const UserSchema = new Schema("users", {
    email: xt.string().index().unique(),
    age: xt.number().optional(),
    created_at: xt.date(),
-
-   options: xt.hasOne('options', 'user').optional(), // uoid
+   option: xt.hasOne('options', 'user').optional(), // uoid
 });
 
 const PostSchema = new Schema("posts", {
