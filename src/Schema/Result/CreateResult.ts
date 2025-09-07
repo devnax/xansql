@@ -54,6 +54,8 @@ class CreateResult {
          const { columns, values, hasManyRelations, hasOneRelations } = this.formatData(data, meta)
          await this.excuteHasOne(hasOneRelations, columns, values)
          let sql = `INSERT INTO ${model.table} (${columns.join(",")}) VALUES (${values.join(",")})`
+         console.log(sql);
+
          const result = await model.xansql.excute(sql, model)
          if (!result.insertId) {
             for (let col in hasOneRelations) {

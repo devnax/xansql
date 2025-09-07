@@ -11,28 +11,38 @@ if (typeof process !== 'undefined' && process?.env) {
    }
 }
 
-const UserOptionSchema = new Schema("metas", {
-   uoid: xt.id(),
-   theme: xt.string().default('light'),
-   notifications: xt.boolean().default(true),
-});
+// const UserOptionSchema = new Schema("metas", {
+//    uoid: xt.id(),
+//    theme: xt.string().default('light'),
+//    notifications: xt.boolean().default(true),
+// });
 
 const UserSchema = new Schema("users", {
    uid: xt.id(),
    name: xt.string().index(),
    email: xt.string().index().unique(),
    age: xt.number().optional().nullable(),
-   meta: xt.hasOne('metas', 'user').optional(),
+   // meta: xt.hasOne('metas', 'user').optional(),
 
    created_at: xt.createdAt(),
    updated_at: xt.updatedAt(),
+
+   posts: xt.array(xt.schema("posts", "user")),
 });
+
+// const PostMetaSchema = new Schema("post_metas", {
+//    pmid: xt.id(),
+//    views: xt.number().default(0),
+//    likes: xt.number().default(0),
+//    post: xt.schema('posts', "metas"),
+// });
 
 const PostSchema = new Schema("posts", {
    pid: xt.id(),
    title: xt.string().index(),
    content: xt.string(),
-   user: xt.hasMany('users', 'user_posts').optional(),
+   // user: xt.schema('users', "posts"),
+   // metas: xt.array(xt.schema("post_metas", "post")),
 });
 
 
@@ -52,6 +62,7 @@ const conn = {
 
 export const db = new Xansql(conn.sqlite)
 
-export const UserOptionModel = db.model(UserOptionSchema)
+// export const UserOptionModel = db.model(UserOptionSchema)
 export const UserModel = db.model(UserSchema)
 export const PostModel = db.model(PostSchema)
+// export const PostMeta = db.model(PostMetaSchema)

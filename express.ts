@@ -185,7 +185,11 @@ const server = async (app) => {
          select: {
             name: true,
             email: true,
-            meta: true,
+            meta: {
+               select: {
+                  theme: true,
+               }
+            },
             user_posts: {
                orderBy: {
                   pid: "asc"
@@ -194,30 +198,15 @@ const server = async (app) => {
                   take: 1,
                },
                select: {
-                  pid: true,
+                  // pid: true,
                   title: true,
                   content: true,
+                  // user: true,
                }
             }
          },
       })
-      // const result = await PostModel.find({
-      //    where: {},
-      //    select: {
-      //       title: true,
-      //       user: {
-      //          select: {
-      //             name: true,
-      //             user_posts: {
-      //                select: {
-      //                   title: true,
-      //                   // user: true
-      //                }
-      //             }
-      //          }
-      //       }
-      //    }
-      // })
+
       res.json(result)
    });
 
@@ -247,10 +236,30 @@ const server = async (app) => {
                {
                   title: "Hello World",
                   content: "This is my first post",
+                  metas: [
+                     {
+                        views: Math.floor(Math.random() * 1000),
+                        likes: Math.floor(Math.random() * 100),
+                     },
+                     {
+                        views: Math.floor(Math.random() * 1000),
+                        likes: Math.floor(Math.random() * 100),
+                     }
+                  ]
                },
                {
                   title: "Hello World",
                   content: "This is my first post",
+                  metas: [
+                     {
+                        views: Math.floor(Math.random() * 1000),
+                        likes: Math.floor(Math.random() * 100),
+                     },
+                     {
+                        views: Math.floor(Math.random() * 1000),
+                        likes: Math.floor(Math.random() * 100),
+                     }
+                  ]
                }
             ]
          }
@@ -312,6 +321,11 @@ const server = async (app) => {
          }
       })
       res.json(result)
+   });
+
+   app.get('/models', async (req, res) => {
+      db.models
+      res.send(`Migrated`);
    });
 
    app.get('/migrate', async (req, res) => {

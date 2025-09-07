@@ -17,6 +17,7 @@ import XqlHasOne from "./fields/HasOne";
 import XqlHasMany from "./fields/HasMany";
 import XqlCreatedAt from "./fields/CreatedAt";
 import XqlUpdatedAt from "./fields/UpdatedAt";
+import XqlSchema from "./fields/Schema";
 export const x = {
    array: (type: XVInstanceType, length?: number) => new SQArray(type, length),
    boolean: () => new SQBoolean(),
@@ -32,10 +33,13 @@ export const x = {
    union: (type: XVInstanceType[]) => new SQUnion(type),
 
    id: () => new SQIDField(),
-   join: (table: string, foreginColumn: string) => new XqlJoin(table, foreginColumn),
+   join: (table: string, column: string) => new XqlJoin(table, column),
 
    hasOne: (table: string, column: string) => new XqlHasOne(table, column),
    hasMany: (table: string, column: string) => new XqlHasMany(table, column),
+
+   schema: (table: string, column: string) => new XqlSchema(table, column),
+
 
    createdAt: () => new XqlCreatedAt(),
    updatedAt: () => new XqlUpdatedAt(),

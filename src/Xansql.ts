@@ -1,15 +1,17 @@
+import { xt } from ".";
 import Schema from "./Schema";
 import { ForeignsInfo, RelationInfo, XansqlConfig } from "./type";
+import XqlArray from "./Types/fields/Array";
 import XqlHasMany from "./Types/fields/HasMany";
 import XqlHasOne from "./Types/fields/HasOne";
 import XqlJoin from "./Types/fields/Join";
+import XqlSchema from "./Types/fields/Schema";
 import { freezeObject } from "./utils/index";
 
 class Xansql {
    private _models = new Map<string, Schema>();
    private _config: XansqlConfig;
    private _aliases = new Map<string, string>();
-   private _relations: Record<string, { [column: string]: any }> | null = null
    private _foreigns: ForeignsInfo | null = null
 
    constructor(config: XansqlConfig) {
@@ -31,6 +33,71 @@ class Xansql {
       return dialect;
    }
 
+   private _modelFormated = false;
+   get models() {
+      if (this._modelFormated) return this._models;
+
+      for (let [table, model] of Array.from(this._models.entries())) {
+         const schema = model.schema;
+         for (let column in schema) {
+            const val = schema[column]
+
+            if (val instanceof XqlSchema) {
+               const FModel = this._models.get(val.table);
+
+               if (!FModel) {
+                  throw new Error(`Foreign model ${val.table} not found for ${model.table}.${column}`);
+               }
+
+               // check if the foreign column exists in the foreign model
+               const exists = val.column in FModel.schema
+               if (exists) {
+                  // check the foreign column is an array of schemas
+                  const foreignCol = FModel.schema[val.column];
+                  if (foreignCol instanceof XqlArray && (foreignCol as any).type instanceof XqlSchema) {
+                     const foreignType = (foreignCol as any).type as XqlSchema;
+                     if (foreignType.table !== model.table || foreignType.column !== column) {
+                        throw new Error(`Foreign column ${val.table}.${val.column} does not reference back to ${model.table}.${column}`);
+                     }
+                  } else {
+                     throw new Error(`Foreign column ${val.table}.${val.column} is not an array of schemas`);
+                  }
+               } else {
+                  // add the foreign column as an array of schemas
+                  FModel.schema[val.column] = xt.array(xt.schema(model.table, column).optional());
+               }
+            } else if (val instanceof XqlArray && (val as any).type instanceof XqlSchema) {
+               const foreignType = (val as any).type as XqlSchema;
+               const FModel = this._models.get(foreignType.table);
+               if (!FModel) {
+                  throw new Error(`Foreign model ${foreignType.table} not found for ${model.table}.${column}`);
+               }
+
+               // check if the foreign column exists in the foreign model
+               const exists = foreignType.column in FModel.schema
+               if (exists) {
+                  const foreignCol = FModel.schema[foreignType.column];
+                  if (foreignCol instanceof XqlSchema && foreignCol.table === model.table && foreignCol.column === column) {
+                     // all good
+                  } else {
+                     throw new Error(`Foreign column ${foreignType.table}.${foreignType.column} does not reference back to ${model.table}.${column}`);
+                  }
+               } else {
+                  // add the foreign column as an array of schemas
+                  FModel.schema[foreignType.column] = xt.schema(model.table, column).optional();
+               }
+            }
+         }
+      }
+      this._modelFormated = true;
+      // log all are ok
+      for (let [table, model] of Array.from(this._models.entries())) {
+         console.log(model.schema);
+
+      }
+      return this._models;
+   }
+
    get foreigns(): ForeignsInfo {
       if (!this._foreigns) {
          this._foreigns = {};
@@ -48,7 +115,7 @@ class Xansql {
                   }
 
                   main[column] = {
-                     type: "hasOne",
+                     type: hasMany ? "hasOne" : "hasMany",
                      table: FModel.table,
                      column: join.column,
                      relation: {
@@ -58,7 +125,7 @@ class Xansql {
                   };
 
                   foreign[join.column] = {
-                     type: hasMany ? "hasMany" : "hasOne",
+                     type: hasMany ? "hasOne" : "hasMany",
                      table,
                      column,
                      relation: {
@@ -74,54 +141,6 @@ class Xansql {
          }
       }
       return this._foreigns
-   }
-
-   __getRelations(tableName?: string): Record<string, { [column: string]: any }> {
-      if (!this._relations) {
-         this._relations = {};
-         for (let [table, model] of Array.from(this._models.entries())) {
-            for (let [column, instance] of Object.entries(model.schema)) {
-               if (instance instanceof XqlJoin) {
-                  const FModel = this.getSchema(instance.table);
-                  const relation = this._relations[model.table] || {};
-                  const foreign = this._relations[FModel.table] || {};
-
-                  relation[column] = {
-                     single: true,
-                     main: {
-                        table,
-                        column,
-                     },
-                     foregin: {
-                        table: FModel.table,
-                        column: instance.foreginColumn,
-                     }
-                  };
-
-                  foreign[instance.foreginColumn] = {
-                     single: false,
-                     main: {
-                        table: FModel.table,
-                        column: instance.foreginColumn,
-                     },
-                     foregin: {
-                        table,
-                        column,
-                     }
-                  };
-
-                  this._relations[model.table] = relation
-                  this._relations[FModel.table] = foreign
-               }
-            }
-         }
-      }
-      return tableName ? this._relations[tableName] : this._relations
-   }
-
-   __getRelation(table: string, column: string) {
-      const relations = this.__getRelations(table);
-      return relations[column] as RelationInfo
    }
 
    getSchema(table: string): Schema {
