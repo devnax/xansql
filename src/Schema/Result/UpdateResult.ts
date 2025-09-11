@@ -1,7 +1,6 @@
 import Schema from "..";
 import { ForeignInfo } from "../../type";
-import { SelectArgs } from "../Query/types";
-import { UpdateArgs } from "../type";
+import { SelectArgs, UpdateArgs } from "../type";
 import FindResult from "./FindResult";
 import WhereArgs from "./WhereArgs";
 

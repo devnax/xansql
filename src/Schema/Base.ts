@@ -1,4 +1,3 @@
-import { ForeignInfo } from "../type";
 import XqlArray from "../Types/fields/Array";
 import XqlBoolean from "../Types/fields/Boolean";
 import XqlDate from "../Types/fields/Date";

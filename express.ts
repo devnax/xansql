@@ -3,11 +3,6 @@ dotenv.config()
 import fakeData from './faker'
 import express from 'express';
 import { db, PostModel, UserModel } from './example'
-import BuildWhere from './src/Schema/Query/BuildWhere';
-import BuildSelect from './src/Schema/Query/BuildSelect';
-import BuildOrderby from './src/Schema/Query/BuildOrderby';
-import BuildLimit from './src/Schema/Query/BuildLimit';
-import BuildData from './src/Schema/Query/BuildData';
 import WhereArgs from './src/Schema/Result/WhereArgs';
 
 const server = async (app) => {
@@ -51,71 +46,6 @@ const server = async (app) => {
       })
    });
 
-   app.get('/select', async (req, res) => {
-      const result = BuildSelect({
-         name: true,
-         email: true,
-         user_posts: {
-            select: {
-               pid: true,
-               title: true,
-               content: true,
-               user: {
-                  select: {
-                     name: true,
-                     user_posts: {
-                        select: {
-                           title: true,
-                           user: {
-                              select: {
-                                 name: true,
-                              }
-                           }
-                        }
-                     }
-                  }
-               }
-            }
-         }
-      }, UserModel)
-
-      res.json(result)
-   });
-
-   app.get('/orderby', async (req, res) => {
-      const result = BuildOrderby({
-         name: "asc",
-      }, UserModel)
-
-      res.json(result)
-   });
-   app.get('/limit', async (req, res) => {
-      const result = BuildLimit({
-         take: 10,
-         skip: 5,
-      }, UserModel)
-
-      res.json(result)
-   });
-   app.get('/data', async (req, res) => {
-      const result = BuildData({
-         name: "John Doe",
-         email: `john${Math.floor(Math.random() * 10000)}@doe.com`,
-         created_at: new Date(),
-         user_posts: [
-            {
-               title: "Hello World",
-               content: "This is my first post"
-            },
-            {
-               title: "Hello World 2",
-               content: "This is my second post",
-            }
-         ]
-      }, UserModel)
-
-      res.json(result)
-   });
 
    app.get('/find', async (req, res) => {
       const result = await UserModel.find({
@@ -136,11 +66,6 @@ const server = async (app) => {
          select: {
             name: true,
             email: true,
-            meta: {
-               select: {
-                  theme: true,
-               }
-            },
             user_posts: {
                orderBy: {
                   pid: "asc"

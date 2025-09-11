@@ -1,11 +1,7 @@
 import Schema from "..";
 import { ForeignInfo } from "../../type";
-import { isNumber, isObject } from "../../utils";
-import BuildLimit from "../Query/BuildLimit";
-import BuildOrderby from "../Query/BuildOrderby";
-import BuildSelect, { BuildSelectJoinInfo } from "../Query/BuildSelect";
-import BuildWhere from "../Query/BuildWhere";
-import { FindArgs } from "../type";
+import { isObject } from "../../utils";
+import { FindArgs, LimitArgs, OrderByArgs } from "../type";
 import WhereArgs from "./WhereArgs";
 
 type Meta = {
@@ -35,8 +31,8 @@ class FindResult {
       const relationColumns: string[] = []
 
       const Where = new WhereArgs(model, where || {})
-      const Limit = BuildLimit(limit || {}, model)
-      const OrderBy = BuildOrderby(orderBy || {}, model)
+      const Limit = this.limit(limit || {})
+      const OrderBy = this.orderby(orderBy || {})
 
       let relationArgs: { [column: string]: { args: FindArgs, foreign: ForeignInfo } } = {}
 
@@ -161,6 +157,49 @@ class FindResult {
       }
 
       return result
+   }
+
+   private limit(args: LimitArgs) {
+
+      let take = args.take ?? 50
+      let skip = args.skip ?? 0
+      if (take < 0 || !Number.isInteger(take)) {
+         throw new Error("Invalid take value in limit clause")
+      }
+      if (skip < 0 || !Number.isInteger(skip)) {
+         throw new Error("Invalid skip value in limit clause")
+      }
+
+      const info: any = {
+         take: take,
+         skip: skip,
+         sql: `LIMIT ${take} ${skip ? `OFFSET ${skip}` : ""}`.trim(),
+      }
+
+      return info
+   }
+
+   private orderby(args: OrderByArgs) {
+      const model = this.model
+      const info: any = {
+         sql: "",
+      }
+      const items = []
+
+      for (let column in args) {
+         const val = args[column]
+         if (!(column in model.schema)) {
+            throw new Error("Invalid column in orderBy clause: " + column)
+         };
+         if (['asc', 'desc'].includes(val) === false) {
+            throw new Error("Invalid orderBy value for column " + column)
+         }
+         items.push(`${model.table}.${column} ${val.toUpperCase()}`)
+      }
+      if (items.length > 0) {
+         info.sql += `ORDER BY ${items.join(', ')}`
+      }
+      return info
    }
 
 }
