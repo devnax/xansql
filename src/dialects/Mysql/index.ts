@@ -12,6 +12,7 @@ import XqlMap from "../../Types/fields/Map";
 import XqlNumber from "../../Types/fields/Number";
 import XqlObject from "../../Types/fields/Object";
 import XqlRecord from "../../Types/fields/Record";
+import XqlSchema from "../../Types/fields/Schema";
 import XqlSet from "../../Types/fields/Set";
 import XqlString from "../../Types/fields/String";
 import { XqlFields } from "../../Types/types";
@@ -32,7 +33,7 @@ const buildColumn = (column: string, field: XqlFields) => {
    let sql = '';
    if (field instanceof XqlIDField) {
       sql += `\`${column}\` INT AUTO_INCREMENT PRIMARY KEY, `;
-   } else if (field instanceof XqlHasOne || field instanceof XqlHasMany) {
+   } else if (field instanceof XqlSchema) {
       sql += col(column, "INT")
    } else if (field instanceof XqlString) {
       let length = meta.length || meta.max
@@ -57,8 +58,14 @@ const buildColumn = (column: string, field: XqlFields) => {
       sql += col(column, "DATETIME");
    } else if (field instanceof XqlEnum) {
       sql += col(column, `ENUM(${(field as any).values.map((v: any) => `'${v}'`).join(', ')})`);
-   } else if (field instanceof XqlArray || field instanceof XqlSet || field instanceof XqlObject || field instanceof XqlMap || field instanceof XqlRecord) {
+   } else if (field instanceof XqlSet || field instanceof XqlObject || field instanceof XqlMap || field instanceof XqlRecord) {
       sql += col(column, "TEXT");
+   } else if (field instanceof XqlArray) {
+      const arrayType = (field as any).type;
+      const isSchemaArray = arrayType instanceof XqlSchema;
+      if (!isSchemaArray) {
+         sql += col(column, "TEXT"); // store JSON string
+      }
    } else {
       throw new Error(`Unsupported field type for column ${column}`);
    }

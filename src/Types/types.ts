@@ -17,6 +17,7 @@ import XqlHasMany from "./fields/HasMany"
 import XqlHasOne from "./fields/HasOne"
 import XqlCreatedAt from "./fields/CreatedAt"
 import XqlUpdatedAt from "./fields/UpdatedAt"
+import XqlSchema from "./fields/Schema"
 
 export type XqlFields =
    | XqlArray
@@ -32,6 +33,7 @@ export type XqlFields =
    | XqlString
    | XqlTuple
    | XqlUnion
+   | XqlSchema
 
    | XqlIDField
    | XqlHasMany

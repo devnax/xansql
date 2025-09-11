@@ -12,6 +12,7 @@ import XqlMap from "../../Types/fields/Map";
 import XqlNumber from "../../Types/fields/Number";
 import XqlObject from "../../Types/fields/Object";
 import XqlRecord from "../../Types/fields/Record";
+import XqlSchema from "../../Types/fields/Schema";
 import XqlSet from "../../Types/fields/Set";
 import XqlString from "../../Types/fields/String";
 import { XqlFields } from "../../Types/types";
@@ -24,7 +25,6 @@ const buildColumn = (column: string, field: XqlFields): string => {
    const nullable = meta.nullable || meta.optional ? 'NULL' : 'NOT NULL';
    const unique = meta.unique ? 'UNIQUE' : '';
    const defaultValue = meta.default ? `DEFAULT '${meta.default}'` : '';
-
    const col = (column: string, sqlType: string) =>
       `"${column}" ${sqlType} ${nullable} ${unique} ${defaultValue}, `;
 
@@ -32,7 +32,7 @@ const buildColumn = (column: string, field: XqlFields): string => {
    if (field instanceof XqlIDField) {
       // SQLite uses INTEGER PRIMARY KEY AUTOINCREMENT
       sql += `"${column}" INTEGER PRIMARY KEY AUTOINCREMENT, `;
-   } else if (field instanceof XqlHasOne || field instanceof XqlHasMany) {
+   } else if (field instanceof XqlSchema) {
       sql += col(column, "INTEGER");
    } else if (field instanceof XqlString) {
       let length = meta.length || meta.max;
@@ -59,8 +59,13 @@ const buildColumn = (column: string, field: XqlFields): string => {
       // SQLite has no ENUM → store as TEXT with CHECK constraint
       const values = (field as any).values.map((v: any) => `'${v}'`).join(", ");
       sql += `"${column}" TEXT CHECK("${column}" IN (${values})) ${nullable} ${unique} ${defaultValue}, `;
-   } else if (field instanceof XqlArray || field instanceof XqlSet || field instanceof XqlObject || field instanceof XqlMap || field instanceof XqlRecord) {
+   } else if (field instanceof XqlSet || field instanceof XqlObject || field instanceof XqlMap || field instanceof XqlRecord) {
       sql += col(column, "TEXT"); // store JSON string
+   } else if (field instanceof XqlArray) {
+      const arrayType = (field as any).type;
+      if (!(arrayType instanceof XqlSchema)) {
+         sql += col(column, "TEXT"); // store JSON string
+      }
    } else {
       throw new Error(`Unsupported field type for column ${column}`);
    }

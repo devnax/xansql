@@ -27,71 +27,28 @@ const server = async (app) => {
    app.get('/where', async (req, res) => {
       const where = new WhereArgs(UserModel, {
          name: "John Doe",
-         meta: {
-            theme: [
-               {
-                  contains: "dark"
-               },
-               {
-                  contains: "light"
-               }
-            ],
-            user: {
-               name: "x"
-            }
-         },
-         // user_posts: {
-         //    title: "as",
-         //    user: {
-         //       email: "example",
-         //       user_posts: [
-         //          {
-         //             title: {
-         //                contains: "x"
-         //             },
-
-         //             user: [
-         //                { name: "x" },
-         //                {
-         //                   email: {
-         //                      endsWith: "m"
-         //                   }
-         //                }
-         //             ]
-         //          },
-         //          { content: "y" }
-         //       ]
-         //    }
-         // }
+         user_posts: {
+            pid: 375,
+            metas: {
+               likes: 10
+            },
+            categories: [
+               { name: "Tech" },
+               { name: "News" },
+            ]
+         }
       })
-      // const result = BuildWhere({
-      //    name: "John Doe",
-      //    user_posts: {
-      //       title: "as",
-      //       user: {
-      //          email: "example",
-      //          user_posts: [
-      //             {
-      //                title: {
-      //                   contains: "x"
-      //                },
-
-      //                user: [
-      //                   { name: "x" },
-      //                   {
-      //                      email: {
-      //                         endsWith: "m"
-      //                      }
-      //                   }
-      //                ]
-      //             },
-      //             { content: "y" }
-      //          ]
-      //       }
-      //    }
-      // }, UserModel)
 
       res.json(where.sql)
+   });
+
+   app.get('/foreign', async (req, res) => {
+      const f = db.foreignInfo("posts", "user")
+      const u = db.foreignInfo("users", "user_posts")
+
+      res.json({
+         f, u
+      })
    });
 
    app.get('/select', async (req, res) => {
@@ -160,12 +117,6 @@ const server = async (app) => {
       res.json(result)
    });
 
-   app.get('/foreigns', async (req, res) => {
-      const result = db.foreigns
-
-      res.json(result)
-   });
-
    app.get('/find', async (req, res) => {
       const result = await UserModel.find({
          orderBy: {
@@ -216,11 +167,23 @@ const server = async (app) => {
          select: {
             name: true,
             email: true,
-            // meta: true,
             user_posts: {
                select: {
                   content: true,
                   title: true,
+                  metas: {
+                     select: {
+                        views: true,
+                        likes: true,
+                     },
+                     limit: { take: 1 }
+
+                  },
+                  categories: {
+                     select: {
+                        name: true,
+                     },
+                  }
                }
             }
          },
@@ -228,14 +191,14 @@ const server = async (app) => {
             name: "John Doe",
             email: `john${Math.floor(Math.random() * 10000)}@doe.com`,
             // created_at: new Date(),
-            meta: {
-               theme: "dark",
-               notifications: false,
-            },
             user_posts: [
                {
                   title: "Hello World",
                   content: "This is my first post",
+                  categories: [
+                     { name: "Tech" },
+                     { name: "News" },
+                  ],
                   metas: [
                      {
                         views: Math.floor(Math.random() * 1000),
@@ -281,12 +244,14 @@ const server = async (app) => {
             }
          },
          where: {
-            uid: 197,
-            user_posts: {
-               pid: 391
-            }
+            uid: 1,
          }
       })
+      // const result = await PostModel.delete({
+      //    where: {
+      //       pid: 1,
+      //    }
+      // })
       res.json(result)
    });
 
@@ -300,6 +265,9 @@ const server = async (app) => {
                select: {
                   content: true,
                   title: true,
+
+                  metas: true,
+                  categories: true,
                }
             }
          },
@@ -313,6 +281,12 @@ const server = async (app) => {
                data: {
                   title: `Updated Title ${Math.floor(Math.random() * 10000)}`,
                   content: "Updated Content",
+                  metas: {
+                     data: {
+                        views: Math.floor(Math.random() * 1000),
+                        likes: Math.floor(Math.random() * 100),
+                     },
+                  }
                },
                where: {
                   // pid: 5

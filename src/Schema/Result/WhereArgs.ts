@@ -9,14 +9,21 @@ import XqlTuple from "../../Types/fields/Tuple";
 import { escapeSqlValue, isObject } from "../../utils";
 import { WhereArgs as T, WhereSubCondition } from "../Query/types";
 
+
+type Meta = {
+   parentTable: string
+}
+
 class WhereArgs {
    private model: Schema
    private where: T
+   private meta: Meta | undefined
    private _wheres: string[] | null = null
 
-   constructor(model: Schema, where: T) {
+   constructor(model: Schema, where: T, meta?: Meta) {
       this.model = model
       this.where = where
+      this.meta = meta
    }
 
    get is() {
@@ -24,17 +31,24 @@ class WhereArgs {
    }
 
    get wheres() {
+
       if (this._wheres) return this._wheres
+      let xansql = this.model.xansql
       let model = this.model
+      let schema = model.schema
+
       let wheres: string[] = []
 
       for (let column in this.where) {
-         const foreign = model.getForeign(column)
          this.isAllowed(column)
          const value: any = this.where[column]
 
-         if (foreign) {
-            let FModel = model.xansql.getSchema(foreign.table)
+         if (xansql.isForeign(schema[column])) {
+            let foreign = xansql.foreignInfo(model.table, column)
+            let FModel = model.xansql.getModel(foreign.table)
+            if (this.meta && this.meta.parentTable === foreign.table) {
+               throw new Error(`Circular reference detected in where clause for ${model.table}.${column}`);
+            }
             let _sql = ''
             if (Array.isArray(value)) {
                let _ors = []
@@ -42,14 +56,14 @@ class WhereArgs {
                   if (!isObject(w)) {
                      throw new Error(`${column} must be an object in the WHERE clause, but received ${typeof w}`);
                   }
-                  const where = new WhereArgs(FModel, w)
+                  const where = new WhereArgs(FModel, w, { parentTable: model.table })
                   if (where.is) {
                      _ors.push(`(${where.wheres.join(" AND ")})`)
                   }
                }
                _sql = _ors.length ? `(${_ors.join(" OR ")})` : ""
             } else if (isObject(value)) {
-               const where = new WhereArgs(FModel, value)
+               const where = new WhereArgs(FModel, value, { parentTable: model.table })
                if (where.is) {
                   _sql = where.wheres.join(" AND ")
                }
@@ -162,6 +176,9 @@ class WhereArgs {
 
    private isAllowed(column: string) {
       const xanv = this.model.schema[column]
+      if (this.model.xansql.isForeignArray(xanv)) {
+         return true
+      }
       const isNotAllowed = xanv instanceof XqlArray
          || xanv instanceof XqlObject
          || xanv instanceof XqlSet

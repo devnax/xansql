@@ -12,6 +12,7 @@ import XqlMap from "../../Types/fields/Map";
 import XqlNumber from "../../Types/fields/Number";
 import XqlObject from "../../Types/fields/Object";
 import XqlRecord from "../../Types/fields/Record";
+import XqlSchema from "../../Types/fields/Schema";
 import XqlSet from "../../Types/fields/Set";
 import XqlString from "../../Types/fields/String";
 import { XqlFields } from "../../Types/types";
@@ -32,7 +33,7 @@ const buildColumn = (column: string, field: XqlFields): string => {
    if (field instanceof XqlIDField) {
       // PostgreSQL SERIAL for auto-increment primary key
       sql += `"${column}" SERIAL PRIMARY KEY, `;
-   } else if (field instanceof XqlHasOne || field instanceof XqlHasMany) {
+   } else if (field instanceof XqlSchema) {
       sql += col(column, "INTEGER");
    } else if (field instanceof XqlString) {
       let length = meta.length || meta.max;
@@ -60,9 +61,12 @@ const buildColumn = (column: string, field: XqlFields): string => {
       const enumName = `${column}_enum`;
       sql += `"${column}" ${enumName} ${nullable} ${unique} ${defaultValue}, `;
    } else if (field instanceof XqlArray) {
-      sql += col(column, "TEXT[]"); // store array of text
+      const arrayType = (field as any).type;
+      if (!(arrayType instanceof XqlSchema)) {
+         sql += col(column, "TEXT");
+      }
    } else if (field instanceof XqlSet || field instanceof XqlObject || field instanceof XqlMap || field instanceof XqlRecord) {
-      sql += col(column, "JSONB"); // use JSONB for objects/sets/maps
+      sql += col(column, "TEXT");
    } else {
       throw new Error(`Unsupported field type for column ${column}`);
    }

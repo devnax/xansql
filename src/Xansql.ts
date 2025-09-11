@@ -6,6 +6,7 @@ import XqlHasMany from "./Types/fields/HasMany";
 import XqlHasOne from "./Types/fields/HasOne";
 import XqlJoin from "./Types/fields/Join";
 import XqlSchema from "./Types/fields/Schema";
+import { XqlFields } from "./Types/types";
 import { freezeObject } from "./utils/index";
 
 class Xansql {
@@ -33,124 +34,8 @@ class Xansql {
       return dialect;
    }
 
-   private _modelFormated = false;
-   get models() {
-      if (this._modelFormated) return this._models;
 
-      for (let [table, model] of Array.from(this._models.entries())) {
-         const schema = model.schema;
-         for (let column in schema) {
-            const val = schema[column]
-
-            if (val instanceof XqlSchema) {
-               const FModel = this._models.get(val.table);
-
-               if (!FModel) {
-                  throw new Error(`Foreign model ${val.table} not found for ${model.table}.${column}`);
-               }
-
-               // check if the foreign column exists in the foreign model
-               const exists = val.column in FModel.schema
-               if (exists) {
-                  // check the foreign column is an array of schemas
-                  const foreignCol = FModel.schema[val.column];
-                  if (foreignCol instanceof XqlArray && (foreignCol as any).type instanceof XqlSchema) {
-                     const foreignType = (foreignCol as any).type as XqlSchema;
-                     if (foreignType.table !== model.table || foreignType.column !== column) {
-                        throw new Error(`Foreign column ${val.table}.${val.column} does not reference back to ${model.table}.${column}`);
-                     }
-                  } else {
-                     throw new Error(`Foreign column ${val.table}.${val.column} is not an array of schemas`);
-                  }
-               } else {
-                  // add the foreign column as an array of schemas
-                  FModel.schema[val.column] = xt.array(xt.schema(model.table, column).optional());
-               }
-            } else if (val instanceof XqlArray && (val as any).type instanceof XqlSchema) {
-               const foreignType = (val as any).type as XqlSchema;
-               const FModel = this._models.get(foreignType.table);
-               if (!FModel) {
-                  throw new Error(`Foreign model ${foreignType.table} not found for ${model.table}.${column}`);
-               }
-
-               // check if the foreign column exists in the foreign model
-               const exists = foreignType.column in FModel.schema
-               if (exists) {
-                  const foreignCol = FModel.schema[foreignType.column];
-                  if (foreignCol instanceof XqlSchema && foreignCol.table === model.table && foreignCol.column === column) {
-                     // all good
-                  } else {
-                     throw new Error(`Foreign column ${foreignType.table}.${foreignType.column} does not reference back to ${model.table}.${column}`);
-                  }
-               } else {
-                  // add the foreign column as an array of schemas
-                  FModel.schema[foreignType.column] = xt.schema(model.table, column).optional();
-               }
-            }
-         }
-      }
-      this._modelFormated = true;
-      // log all are ok
-      for (let [table, model] of Array.from(this._models.entries())) {
-         console.log(model.schema);
-
-      }
-      return this._models;
-   }
-
-   get foreigns(): ForeignsInfo {
-      if (!this._foreigns) {
-         this._foreigns = {};
-         for (let [table, model] of Array.from(this._models.entries())) {
-            for (let [column, join] of Object.entries(model.schema)) {
-
-               if (join instanceof XqlHasOne || join instanceof XqlHasMany) {
-                  const hasMany = join instanceof XqlHasMany;
-                  const FModel = this.getSchema(join.table);
-                  const main = this._foreigns[model.table] || {};
-                  const foreign = this._foreigns[FModel.table] || {};
-
-                  if (join.column in foreign) {
-                     throw new Error(`Foreign key already exists for ${FModel.table}.${join.column}`);
-                  }
-
-                  main[column] = {
-                     type: hasMany ? "hasOne" : "hasMany",
-                     table: FModel.table,
-                     column: join.column,
-                     relation: {
-                        main: FModel.IDColumn,
-                        target: column,
-                     }
-                  };
-
-                  foreign[join.column] = {
-                     type: hasMany ? "hasOne" : "hasMany",
-                     table,
-                     column,
-                     relation: {
-                        main: column,
-                        target: FModel.IDColumn,
-                     },
-                  };
-
-                  this._foreigns[model.table] = main
-                  this._foreigns[FModel.table] = foreign
-               }
-            }
-         }
-      }
-      return this._foreigns
-   }
-
-   getSchema(table: string): Schema {
-      if (!this._models.has(table)) {
-         throw new Error(`Model for table ${table} does not exist`);
-      }
-      return this._models.get(table) as Schema;
-   }
-
-   private _makeAlias(table: string) {
+   private makeAlias(table: string) {
       let wordLength = 1;
       table = table.toLowerCase().replaceAll(/[^a-z0-9_]/g, '_')
       let alias = table.slice(0, wordLength)
@@ -166,6 +51,7 @@ class Xansql {
       return alias;
    }
 
+   private _timer: any;
    model<S extends Schema>(model: S) {
       if (!model.IDColumn) {
          throw new Error("Schema must have an ID column");
@@ -173,15 +59,130 @@ class Xansql {
       if (this._models.has(model.table)) {
          throw new Error("Model already exists for this table");
       }
-      model.alias = this._makeAlias(model.table);
+      model.alias = this.makeAlias(model.table);
       model.xansql = this;
       this._models.set(model.table, model);
-      // freezeObject(model);
+
+      // this will delay the model formatting to allow multiple models to be added before formatting
+      clearTimeout(this._timer);
+      this._timer = setTimeout(() => {
+         this.models
+      }, 0);
       return model
    }
 
+
+   private _modelFormated = false;
+   get models() {
+      if (this._modelFormated) return this._models;
+      let models = this._models;
+
+      for (let [table, model] of Array.from(this._models.entries())) {
+         const schema = model.schema;
+         for (let column in schema) {
+            const val = schema[column]
+
+            if (this.isForeignSchema(val)) {
+               const FModel = models.get(val.table);
+               if (!FModel) {
+                  throw new Error(`Foreign model ${val.table} not found for ${model.table}.${column}`);
+               }
+
+               if (val.column in FModel.schema) {
+                  const foreignCol = FModel.schema[val.column];
+                  if (this.isForeignArray(foreignCol)) {
+                     const foreignType = (foreignCol as any).type as XqlSchema;
+                     if (foreignType.table !== model.table || foreignType.column !== column) {
+                        throw new Error(`Foreign column ${val.table}.${val.column} does not reference back to ${model.table}.${column}`);
+                     }
+                  } else {
+                     throw new Error(`Foreign column ${val.table}.${val.column} is not an array of schemas`);
+                  }
+               } else {
+                  let n = xt.schema(model.table, column) as any
+                  n.dynamic = true
+                  FModel.schema[val.column] = xt.array(n);
+                  models.set(FModel.table, FModel);
+               }
+            } else if (this.isForeignArray(val)) {
+               const foreignType = (val as any).type as XqlSchema;
+               const FModel = models.get(foreignType.table);
+               if (!FModel) {
+                  throw new Error(`Foreign model ${foreignType.table} not found for ${model.table}.${column}`);
+               }
+
+               if (foreignType.column in FModel.schema) {
+                  const foreignCol = FModel.schema[foreignType.column] as XqlSchema;
+                  if (!this.isForeignSchema(foreignCol) || foreignCol.table !== model.table || foreignCol.column !== column) {
+                     throw new Error(`Foreign column ${foreignType.table}.${foreignType.column} does not reference back to ${model.table}.${column}`);
+                  }
+               } else {
+                  const n = xt.schema(model.table, column).optional();
+                  n.dynamic = true
+                  FModel.schema[foreignType.column] = n
+                  models.set(FModel.table, FModel);
+               }
+            }
+         }
+      }
+
+      this._modelFormated = true;
+      return models;
+   }
+
+   isForeign(field: XqlFields) {
+      return this.isForeignArray(field) || this.isForeignSchema(field)
+   }
+
+   isForeignArray(field: XqlFields) {
+      return field instanceof XqlArray && this.isForeignSchema((field as any).type)
+   }
+
+   isForeignSchema(field: XqlFields) {
+      return field instanceof XqlSchema
+   }
+
+   foreignInfo(table: string, column: string) {
+      let model = this.getModel(table)
+      let schema = model.schema
+      let field = schema[column]
+      if (!this.isForeign(field)) {
+         throw new Error(`${table}.${column} is not a foreign key`);
+      }
+      if (this.isForeignArray(field)) {
+         const foreignType = (field as any).type as XqlSchema;
+         return {
+            table: foreignType.table,
+            column: foreignType.column,
+            relation: {
+               main: foreignType.column,
+               target: model.IDColumn,
+            }
+         }
+      } else if (this.isForeignSchema(field)) {
+         const foreignType = field as XqlSchema;
+         const FModel = this.getModel(foreignType.table)
+         return {
+            table: foreignType.table,
+            column: foreignType.column,
+            relation: {
+               main: FModel.IDColumn,
+               target: column
+            }
+         }
+      }
+      throw new Error(`Unknown foreign key type for ${table}.${column}`);
+   }
+
+   getModel(table: string): Schema {
+      if (!this.models.has(table)) {
+         throw new Error(`Model for table ${table} does not exist`);
+      }
+      return this.models.get(table) as Schema;
+   }
+
    async migrate(force?: boolean) {
-      const models = this._models
+      const models = this.models
       const tables = Array.from(models.keys())
       for (let table of tables) {
          const model = models.get(table) as Schema

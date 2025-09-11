@@ -1,125 +1,104 @@
 import Schema from "..";
 import { ForeignInfo } from "../../type";
-import XqlIDField from "../../Types/fields/IDField";
-import BuildData, { BuildDataInfo } from "../Query/BuildData";
-import BuildLimit from "../Query/BuildLimit";
-import BuildOrderby from "../Query/BuildOrderby";
-import BuildSelect, { BuildSelectJoinInfo } from "../Query/BuildSelect";
-import BuildWhere from "../Query/BuildWhere";
-import { SelectArgs, WhereArgs } from "../Query/types";
-import { UpdateArgs, UpdateDataArgs } from "../type";
+import { SelectArgs } from "../Query/types";
+import { UpdateArgs } from "../type";
 import FindResult from "./FindResult";
+import WhereArgs from "./WhereArgs";
+
+type MetaInfo = {
+   table: string;
+}
 
 class UpdateResult {
    finder: FindResult
-   constructor(readonly schema: Schema) {
-      this.finder = new FindResult(schema)
+   model: Schema
+   constructor(model: Schema) {
+      this.model = model
+      this.finder = new FindResult(model)
    }
 
-   async result(args: UpdateArgs) {
-      const schema = this.schema
-      const build = this.buildData(args.data, schema)
-      const where = BuildWhere(args.where, schema)
-      const data = BuildData(build.data, schema) as BuildDataInfo
-      const sql = `
-         UPDATE ${schema.table}
-         SET ${data.columns.map((col, i) => `${col} = ${data.values[i]}`).join(", ")}
-         ${where ? `${where.sql}` : ""}
-      `;
+   async result(args: UpdateArgs, meta?: MetaInfo) {
+      if (!args.data || Object.keys(args.data).length === 0 || !args.where || Object.keys(args.where).length === 0) {
+         throw new Error("No data to update.");
+      }
 
-      const excute = await schema.excute(sql)
-      if (excute?.affectedRows && excute.affectedRows > 0) {
-         const result = await this.finder.result({
-            where: args.where,
-            select: {
-               [schema.IDColumn]: true
-            }
-         })
+      const model = this.model
+      const data = this.formatData(args.data)
+      const Where = new WhereArgs(model, args.where || {})
+      const where_sql = Where.sql
+      if (!where_sql) {
+         throw new Error("Update operation requires a valid where clause to prevent mass updates.");
+      }
 
-         const res = result[0] || null
-         const id = res ? res[schema.IDColumn] : null
-         if (!id) return result
-
-         for (const column in build.joins) {
-            const join = build.joins[column]
-            const foreign = schema.getForeign(column) as ForeignInfo
-            const FModel = schema.xansql.getSchema(foreign.table);
-
-            if (join.where) {
-               join.where[foreign.column] = {
-                  [foreign.relation.target]: id
+      let sql = `UPDATE ${model.table} SET ${data.sql} ${where_sql}`
+      const result = await model.xansql.excute(sql, model)
+      if (result.affectedRows) {
+         if (data.relations.length) {
+            for (let col of data.relations) {
+               let val = (args.data as any)[col]
+               if (!val) {
+                  throw new Error("No data for relation " + col);
                }
-            } else {
-               join.where = {
-                  [foreign.column]: {
-                     [foreign.relation.target]: id
+
+               // circular reference check
+               let foreign = model.xansql.foreignInfo(model.table, col) as ForeignInfo
+
+               if (meta && foreign.table === meta.table) {
+                  throw new Error(`Circular reference detected for relation ${col} in update data. table: ${model.table}`);
+               }
+               let FModel = model.xansql.getModel(foreign.table)
+               let rargs: UpdateArgs = {
+                  data: val.data,
+                  where: {
+                     ...val.where || {},
+                     [foreign.column]: args.where
                   }
                }
-            }
 
-            const updateResult = new UpdateResult(FModel)
-            await updateResult.result({
-               data: join.data,
-               where: join.where,
-               select: {
-                  [FModel.IDColumn]: true
-               }
-            })
+               const r = new UpdateResult(FModel)
+               await r.result(rargs, {
+                  table: model.table,
+               })
+            }
          }
 
          if (args.select) {
-            return await this.finder.result({
-               where: { [schema.IDColumn]: id },
-               select: args.select
-            })
-         }
-         return res
-      }
-      return null
-   }
-
-
-   private async excute(info: BuildDataInfo) {
-
-   }
-
-   private buildData(data: UpdateDataArgs, schema: Schema) {
-
-      const info: any = {
-         data: {},
-         joins: {} as { [column: string]: { info: any, where: WhereArgs } }
-      }
-
-      for (let column in data) {
-         const xanv = schema.schema[column]
-         const foreign = schema.getForeign(column)
-         if (!xanv && !foreign) {
-            throw new Error("Invalid column in data clause: " + column)
-         };
-         if (xanv instanceof XqlIDField) {
-            throw new Error("Cannot use ID field in data args directly. Use it in where clause instead.");
+            const fres = await this.finder.result({
+               select: args.select,
+               where: args.where
+            } as SelectArgs)
+            return fres
          }
 
-         if (foreign) {
-            const isSingleRelation = schema.isSingleRelation(column)
-            if (isSingleRelation) {
-               throw new Error("Single relation is not supported in update data yet.");
-            }
-            const FModel = schema.xansql.getSchema(foreign.table);
-            const value: any = data[column];
-            if (typeof value !== "object" || Array.isArray(value) || !value.data || (typeof value.data !== "object")) {
-               throw new Error(`Relation column "${column}" in update data must be an object with data and optional where properties.`);
-            }
-            const _info = this.buildData(value.data as UpdateDataArgs, FModel);
-            info.joins[column] = { ..._info, where: value.where }
+         return !!result.affectedRows
+      }
+
+      throw false
+   }
+
+   private formatData(data: UpdateArgs["data"]) {
+      const model = this.model
+      const xansql = model.xansql
+      const schema = model.schema
+      const relations: string[] = []
+      const columns: string[] = []
+      const values: any[] = []
+
+      for (const column in data) {
+         const dataValue = (data as any)[column]
+         if (xansql.isForeign(schema[column]) && typeof dataValue !== 'number') {
+            relations.push(column)
          } else {
-            info.data[column] = data[column]
+            columns.push(column)
+            values.push(`${column}=${model.toSql(column, dataValue)}`)
          }
       }
 
-      return info
-   }
+      let sql = ``
+      sql += values.join(', ')
 
+      return { sql, columns, relations }
+   }
 
 }
 

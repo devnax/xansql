@@ -23,7 +23,7 @@
       "sqlite": "^5.1.1",
       "sqlite3": "^5.1.7",
       "tweetnacl": "^1.0.3",
-      "xanv": "^1.0.5",
+      "xanv": "^1.0.6",
       "youid": "^1.0.10"
    },
    "devDependencies": {

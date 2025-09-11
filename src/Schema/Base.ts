@@ -64,18 +64,6 @@ abstract class SchemaBase {
       await this.xansql.dialect.migrate(this as any);
    }
 
-   isSingleRelation(column: string) {
-      return Boolean(this.schema[column]) && (this.schema[column] instanceof XqlJoin)
-   }
-
-   getForeign(column: string): ForeignInfo | null {
-      const foreigns = this.xansql.foreigns
-      const foreign = foreigns[this.table] || {}
-      const info = foreign[column];
-      // ErrorWhene(!info, `Column ${column} is not a foreign key in table ${this.table}`);
-      return info;
-   }
-
    private iof(column: string, ...instances: any[]) {
       const xanv: any = this.schema[column];
       return instances.some(instance => xanv instanceof instance);
