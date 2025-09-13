@@ -12,14 +12,12 @@ import SQSet from "./fields/Set";
 import SQTuple from "./fields/Tuple";
 import SQUnion from "./fields/Union";
 import SQIDField from "./fields/IDField";
-import XqlJoin from "./fields/Join";
-import XqlHasOne from "./fields/HasOne";
-import XqlHasMany from "./fields/HasMany";
 import XqlCreatedAt from "./fields/CreatedAt";
 import XqlUpdatedAt from "./fields/UpdatedAt";
 import XqlSchema from "./fields/Schema";
 import { XqlFields } from "./types";
 export const x = {
+   id: () => new SQIDField(),
    array: (type: XqlFields, length?: number) => new SQArray(type as any, length),
    boolean: () => new SQBoolean(),
    date: () => new SQDate(),
@@ -32,16 +30,7 @@ export const x = {
    string: (length?: number) => new SQString(length),
    tuple: (type: XqlFields[]) => new SQTuple(type as any),
    union: (type: XqlFields[]) => new SQUnion(type as any),
-
-   id: () => new SQIDField(),
-   join: (table: string, column: string) => new XqlJoin(table, column),
-
-   hasOne: (table: string, column: string) => new XqlHasOne(table, column),
-   hasMany: (table: string, column: string) => new XqlHasMany(table, column),
-
    schema: (table: string, column: string) => new XqlSchema(table, column),
-
-
    createdAt: () => new XqlCreatedAt(),
    updatedAt: () => new XqlUpdatedAt(),
 

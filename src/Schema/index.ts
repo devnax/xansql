@@ -3,7 +3,7 @@ import CreateResult from "./Result/CreateResult";
 import DeleteResult from "./Result/DeleteResult";
 import FindResult from "./Result/FindResult";
 import UpdateResult from "./Result/UpdateResult";
-import { CreateArgs, DeleteArgs, FindArgs, UpdateArgs } from "./type";
+import { CountArgs, CreateArgs, DeleteArgs, FindArgs, UpdateArgs } from "./type";
 
 class Schema extends SchemaBase {
 
@@ -37,6 +37,11 @@ class Schema extends SchemaBase {
          }
       })
       return res?.[0];
+   }
+
+   async count(args: CountArgs) {
+      const res = await this.find(args)
+      return res?.length || 0;
    }
 
 }

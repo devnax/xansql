@@ -37,6 +37,12 @@ const PostMetaSchema = new Schema("post_metas", {
    post: xt.schema('posts', "metas"),
 });
 
+const PostCategorySectionSchema = new Schema("post_category_section", {
+   pcgid: xt.id(),
+   name: xt.string().index(),
+   categories: xt.array(xt.schema("post_categories", "section")),
+});
+
 const PostCategorySchema = new Schema("post_categories", {
    pcid: xt.id(),
    name: xt.string().index(),
@@ -73,3 +79,4 @@ export const UserModel = db.model(UserSchema)
 export const PostModel = db.model(PostSchema)
 export const PostMeta = db.model(PostMetaSchema)
 export const PostCategory = db.model(PostCategorySchema)
+export const PostCategorySection = db.model(PostCategorySectionSchema)

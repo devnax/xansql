@@ -6,7 +6,7 @@ import XqlObject from "../../Types/fields/Object";
 import XqlRecord from "../../Types/fields/Record";
 import XqlSet from "../../Types/fields/Set";
 import XqlTuple from "../../Types/fields/Tuple";
-import { escapeSqlValue, isObject } from "../../utils";
+import { escapeSqlValue, isArray, isNumber, isObject } from "../../utils";
 import { WhereArgs as T, WhereSubCondition } from "../type";
 
 type Meta = {
@@ -18,6 +18,8 @@ class WhereArgs {
    private where: T
    private meta: Meta | undefined
    private _wheres: string[] | null = null
+   private condition_keys = ["equals", "not", "lt", "lte", "gt", "gte", "in", "notIn", "between", "notBetween", "contains", "notContains", "startsWith", "endsWith", "isNull", "isNotNull", "isEmpty", "isNotEmpty", "isTrue", "isFalse"]
+
 
    constructor(model: Schema, where: T, meta?: Meta) {
       this.model = model
@@ -42,7 +44,23 @@ class WhereArgs {
          this.isAllowed(column)
          const value: any = this.where[column]
 
+
+
          if (xansql.isForeign(schema[column])) {
+            if (isObject(value)) {
+               if (Object.keys(value).every(k => this.condition_keys.includes(k))) {
+                  const cond = this.condition(column, value as WhereSubCondition)
+                  wheres.push(cond)
+                  continue
+               }
+            } else if (value === null) {
+               wheres.push(`${model.table}.${column} IS NULL`)
+               continue
+            } else if (isNumber(value)) {
+               wheres.push(`${model.table}.${column} = ${model.toSql(column, value)}`)
+               continue
+            }
+
             let foreign = xansql.foreignInfo(model.table, column)
             let FModel = model.xansql.getModel(foreign.table)
             if (this.meta && this.meta.parentTable === foreign.table) {
@@ -66,6 +84,8 @@ class WhereArgs {
                if (where.is) {
                   _sql = where.wheres.join(" AND ")
                }
+            } else {
+               throw new Error(`${column} must be an object or array in the WHERE clause, but received ${typeof value}`);
             }
 
             wheres.push(`EXISTS (SELECT 1 FROM ${foreign.table} WHERE ${foreign.table}.${foreign.relation.main} = ${model.table}.${foreign.relation.target} ${_sql ? ` AND ${_sql}` : ""})`)

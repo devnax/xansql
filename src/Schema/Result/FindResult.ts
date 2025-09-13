@@ -73,7 +73,6 @@ class FindResult {
             }
          } else {
             if (value === false) continue
-
             if (value === true) {
                columns.push(`${model.table}.${column}`)
             } else {
@@ -89,7 +88,6 @@ class FindResult {
          }
       }
 
-
       let where_sql = Where.sql
       if (meta) {
          let insql = `${meta.in.column} IN (${meta.in.values.join(",")})`
@@ -97,6 +95,11 @@ class FindResult {
       }
 
       let cols = [...columns, ...relationColumns]
+      let idcol = `${model.table}.${model.IDColumn}`
+      if (cols.length && !cols.includes(idcol)) {
+         cols.unshift(idcol)
+      }
+
       let select_sql = cols.length ? cols.join(", ") : "*"
       let sql = ``
 
@@ -116,11 +119,18 @@ class FindResult {
       }
 
       const { result } = await model.excute(sql)
+
       if (result.length) {
          for (let rel_args in relationArgs) {
             const { args, foreign } = relationArgs[rel_args]
             const FModel = model.xansql.getModel(foreign.table)
-            let ids: number[] = result.map((r: any) => r[foreign.relation.target]);
+            let ids: number[] = []
+            for (let r of result) {
+               let id = r[foreign.relation.target]
+               if (typeof id === "number" && !ids.includes(id)) {
+                  ids.push(id)
+               }
+            }
 
             if (meta && meta.parent_table === foreign.table) {
                throw new Error("Circular reference detected in relation " + rel_args);
@@ -146,9 +156,9 @@ class FindResult {
                } else {
                   row[rel_args] = fres.find((fr: any) => {
                      let is = fr[foreign.relation.main] === row[foreign.relation.target]
-                     if (is && relationColumns.includes(`${model.table}.${foreign.relation.target}`)) {
-                        delete fr[foreign.relation.main]
-                     }
+                     // if (is && relationColumns.includes(`${model.table}.${foreign.relation.target}`)) {
+                     //    delete fr[foreign.relation.main]
+                     // }
                      return is
                   }) || null
                }

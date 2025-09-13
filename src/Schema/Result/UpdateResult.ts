@@ -1,5 +1,6 @@
 import Schema from "..";
 import { ForeignInfo } from "../../type";
+import { isObject } from "../../utils";
 import { SelectArgs, UpdateArgs } from "../type";
 import FindResult from "./FindResult";
 import WhereArgs from "./WhereArgs";
@@ -21,6 +22,7 @@ class UpdateResult {
          throw new Error("No data to update.");
       }
 
+
       const model = this.model
       const data = this.formatData(args.data)
       const Where = new WhereArgs(model, args.where || {})
@@ -30,7 +32,8 @@ class UpdateResult {
       }
 
       let sql = `UPDATE ${model.table} SET ${data.sql} ${where_sql}`
-      const result = await model.xansql.excute(sql, model)
+      const result = await model.excute(sql)
+
       if (result.affectedRows) {
          if (data.relations.length) {
             for (let col of data.relations) {
@@ -39,9 +42,7 @@ class UpdateResult {
                   throw new Error("No data for relation " + col);
                }
 
-               // circular reference check
                let foreign = model.xansql.foreignInfo(model.table, col) as ForeignInfo
-
                if (meta && foreign.table === meta.table) {
                   throw new Error(`Circular reference detected for relation ${col} in update data. table: ${model.table}`);
                }
@@ -68,11 +69,8 @@ class UpdateResult {
             } as SelectArgs)
             return fres
          }
-
-         return !!result.affectedRows
       }
-
-      throw false
+      return !!result.affectedRows
    }
 
    private formatData(data: UpdateArgs["data"]) {
@@ -85,7 +83,7 @@ class UpdateResult {
 
       for (const column in data) {
          const dataValue = (data as any)[column]
-         if (xansql.isForeign(schema[column]) && typeof dataValue !== 'number') {
+         if (xansql.isForeign(schema[column]) && isObject(dataValue)) {
             relations.push(column)
          } else {
             columns.push(column)

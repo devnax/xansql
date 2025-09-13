@@ -1,13 +1,10 @@
 import { xt } from ".";
+import restrictedColumn from "./RestrictedColumn";
 import Schema from "./Schema";
-import { ForeignsInfo, RelationInfo, XansqlConfig } from "./type";
+import { ForeignsInfo, XansqlConfig } from "./type";
 import XqlArray from "./Types/fields/Array";
-import XqlHasMany from "./Types/fields/HasMany";
-import XqlHasOne from "./Types/fields/HasOne";
-import XqlJoin from "./Types/fields/Join";
 import XqlSchema from "./Types/fields/Schema";
 import { XqlFields } from "./Types/types";
-import { freezeObject } from "./utils/index";
 
 class Xansql {
    private _models = new Map<string, Schema>();
@@ -66,11 +63,10 @@ class Xansql {
       // this will delay the model formatting to allow multiple models to be added before formatting
       clearTimeout(this._timer);
       this._timer = setTimeout(() => {
-         this.models
+         this.migrate()
       }, 0);
       return model
    }
-
 
    private _modelFormated = false;
    get models() {
@@ -80,8 +76,14 @@ class Xansql {
       for (let [table, model] of Array.from(this._models.entries())) {
          const schema = model.schema;
          for (let column in schema) {
-            const val = schema[column]
 
+            // is column is restricted 
+            if (restrictedColumn(column)) {
+               throw new Error(`Column name "${column}" is restricted and cannot be used in schema "${table}". Please use a different column name.`);
+            }
+
+
+            const val = schema[column]
             if (this.isForeignSchema(val)) {
                const FModel = models.get(val.table);
                if (!FModel) {
@@ -99,9 +101,9 @@ class Xansql {
                      throw new Error(`Foreign column ${val.table}.${val.column} is not an array of schemas`);
                   }
                } else {
-                  let n = xt.schema(model.table, column) as any
+                  const n = xt.schema(model.table, column).nullable()
                   n.dynamic = true
-                  FModel.schema[val.column] = xt.array(n);
+                  FModel.schema[val.column] = xt.array(n)
                   models.set(FModel.table, FModel);
                }
             } else if (this.isForeignArray(val)) {
@@ -117,7 +119,7 @@ class Xansql {
                      throw new Error(`Foreign column ${foreignType.table}.${foreignType.column} does not reference back to ${model.table}.${column}`);
                   }
                } else {
-                  const n = xt.schema(model.table, column).optional();
+                  const n = xt.schema(model.table, column).nullable();
                   n.dynamic = true
                   FModel.schema[foreignType.column] = n
                   models.set(FModel.table, FModel);

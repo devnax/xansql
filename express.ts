@@ -2,7 +2,7 @@ import dotenv from 'dotenv'
 dotenv.config()
 import fakeData from './faker'
 import express from 'express';
-import { db, PostModel, UserModel } from './example'
+import { db, PostCategorySection, PostModel, UserModel } from './example'
 import WhereArgs from './src/Schema/Result/WhereArgs';
 
 const server = async (app) => {
@@ -27,10 +27,12 @@ const server = async (app) => {
             metas: {
                likes: 10
             },
-            categories: [
-               { name: "Tech" },
-               { name: "News" },
-            ]
+            categories: {
+               name: "Tech",
+               section: {
+                  name: "Technology"
+               }
+            }
          }
       })
 
@@ -75,9 +77,27 @@ const server = async (app) => {
                },
                select: {
                   // pid: true,
-                  title: true,
-                  content: true,
-                  // user: true,
+                  // title: true,
+                  // content: true,
+
+                  // metas: {
+                  //    select: {
+                  //       views: true,
+                  //       likes: true,
+                  //    },
+                  // },
+
+                  categories: {
+                     select: {
+                        name: true,
+                        section: {
+                           select: {
+                              name: true,
+                           }
+                        }
+                     },
+                     limit: { take: 2 }
+                  },
                }
             }
          },
@@ -121,7 +141,12 @@ const server = async (app) => {
                   title: "Hello World",
                   content: "This is my first post",
                   categories: [
-                     { name: "Tech" },
+                     {
+                        name: "Tech",
+                        section: {
+                           name: "Technology"
+                        }
+                     },
                      { name: "News" },
                   ],
                   metas: [
@@ -157,19 +182,9 @@ const server = async (app) => {
 
    app.get('/delete', async (req, res) => {
 
-      const result = await UserModel.delete({
-         select: {
-            name: true,
-            email: true,
-            user_posts: {
-               select: {
-                  content: true,
-                  title: true,
-               }
-            }
-         },
+      const result = await PostCategorySection.delete({
          where: {
-            uid: 1,
+            pcgid: 1,
          }
       })
       // const result = await PostModel.delete({

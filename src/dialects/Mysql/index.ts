@@ -5,8 +5,6 @@ import XqlBoolean from "../../Types/fields/Boolean";
 import XqlDate from "../../Types/fields/Date";
 import XqlEnum from "../../Types/fields/Enum";
 import XqlFile from "../../Types/fields/File";
-import XqlHasMany from "../../Types/fields/HasMany";
-import XqlHasOne from "../../Types/fields/HasOne";
 import XqlIDField from "../../Types/fields/IDField";
 import XqlMap from "../../Types/fields/Map";
 import XqlNumber from "../../Types/fields/Number";
@@ -123,7 +121,7 @@ const mysqldialect = (xansql: Xansql): DialectOptions => {
          if (!column) {
             throw new Error(`Column ${columnName} does not exist in model ${schema.table}`);
          }
-         if (column instanceof XqlHasOne || column instanceof XqlHasMany || column instanceof XqlIDField) {
+         if (column instanceof XqlSchema || column instanceof XqlIDField) {
             throw new Error(`Cannot add relation or IDField as a column: ${columnName}`);
          };
          const buildColumnSql = buildColumn(columnName, column);
@@ -135,7 +133,7 @@ const mysqldialect = (xansql: Xansql): DialectOptions => {
          if (!column) {
             throw new Error(`Column ${columnName} does not exist in model ${schema.table}`);
          }
-         if (column instanceof XqlHasOne || column instanceof XqlHasMany || column instanceof XqlIDField) {
+         if (column instanceof XqlSchema || column instanceof XqlIDField) {
             throw new Error(`Cannot drop relation or IDField as a column: ${columnName}`);
          };
          return await excute(`ALTER TABLE \`${schema.table}\` DROP COLUMN \`${columnName}\`;`, schema);
@@ -146,7 +144,7 @@ const mysqldialect = (xansql: Xansql): DialectOptions => {
          if (!column) {
             throw new Error(`Column ${oldName} does not exist in model ${schema.table}`);
          }
-         if (column instanceof XqlHasOne || column instanceof XqlHasMany || column instanceof XqlIDField) {
+         if (column instanceof XqlSchema || column instanceof XqlIDField) {
             throw new Error(`Cannot rename relation or IDField as a column: ${oldName}`);
          };
          return await excute(`ALTER TABLE \`${schema.table}\` CHANGE \`${oldName}\` \`${newName}\` ${buildColumn(newName, column)}`, schema);
@@ -157,7 +155,7 @@ const mysqldialect = (xansql: Xansql): DialectOptions => {
          if (!column) {
             throw new Error(`Column ${columnName} does not exist in model ${schema.table}`);
          }
-         if (column instanceof XqlHasOne || column instanceof XqlHasMany || column instanceof XqlIDField) {
+         if (column instanceof XqlSchema || column instanceof XqlIDField) {
             throw new Error(`Cannot add index to relation or IDField as a column: ${columnName}`);
          };
          if (!column.meta || !column.meta.index) {
@@ -171,7 +169,7 @@ const mysqldialect = (xansql: Xansql): DialectOptions => {
          if (!column) {
             throw new Error(`Column ${columnName} does not exist in model ${schema.table}`);
          }
-         if (column instanceof XqlHasOne || column instanceof XqlHasMany || column instanceof XqlIDField) {
+         if (column instanceof XqlSchema || column instanceof XqlIDField) {
             throw new Error(`Cannot drop index from relation or IDField as a column: ${columnName}`);
          };
 

@@ -21,6 +21,7 @@ class XqlSchema extends XanvType<any, any> {
    }
 
    protected check(value: any) {
+
       let msg = `Value must be a positive integer or an ${this.table} object`;
       if (Number.isInteger(value)) {
          if (value <= 0) {

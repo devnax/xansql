@@ -5,8 +5,6 @@ import XqlBoolean from "../../Types/fields/Boolean";
 import XqlDate from "../../Types/fields/Date";
 import XqlEnum from "../../Types/fields/Enum";
 import XqlFile from "../../Types/fields/File";
-import XqlHasMany from "../../Types/fields/HasMany";
-import XqlHasOne from "../../Types/fields/HasOne";
 import XqlIDField from "../../Types/fields/IDField";
 import XqlMap from "../../Types/fields/Map";
 import XqlNumber from "../../Types/fields/Number";
@@ -119,7 +117,7 @@ const sqlitedialect = (xansql: Xansql): DialectOptions => {
          if (!column) {
             throw new Error(`Column ${columnName} does not exist in model ${schema.table}`);
          }
-         if (column instanceof XqlHasOne || column instanceof XqlHasMany || column instanceof XqlIDField) {
+         if (column instanceof XqlSchema || column instanceof XqlIDField) {
             throw new Error(`Cannot add relation or IDField as a column: ${columnName}`);
          };
          const buildColumnSql = buildColumn(columnName, column);

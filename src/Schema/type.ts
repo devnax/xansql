@@ -46,7 +46,9 @@ export type SelectRelationArgs = {
 }
 
 export type SelectArgs = {
-   [column: string]: boolean | SelectRelationArgs
+   [column: string]: boolean | SelectRelationArgs | {
+      unique?: boolean;
+   }
 }
 
 export type DataValue =
@@ -82,7 +84,16 @@ export type BuildResult = {
    structure: BuildResultStructure;
 }
 
+
+export type Count = {
+   [column: string]: boolean | {
+      unique?: boolean;
+   }
+}
+
 export type FindArgs = {
+   distinct?: string[];
+   count?: string[];
    where?: WhereArgs;
    select?: SelectArgs;
    limit?: LimitArgs

@@ -3,11 +3,11 @@ import XqlBoolean from "../Types/fields/Boolean";
 import XqlDate from "../Types/fields/Date";
 import XqlEnum from "../Types/fields/Enum";
 import XqlIDField from "../Types/fields/IDField";
-import XqlJoin from "../Types/fields/Join";
 import XqlMap from "../Types/fields/Map";
 import XqlNumber from "../Types/fields/Number";
 import XqlObject from "../Types/fields/Object";
 import XqlRecord from "../Types/fields/Record";
+import XqlSchema from "../Types/fields/Schema";
 import XqlSet from "../Types/fields/Set";
 import XqlString from "../Types/fields/String";
 import XqlTuple from "../Types/fields/Tuple";
@@ -20,10 +20,6 @@ abstract class SchemaBase {
    readonly schema: XansqlSchemaObject;
    readonly table: string;
    readonly IDColumn: string = '';
-   readonly columns = {
-      main: [] as string[],
-      relation: [] as string[],
-   }
 
    xansql: Xansql = null as any;
    alias: string = '';
@@ -36,12 +32,6 @@ abstract class SchemaBase {
          if (field instanceof XqlIDField) {
             ErrorWhene(this.IDColumn, `Schema ${this.table} can only have one ID column`);
             this.IDColumn = column;
-         }
-
-         if (field instanceof XqlJoin) {
-            this.columns.relation.push(column);
-         } else {
-            this.columns.main.push(column);
          }
       }
       ErrorWhene(!this.IDColumn, `Schema ${this.table} must have an id column`);
@@ -71,13 +61,12 @@ abstract class SchemaBase {
    toSql(column: string, value: any) {
       const xanv = this.schema[column];
       ErrorWhene(!xanv, `Column ${column} does not exist in schema ${this.table}`);
-      ErrorWhene(xanv instanceof XqlJoin, `Column ${column} is a relation and cannot be used in SQL queries`);
 
       try {
          value = xanv.parse(value);
          if (value === undefined || value === null) {
             return 'NULL';
-         } else if (this.iof(column, XqlIDField, XqlNumber)) {
+         } else if (this.iof(column, XqlIDField, XqlNumber, XqlSchema)) {
             return value
          } else if (this.iof(column, XqlString, XqlEnum, XqlUnion)) {
             return `'${escapeSqlValue(value)}'`;
@@ -101,7 +90,6 @@ abstract class SchemaBase {
    toValue(column: string, value: any) {
       const xanv = this.schema[column];
       ErrorWhene(!xanv, `Column ${column} does not exist in schema ${this.table}`);
-      ErrorWhene(xanv instanceof XqlJoin, `Column ${column} is a relation and cannot be used in SQL queries`);
 
       if (value === null || value === undefined) {
          return null;

@@ -1,7 +1,9 @@
 import Schema from "..";
 import { ForeignInfo } from "../../type";
 import XqlIDField from "../../Types/fields/IDField";
+import { isArray, isObject } from "../../utils";
 import { CreateArgs } from "../type";
+import DeleteResult from "./DeleteResult";
 import FindResult from "./FindResult";
 
 
@@ -21,8 +23,8 @@ class CreateResult {
       this.finder = new FindResult(schema)
    }
 
-   async result(args: CreateArgs) {
-      let ids = await this.excute(args)
+   async result(args: CreateArgs, meta?: MetaInfo) {
+      let ids = await this.excute(args, meta)
       if (ids.length) {
          const findArgs = {
             where: {
@@ -41,6 +43,7 @@ class CreateResult {
 
    async excute(args: CreateArgs, meta?: MetaInfo) {
       const model = this.model
+      const xansql = model.xansql
       const data = args.data
 
       if (Array.isArray(data)) {
@@ -54,34 +57,32 @@ class CreateResult {
          const { columns, values, hasManyRelations, hasOneRelations } = this.formatData(data, meta)
          await this.excuteSchema(hasOneRelations, columns, values)
          let sql = `INSERT INTO ${model.table} (${columns.join(",")}) VALUES (${values.join(",")})`
-         const result = await model.xansql.excute(sql, model)
+         const result = await model.excute(sql)
+
          if (!result.insertId) {
             for (let col in hasOneRelations) {
                const foreign = hasOneRelations[col].foreign
-               const FModel = this.model.xansql.getModel(foreign.table)
+               const FModel = xansql.getModel(foreign.table)
                const delid = values[columns.indexOf(foreign.relation.target)]
-               let delSql = `DELETE FROM ${FModel.table} WHERE ${foreign.relation.main} = ${delid}`
-               await this.model.xansql.excute(delSql, FModel)
+               const d = new DeleteResult(FModel)
+               await d.result({
+                  where: {
+                     [foreign.relation.main]: delid
+                  }
+               })
             }
             throw new Error(`Insert failed for table: ${model.table}`);
          }
 
-
          try {
             await this.excuteArraySchema(hasManyRelations, result.insertId)
          } catch (error) {
-            for (let col in hasOneRelations) {
-               const foreign = hasOneRelations[col].foreign
-               const FModel = this.model.xansql.getModel(foreign.table)
-               const delid = values[columns.indexOf(foreign.relation.target)]
-               let delSql = `DELETE FROM ${FModel.table} WHERE ${foreign.relation.main} = ${delid}`
-               await this.model.xansql.excute(delSql, FModel)
-            }
-
-            //delete main record
-            let delSql = `DELETE FROM ${model.table} WHERE ${model.IDColumn} = ${result.insertId}`
-            await this.model.xansql.excute(delSql, model)
-
+            const d = new DeleteResult(model)
+            await d.result({
+               where: {
+                  [model.IDColumn]: result.insertId
+               }
+            })
             throw error
          }
 
@@ -93,64 +94,44 @@ class CreateResult {
    }
 
    private async excuteSchema(items: RelationItems, columns: string[], values: any[]) {
+      const xansql = this.model.xansql
       const insertedItems: RelationItems = {}
-      try {
-         for (let rel_col in items) {
-            const rel = items[rel_col]
-            const foreign = rel.foreign
-            const FModel = this.model.xansql.getModel(foreign.table)
-            const instance = new CreateResult(FModel)
-            const insertId = await instance.excute({ data: rel.data }, {
-               table: this.model.table,
-            })
-            if (insertId) {
-               columns.push(foreign.relation.target)
-               values.push(insertId || null);
-            }
-            insertedItems[rel_col] = rel
+      for (let rel_col in items) {
+         const rel = items[rel_col]
+         const foreign = rel.foreign
+         const FModel = xansql.getModel(foreign.table)
+         const instance = new CreateResult(FModel)
+         const insertId = await instance.excute({ data: rel.data }, {
+            table: this.model.table,
+         })
+         if (insertId) {
+            columns.push(foreign.relation.target)
+            values.push(insertId || null);
          }
-      } catch (error) {
-         for (let col in insertedItems) {
-            const foreign = insertedItems[col].foreign
-            const FModel = this.model.xansql.getModel(foreign.table)
-            const delid = values[columns.indexOf(foreign.relation.target)]
-            let delSql = `DELETE FROM ${FModel.table} WHERE ${foreign.relation.main} = ${delid}`
-            await this.model.xansql.excute(delSql, FModel)
-         }
-         throw error
+         insertedItems[rel_col] = rel
       }
    }
 
    private async excuteArraySchema(items: RelationItems, insertId: number) {
-
+      const xansql = this.model.xansql
       const insertedItems: RelationItems = {}
-      try {
-         for (let rel_col in items) {
-            const rel = items[rel_col]
-            let foreign = rel.foreign
-            const FModel = this.model.xansql.getModel(foreign.table)
-            const instance = new CreateResult(FModel)
-            await instance.excute({ data: rel.data }, {
-               table: this.model.table,
-               insertId,
-               column: foreign.column
-            })
-            insertedItems[rel_col] = rel
-         }
-      } catch (error) {
-         for (let col in insertedItems) {
-            const foreign = insertedItems[col].foreign
-            const FModel = this.model.xansql.getModel(foreign.table)
-            let delSql = `DELETE FROM ${FModel.table} WHERE ${foreign.relation.main} = ${insertId}`
-            await this.model.xansql.excute(delSql, FModel)
-         }
-         throw error
+      for (let rel_col in items) {
+         const rel = items[rel_col]
+         let foreign = rel.foreign
+         const FModel = xansql.getModel(foreign.table)
+         const instance = new CreateResult(FModel)
+         await instance.result({ data: rel.data }, {
+            table: this.model.table,
+            insertId,
+            column: foreign.column
+         })
+         insertedItems[rel_col] = rel
       }
    }
 
    private formatData(data: CreateArgs["data"], meta?: MetaInfo) {
       const model = this.model
-      const xansql = this.model.xansql
+      const xansql = model.xansql
       const schema = model.schema
       const columns: string[] = []
       const values: any[] = []
@@ -170,15 +151,15 @@ class CreateResult {
                throw new Error(`Circular reference detected for relation ${column} in create data. table: ${model.table}`);
             }
 
-            if (xansql.isForeignSchema(schema[column]) && dataValue && typeof dataValue === 'object' && !Array.isArray(dataValue)) {
+            if (xansql.isForeignSchema(schema[column]) && isObject(dataValue)) {
                hasOneRelations[column] = {
                   foreign,
                   data: dataValue
                }
-            } else if (xansql.isForeignArray(schema[column]) && Array.isArray(dataValue) || typeof dataValue === 'object') {
+            } else if (xansql.isForeignArray(schema[column]) && isArray(dataValue)) {
                hasManyRelations[column] = {
                   foreign,
-                  data: dataValue
+                  data: dataValue as any
                }
             } else {
                throw new Error(`Invalid data for relation ${column} in create data. table: ${model.table}`);
