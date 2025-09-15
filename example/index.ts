@@ -65,6 +65,6 @@ export const db = new Xansql(conn.sqlite)
 // export const UserOptionModel = db.model(UserOptionSchema)
 export const UserModel = db.model(UserSchema)
 export const UserModelMeta = db.model(UserMetaSchema)
-export const PostModel = db.model(ProductSchema)
-export const PostCategory = db.model(ProductCategorySchema)
+export const ProductModel = db.model(ProductSchema)
+export const ProductCategory = db.model(ProductCategorySchema)
 

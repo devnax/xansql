@@ -1,4 +1,5 @@
 import SchemaBase from "./Base";
+import AggregateResult from "./Result/AggregateResult";
 import CreateResult from "./Result/CreateResult";
 import DeleteResult from "./Result/DeleteResult";
 import FindResult from "./Result/FindResult";
@@ -45,7 +46,8 @@ class Schema extends SchemaBase {
    }
 
    async aggregate(args: any) {
-      throw new Error("Not implemented");
+      const res = new AggregateResult(this)
+      return await res.result(args)
    }
 
 }

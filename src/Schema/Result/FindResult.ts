@@ -2,6 +2,7 @@ import Schema from "..";
 import { ForeignInfo } from "../../type";
 import { isObject } from "../../utils";
 import { FindArgs, LimitArgs, OrderByArgs } from "../type";
+import AggregateResult from "./AggregateResult";
 import WhereArgs from "./WhereArgs";
 
 const BATCH_SIZE = 500;
@@ -95,7 +96,7 @@ class FindResult {
    private async excute(args: FindArgs, meta?: Meta) {
       const model = this.model
       const xansql = model.xansql
-      let { distinct, select, where, limit, orderBy } = args
+      let { distinct, select, where, limit, orderBy, aggregate } = args
       const columns: string[] = []
       const relationColumns: string[] = []
       const Where = new WhereArgs(model, where || {})
@@ -210,6 +211,46 @@ class FindResult {
       const { result } = await model.excute(sql)
 
       if (result.length) {
+
+         // aggregate
+         let aggResults: any = []
+         if (aggregate && Object.keys(aggregate).length) {
+            for (let col in aggregate) {
+               if (!(col in model.schema)) {
+                  throw new Error(`Invalid column in aggregate clause: ${col}`)
+               }
+               const foreign = xansql.foreignInfo(model.table, col)
+               if (!foreign) {
+                  throw new Error(`Column ${col} is not a foreign key, cannot aggregate on it.`)
+               }
+               if (!xansql.isForeignArray(model.schema[col])) {
+                  throw new Error(`Column ${col} is not a foreign array, cannot aggregate on it.`)
+               }
+
+               const FModel = xansql.getModel(foreign.table)
+               let ids: number[] = []
+               for (let r of result) {
+                  let id = r[foreign.relation.target]
+                  if (typeof id === "number" && !ids.includes(id)) {
+                     ids.push(id)
+                  }
+               }
+               if (ids.length === 0) continue;
+               const aggregateResult = new AggregateResult(FModel)
+               const aggRes = await aggregateResult.result({
+                  where: {
+                     [foreign.relation.main]: {
+                        in: ids
+                     }
+                  },
+                  groupBy: [foreign.relation.main],
+                  aggregate: aggregate[col]
+               })
+               aggResults.push({ col, foreign, aggRes })
+            }
+         }
+
+         let freses = []
          for (let rel_args in relationArgs) {
             const { args, foreign } = relationArgs[rel_args]
             const FModel = model.xansql.getModel(foreign.table)
@@ -232,8 +273,23 @@ class FindResult {
                   values: Array.from(new Set(ids))
                }
             })
+            freses.push({ rel_args, foreign, fres })
+         }
 
-            for (let row of result) {
+         for (let row of result) {
+
+            // merge aggregate
+
+            for (let { col, foreign, aggRes } of aggResults) {
+               let find = aggRes.find((ar: any) => ar[foreign.relation.main] === row[foreign.relation.target]) || null
+               if (!("aggregate" in row)) {
+                  row["aggregate"] = {}
+               }
+               delete find[foreign.relation.main]
+               row["aggregate"][col] = find
+            }
+
+            for (let { rel_args, foreign, fres } of freses) {
                if (xansql.isForeignArray(model.schema[rel_args])) {
                   row[rel_args] = fres.filter((fr: any) => {
                      let is = fr[foreign.relation.main] === row[foreign.relation.target]
@@ -243,13 +299,7 @@ class FindResult {
                      return is
                   })
                } else {
-                  row[rel_args] = fres.find((fr: any) => {
-                     let is = fr[foreign.relation.main] === row[foreign.relation.target]
-                     // if (is && relationColumns.includes(`${model.table}.${foreign.relation.target}`)) {
-                     //    delete fr[foreign.relation.main]
-                     // }
-                     return is
-                  }) || null
+                  row[rel_args] = fres.find((fr: any) => fr[foreign.relation.main] === row[foreign.relation.target]) || null
                }
             }
          }

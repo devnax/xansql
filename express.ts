@@ -2,7 +2,7 @@ import dotenv from 'dotenv'
 dotenv.config()
 import fakeData from './faker'
 import express from 'express';
-import { db, PostModel, UserModel } from './example'
+import { db, ProductModel, UserModel } from './example'
 import WhereArgs from './src/Schema/Result/WhereArgs';
 
 const server = async (app) => {
@@ -70,22 +70,37 @@ const server = async (app) => {
             //    pid: 375,
             // }
          },
-         select: {
-            name: true,
-            email: true,
+         aggregate: {
             metas: {
-               limit: { take: 1 }
+               uoid: {
+                  count: true
+               }
             },
             products: {
-               distinct: ["price"],
-               orderBy: { price: "desc" },
-
-               select: {
-                  name: true,
-                  price: true,
-               },
-               limit: { take: 3 }
+               price: {
+                  sum: {
+                     alias: "total_price"
+                  },
+                  avg: {
+                     alias: "avg_price"
+                  }
+               }
             }
+         },
+         select: {
+            name: true,
+            // email: true,
+            metas: true,
+            // products: {
+            //    distinct: ["price"],
+            //    orderBy: { price: "desc" },
+
+            //    select: {
+            //       name: true,
+            //       price: true,
+            //    },
+            //    limit: { take: 3 }
+            // }
          },
       })
 
@@ -93,6 +108,38 @@ const server = async (app) => {
       console.log(`Find ${result.length} users in ${end - start}ms`)
       res.json(result)
    });
+
+   app.get("/aggregate", async (req, res) => {
+      const result = await ProductModel.aggregate({
+         orderBy: {
+            // name: "asc",
+         },
+         // groupBy: ["user"],
+         // where: {
+         //    name: {
+         //       contains: "Hello"
+         //    }
+         // },
+         aggregate: {
+            price: {
+               sum: {
+                  distinct: true,
+                  orderBy: "asc",
+               },
+               avg: {
+                  alias: "avg_price",
+                  round: 2
+               },
+               min: {
+                  alias: "min_price",
+                  round: 0
+               },
+               max: true,
+            }
+         }
+      })
+      res.json(result)
+   })
 
    app.get('/create', async (req, res) => {
 
