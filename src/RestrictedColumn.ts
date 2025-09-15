@@ -12,9 +12,8 @@ const SQL_RESERVED_KEYWORDS = [
 
    // custom
    "INDEX", "OPTIONAL", "NULLABLE", "META", "METAARRAY", "SCHEMA", "ARRAY",
-   "equals", "not", "lt", "lte", "gt", "gte", "in", "notIn", "between", "notBetween", "contains", "notContains", "startsWith", "endsWith", "isNull", "isNotNull", "isEmpty", "isNotEmpty", "isTrue", "isFalse",
-
-   "AGGREGATE", "GROUPBY", "ORDERBY", "LIMIT", "SKIP", "TAKE", "DISTINCT", "ALIAS",
+   "EQUALS", "NOT", "LT", "LTE", "GT", "GTE", "IN", "NOTIN", "BETWEEN", "NOTBETWEEN", "CONTAINS", "NOTCONTAINS", "STARTSWITH", "ENDSWITH", "ISNULL", "ISNOTNULL", "ISEMPTY", "ISNOTEMPTY", "ISTRUE", "ISFALSE",
+   "AGGREGATE",
 ];
 
 const restrictedColumn = (column: string): boolean => {

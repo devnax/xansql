@@ -3,7 +3,7 @@ import { ForeignInfo } from "../../type";
 import { isObject } from "../../utils";
 import { FindArgs, LimitArgs, OrderByArgs } from "../type";
 import AggregateResult from "./AggregateResult";
-import WhereArgs from "./WhereArgs";
+import WhereArgsQuery from "./WhereArgsQuery";
 
 const BATCH_SIZE = 500;
 
@@ -99,7 +99,7 @@ class FindResult {
       let { distinct, select, where, limit, orderBy, aggregate } = args
       const columns: string[] = []
       const relationColumns: string[] = []
-      const Where = new WhereArgs(model, where || {})
+      const Where = new WhereArgsQuery(model, where || {})
       const Limit = this.limit(limit || {})
       const OrderBy = this.orderby(orderBy || {})
 

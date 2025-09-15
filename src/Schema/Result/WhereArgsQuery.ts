@@ -7,21 +7,20 @@ import XqlRecord from "../../Types/fields/Record";
 import XqlSet from "../../Types/fields/Set";
 import XqlTuple from "../../Types/fields/Tuple";
 import { escapeSqlValue, isArray, isNumber, isObject } from "../../utils";
-import { WhereArgs as T, WhereSubCondition } from "../type";
+import { WhereArgs, WhereSubCondition } from "../type";
 
 type Meta = {
    parentTable: string
 }
 
-class WhereArgs {
+class WhereArgsQuery {
    private model: Schema
-   private where: T
+   private where: WhereArgs
    private meta: Meta | undefined
    private _wheres: string[] | null = null
    private condition_keys = ["equals", "not", "lt", "lte", "gt", "gte", "in", "notIn", "between", "notBetween", "contains", "notContains", "startsWith", "endsWith", "isNull", "isNotNull", "isEmpty", "isNotEmpty", "isTrue", "isFalse"]
 
-
-   constructor(model: Schema, where: T, meta?: Meta) {
+   constructor(model: Schema, where: WhereArgs, meta?: Meta) {
       this.model = model
       this.where = where
       this.meta = meta
@@ -73,14 +72,14 @@ class WhereArgs {
                   if (!isObject(w)) {
                      throw new Error(`${column} must be an object in the WHERE clause, but received ${typeof w}`);
                   }
-                  const where = new WhereArgs(FModel, w, { parentTable: model.table })
+                  const where = new WhereArgsQuery(FModel, w, { parentTable: model.table })
                   if (where.is) {
                      _ors.push(`(${where.wheres.join(" AND ")})`)
                   }
                }
                _sql = _ors.length ? `(${_ors.join(" OR ")})` : ""
             } else if (isObject(value)) {
-               const where = new WhereArgs(FModel, value, { parentTable: model.table })
+               const where = new WhereArgsQuery(FModel, value, { parentTable: model.table })
                if (where.is) {
                   _sql = where.wheres.join(" AND ")
                }
@@ -212,4 +211,4 @@ class WhereArgs {
    }
 }
 
-export default WhereArgs;
+export default WhereArgsQuery;

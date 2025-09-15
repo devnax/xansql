@@ -3,7 +3,7 @@ dotenv.config()
 import fakeData from './faker'
 import express from 'express';
 import { db, ProductModel, UserModel } from './example'
-import WhereArgs from './src/Schema/Result/WhereArgs';
+import WhereArgsQuery from './src/Schema/Result/WhereArgsQuery';
 
 const server = async (app) => {
    app.use('/static', express.static('public'));
@@ -20,7 +20,7 @@ const server = async (app) => {
 
 
    app.get('/where', async (req, res) => {
-      const where = new WhereArgs(UserModel, {
+      const where = new WhereArgsQuery(UserModel, {
          name: "John Doe",
          user_posts: {
             pid: 375,
@@ -136,6 +136,16 @@ const server = async (app) => {
                },
                max: true,
             }
+         }
+      })
+      res.json(result)
+   })
+   app.get("/count", async (req, res) => {
+      const result = await ProductModel.avg({
+         column: "price",
+         round: 2,
+         where: {
+
          }
       })
       res.json(result)

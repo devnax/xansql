@@ -5,7 +5,6 @@ import youid from "youid";
  * @param data - The Uint8Array data to encode.
  * @returns The Base64-encoded string.
  */
-const id = youid("$")
 function encode(data: Uint8Array): string {
    let base64 = "";
    if (typeof window !== "undefined") {

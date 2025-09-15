@@ -3,7 +3,7 @@ import { ForeignInfo } from "../../type";
 import { DeleteArgs } from "../type";
 import FindResult from "./FindResult";
 import UpdateResult from "./UpdateResult";
-import WhereArgs from "./WhereArgs";
+import WhereArgsQuery from "./WhereArgsQuery";
 
 class DeleteResult {
    finder: FindResult
@@ -16,7 +16,7 @@ class DeleteResult {
    async result(args: DeleteArgs) {
       const model = this.model
       const xansql = model.xansql
-      const where = new WhereArgs(model, args.where || {})
+      const where = new WhereArgsQuery(model, args.where || {})
       let select = args.select || {}
       if (!(model.IDColumn in select)) {
          select[model.IDColumn] = true

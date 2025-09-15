@@ -3,7 +3,7 @@ import { ForeignInfo } from "../../type";
 import { isObject } from "../../utils";
 import { SelectArgs, UpdateArgs } from "../type";
 import FindResult from "./FindResult";
-import WhereArgs from "./WhereArgs";
+import WhereArgsQuery from "./WhereArgsQuery";
 
 type MetaInfo = {
    table: string;
@@ -22,10 +22,9 @@ class UpdateResult {
          throw new Error("No data to update.");
       }
 
-
       const model = this.model
       const data = this.formatData(args.data)
-      const Where = new WhereArgs(model, args.where || {})
+      const Where = new WhereArgsQuery(model, args.where || {})
       const where_sql = Where.sql
       if (!where_sql) {
          throw new Error("Update operation requires a valid where clause to prevent mass updates.");

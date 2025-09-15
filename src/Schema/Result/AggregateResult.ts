@@ -1,8 +1,7 @@
 import Schema from ".."
-import XqlNumber from "../../Types/fields/Number"
 import { isObject } from "../../utils"
 import { AggregateArgs, AggregateArgsAggregate, LimitArgs, OrderByArgs } from "../type"
-import WhereArgs from "./WhereArgs"
+import WhereArgsQuery from "./WhereArgsQuery"
 
 class AggregateResult {
    model: Schema
@@ -20,7 +19,7 @@ class AggregateResult {
 
       orderBy = orderBy || {}
       let formated = this.formatAggregate(aggregate)
-      let Where = new WhereArgs(model, where || {})
+      let Where = new WhereArgsQuery(model, where || {})
       let Limit = this.limit(limit || {})
       let OrderBy = this.orderby(orderBy || {}).concat(formated.orderby || [])
 

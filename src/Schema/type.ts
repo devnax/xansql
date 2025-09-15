@@ -77,6 +77,14 @@ export type AggregateArgs = {
    aggregate: AggregateArgsAggregate;
 }
 
+
+export type AggregatePartialArgs = {
+   column?: string
+   round?: number
+   groupBy?: string[];
+   where?: WhereArgs;
+}
+
 export type FindArgsAggregate = {
    [foreign: string]: AggregateArgsAggregate
 }
@@ -114,17 +122,4 @@ export type UpdateArgs = {
 export type DeleteArgs = {
    where: WhereArgs;
    select?: SelectArgs;
-}
-
-export type CountSelectArgs = {
-   [relation_column: string]: boolean | CountSelectArgs;
-}
-
-export type CountArgs = {
-   where: WhereArgs;
-   select?: CountSelectArgs
-}
-
-export type ReturnCount = {
-   [column: string | '_count']: number | ReturnCount;
 }
