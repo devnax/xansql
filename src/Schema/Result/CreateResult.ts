@@ -6,6 +6,7 @@ import { CreateArgs } from "../type";
 import DeleteResult from "./DeleteResult";
 import FindResult from "./FindResult";
 
+const BATCH_SIZE = 500;
 
 type MetaInfo = {
    table: string;
@@ -25,17 +26,26 @@ class CreateResult {
 
    async result(args: CreateArgs, meta?: MetaInfo) {
       let ids = await this.excute(args, meta)
+      if (meta) {
+         return ids
+      }
       if (ids.length) {
-         const findArgs = {
-            where: {
-               [this.model.IDColumn]: {
-                  in: ids
-               }
-            },
-            select: args.select || {}
+         if (args.select) {
+            const findArgs: any = {
+               limit: {
+                  take: ids.length,
+                  skip: 0
+               },
+               where: {
+                  [this.model.IDColumn]: {
+                     in: ids
+                  }
+               },
+               select: args.select || {}
+            }
+            return await this.finder.result(findArgs)
          }
-
-         return await this.finder.result(findArgs)
+         return ids.map((id: any) => ({ [this.model.IDColumn]: id }))
       }
 
       throw new Error("Create failed, no records created.");
@@ -47,10 +57,25 @@ class CreateResult {
       const data = args.data
 
       if (Array.isArray(data)) {
-         let ids: number[] = []
+         if (data.length > BATCH_SIZE) {
+            let allIds: number[] = []
+            for (let i = 0; i < data.length; i += BATCH_SIZE) {
+               const chunk = data.slice(i, i + BATCH_SIZE)
+               const ids = await this.excute({ data: chunk }, meta)
+               allIds = allIds.concat(ids as number[])
+            }
+            return allIds
+         }
+         const ids: number[] = []
          for (let item of data) {
-            let insertId = await this.excute({ data: item }, meta)
-            if (insertId) ids.push(insertId)
+            const id = await this.excute({ data: item }, meta)
+            if (id) {
+               if (Array.isArray(id)) {
+                  ids.push(...(id as number[]))
+               } else {
+                  ids.push(id as number)
+               }
+            }
          }
          return ids
       } else {

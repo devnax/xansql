@@ -106,7 +106,10 @@ const sqlitedialect = (xansql: Xansql): DialectOptions => {
       for (let column in indexable) {
          sql += `CREATE INDEX ${makeIndexKey(schema.table, column)} ON "${schema.table}"("${column}");`;
       }
+
       await excute(sql, schema);
+      await excute(`PRAGMA journal_mode = WAL;`, schema);
+      await excute(`PRAGMA wal_autocheckpoint = 1000;`, schema);
    }
 
    return {

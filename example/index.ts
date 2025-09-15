@@ -11,51 +11,39 @@ if (typeof process !== 'undefined' && process?.env) {
    }
 }
 
-// const UserOptionSchema = new Schema("metas", {
-//    uoid: xt.id(),
-//    theme: xt.string().default('light'),
-//    notifications: xt.boolean().default(true),
-// });
+const UserMetaSchema = new Schema("user_metas", {
+   uoid: xt.id(),
+   meta_key: xt.string(),
+   meta_value: xt.string(),
+});
 
 const UserSchema = new Schema("users", {
    uid: xt.id(),
    name: xt.string().index(),
-   email: xt.string().index().unique(),
-   age: xt.number().optional().nullable(),
-   // meta: xt.hasOne('metas', 'user').optional(),
+   username: xt.string().optional().index(),
+   email: xt.string().index(),
+   password: xt.string(),
+   metas: xt.array(xt.schema("user_metas", "user")),
 
    created_at: xt.createdAt(),
    updated_at: xt.updatedAt(),
 
-   user_posts: xt.array(xt.schema("posts", "user")),
 });
 
-const PostMetaSchema = new Schema("post_metas", {
-   pmid: xt.id(),
-   views: xt.number().default(0),
-   likes: xt.number().default(0),
-   post: xt.schema('posts', "metas"),
-});
-
-const PostCategorySectionSchema = new Schema("post_category_section", {
-   pcgid: xt.id(),
-   name: xt.string().index(),
-   categories: xt.array(xt.schema("post_categories", "section")),
-});
-
-const PostCategorySchema = new Schema("post_categories", {
+const ProductCategorySchema = new Schema("categories", {
    pcid: xt.id(),
    name: xt.string().index(),
-   post: xt.schema('posts', "categories"),
+   description: xt.string().optional(),
+   post: xt.schema('products', "categories"),
 });
 
-const PostSchema = new Schema("posts", {
+const ProductSchema = new Schema("products", {
    pid: xt.id(),
-   title: xt.string().index(),
-   content: xt.string(),
-   // user: xt.schema('users', "user_posts"),
-   metas: xt.array(xt.schema("post_metas", "post")),
-   // categories: xt.array(xt.schema("post_categories", "post")),
+   name: xt.string().index(),
+   description: xt.string(),
+   price: xt.string(),
+   categories: xt.array(xt.schema("categories", "post")),
+   user: xt.schema("users", "products"),
 });
 
 const mysqlConn: string = (typeof process !== 'undefined' ? process.env.MYSQL_DB : 'mysql://root:password@localhost:3306/xansql') as string
@@ -76,7 +64,7 @@ export const db = new Xansql(conn.sqlite)
 
 // export const UserOptionModel = db.model(UserOptionSchema)
 export const UserModel = db.model(UserSchema)
-export const PostModel = db.model(PostSchema)
-export const PostMeta = db.model(PostMetaSchema)
-export const PostCategory = db.model(PostCategorySchema)
-export const PostCategorySection = db.model(PostCategorySectionSchema)
+export const UserModelMeta = db.model(UserMetaSchema)
+export const PostModel = db.model(ProductSchema)
+export const PostCategory = db.model(ProductCategorySchema)
+

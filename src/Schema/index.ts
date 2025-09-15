@@ -44,6 +44,10 @@ class Schema extends SchemaBase {
       return res?.length || 0;
    }
 
+   async aggregate(args: any) {
+      throw new Error("Not implemented");
+   }
+
 }
 
 export default Schema;

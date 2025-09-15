@@ -64,7 +64,7 @@ class Xansql {
       clearTimeout(this._timer);
       this._timer = setTimeout(() => {
          this.migrate()
-      }, 0);
+      }, 1);
       return model
    }
 
@@ -192,11 +192,11 @@ class Xansql {
       }
    }
 
-   async excute(sql: string, schema: Schema, requestData?: any): Promise<any> {
+   async excute(sql: string, model: Schema, requestData?: any): Promise<any> {
       if (typeof window === "undefined") {
-         return await this.dialect.excute(sql, schema);
+         return await this.dialect.excute(sql, model);
       } else {
-         return await this.excuteClient(sql, schema);
+         return await this.excuteClient(sql, model);
       }
    }
 

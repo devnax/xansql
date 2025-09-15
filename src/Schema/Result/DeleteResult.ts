@@ -57,8 +57,6 @@ class DeleteResult {
                         }
                      }
                   })
-                  console.log(res);
-
                } else {
                   // delete all relation
                   const r = new DeleteResult(FModel)

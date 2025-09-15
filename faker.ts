@@ -26,14 +26,14 @@ type User = {
    products: Product[];
 };
 
-function buildCategories(count = 3): Category[] {
+function buildCategories(count = 5): Category[] {
    return Array.from({ length: count }, () => ({
       name: faker.commerce.department(),
       description: faker.commerce.productDescription(),
    }));
 }
 
-function buildProducts(count = 20): Product[] {
+function buildProducts(count = 10): Product[] {
    return Array.from({ length: count }, () => {
       return {
          name: faker.commerce.productName(),
@@ -44,7 +44,7 @@ function buildProducts(count = 20): Product[] {
    });
 }
 
-function buildUserMetas(count = 15): UserMeta[] {
+function buildUserMetas(count = 5): UserMeta[] {
    return Array.from({ length: count }, () => ({
       meta_key: faker.helpers.arrayElement(['bio', 'location', 'website']),
       meta_value: faker.lorem.words(3),

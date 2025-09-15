@@ -37,20 +37,6 @@ export type OrderByArgs = {
    [column: string]: "asc" | "desc";
 }
 
-export type SelectRelationArgs = {
-   where?: WhereArgs;
-   select?: SelectArgs;
-   limit?: LimitArgs
-   orderBy?: OrderByArgs;
-   cache?: boolean;
-}
-
-export type SelectArgs = {
-   [column: string]: boolean | SelectRelationArgs | {
-      unique?: boolean;
-   }
-}
-
 export type DataValue =
    | string
    | number
@@ -67,33 +53,12 @@ export type DataArgs = {
    [column: string]: DataValue | DataArgs[] | DataArgs;
 }
 
-export type BuildResultStructure = {
-   model: string;
-   columns: string[];
-   ids: number[];
-   field: string;
-   args: object;
-   type: "main" | "relation";
-   relations: BuildResultStructure[];
-}
-
-export type BuildResult = {
-   type: "main" | "relation";
-   cache_key?: string;
-   results: ({ [key: string]: any })[] | null;
-   structure: BuildResultStructure;
-}
-
-
-export type Count = {
-   [column: string]: boolean | {
-      unique?: boolean;
-   }
+export type SelectArgs = {
+   [column: string]: boolean | FindArgs
 }
 
 export type FindArgs = {
    distinct?: string[];
-   count?: string[];
    where?: WhereArgs;
    select?: SelectArgs;
    limit?: LimitArgs

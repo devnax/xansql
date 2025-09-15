@@ -2,7 +2,7 @@ import dotenv from 'dotenv'
 dotenv.config()
 import fakeData from './faker'
 import express from 'express';
-import { db, PostCategorySection, PostModel, UserModel } from './example'
+import { db, PostModel, UserModel } from './example'
 import WhereArgs from './src/Schema/Result/WhereArgs';
 
 const server = async (app) => {
@@ -50,17 +50,22 @@ const server = async (app) => {
 
 
    app.get('/find', async (req, res) => {
+      const start = Date.now()
+
       const result = await UserModel.find({
+         // distinct: ["email"],
          orderBy: {
-            uid: "desc"
+            // uid: "desc",
+            // email: "desc"
          },
          limit: {
-            take: 500,
+            take: 10,
             skip: 0
          },
          where: {
-            name: "John Doe",
-            // uid: 199,
+            // uid: {
+            //    in: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+            // },
             // user_posts: {
             //    pid: 375,
             // }
@@ -68,41 +73,24 @@ const server = async (app) => {
          select: {
             name: true,
             email: true,
-            user_posts: {
-               orderBy: {
-                  pid: "asc"
-               },
-               limit: {
-                  take: 1,
-               },
+            metas: {
+               limit: { take: 1 }
+            },
+            products: {
+               distinct: ["price"],
+               orderBy: { price: "desc" },
+
                select: {
-                  // pid: true,
-                  // title: true,
-                  // content: true,
-
-                  // metas: {
-                  //    select: {
-                  //       views: true,
-                  //       likes: true,
-                  //    },
-                  // },
-
-                  categories: {
-                     select: {
-                        name: true,
-                        section: {
-                           select: {
-                              name: true,
-                           }
-                        }
-                     },
-                     limit: { take: 2 }
-                  },
-               }
+                  name: true,
+                  price: true,
+               },
+               limit: { take: 3 }
             }
          },
       })
 
+      const end = Date.now()
+      console.log(`Find ${result.length} users in ${end - start}ms`)
       res.json(result)
    });
 
@@ -112,18 +100,10 @@ const server = async (app) => {
          select: {
             name: true,
             email: true,
-            user_posts: {
+            products: {
                select: {
-                  content: true,
-                  title: true,
-                  metas: {
-                     select: {
-                        views: true,
-                        likes: true,
-                     },
-                     limit: { take: 1 }
-
-                  },
+                  description: true,
+                  name: true,
                   categories: {
                      select: {
                         name: true,
@@ -135,44 +115,24 @@ const server = async (app) => {
          data: {
             name: "John Doe",
             email: `john${Math.floor(Math.random() * 10000)}@doe.com`,
+            password: "password",
             // created_at: new Date(),
-            user_posts: [
+            products: [
                {
-                  title: "Hello World",
-                  content: "This is my first post",
+                  name: "Hello World",
+                  description: "This is my first post",
+                  price: "19.99",
                   categories: [
                      {
                         name: "Tech",
-                        section: {
-                           name: "Technology"
-                        }
                      },
                      { name: "News" },
                   ],
-                  metas: [
-                     {
-                        views: Math.floor(Math.random() * 1000),
-                        likes: Math.floor(Math.random() * 100),
-                     },
-                     {
-                        views: Math.floor(Math.random() * 1000),
-                        likes: Math.floor(Math.random() * 100),
-                     }
-                  ]
                },
                {
-                  title: "Hello World",
-                  content: "This is my first post",
-                  metas: [
-                     {
-                        views: Math.floor(Math.random() * 1000),
-                        likes: Math.floor(Math.random() * 100),
-                     },
-                     {
-                        views: Math.floor(Math.random() * 1000),
-                        likes: Math.floor(Math.random() * 100),
-                     }
-                  ]
+                  name: "Hello World",
+                  description: "This is my first post",
+                  price: "29.99",
                }
             ]
          }
@@ -182,9 +142,9 @@ const server = async (app) => {
 
    app.get('/delete', async (req, res) => {
 
-      const result = await PostCategorySection.delete({
+      const result = await UserModel.delete({
          where: {
-            pcgid: 1,
+            uid: 1,
          }
       })
       // const result = await PostModel.delete({
@@ -245,6 +205,23 @@ const server = async (app) => {
    app.get('/migrate', async (req, res) => {
       await db.migrate(true)
       res.send(`Migrated`);
+   });
+
+   app.get('/faker', async (req, res) => {
+      const d = await fakeData(10000)
+      // performance log
+
+      const start = Date.now()
+      const users = await UserModel.create({
+         data: d,
+         select: {
+            username: true,
+         }
+      })
+      const end = Date.now()
+      console.log(`Created ${users.length} users in ${end - start}ms`)
+
+      res.json(users)
    });
 
 }

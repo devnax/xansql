@@ -4,6 +4,8 @@ import { isObject } from "../../utils";
 import { FindArgs, LimitArgs, OrderByArgs } from "../type";
 import WhereArgs from "./WhereArgs";
 
+const BATCH_SIZE = 500;
+
 type Meta = {
    parent_table: string,
    in: {
@@ -19,6 +21,73 @@ class FindResult {
    }
 
    async result(args: FindArgs, meta?: Meta) {
+
+      if (meta) {
+         if (args.limit && (args as any).limit.take > BATCH_SIZE) {
+            // use while loop for large limit
+            let allResults: any[] = []
+            let remaining = args.limit.take || 0
+            let skip = args.limit.skip || 0
+            while (remaining > 0) {
+               const res = await this.excute({
+                  ...args,
+                  limit: {
+                     take: Math.min(remaining, BATCH_SIZE),
+                     skip: skip
+                  }
+               }, meta)
+               allResults = allResults.concat(res)
+               remaining -= res.length
+               skip = Math.max(0, skip - res.length)
+               if (res.length < Math.min(remaining, BATCH_SIZE)) {
+                  // no more records
+                  break;
+               }
+            }
+            return allResults
+         } else if (meta.in.values.length > BATCH_SIZE) {
+            // use while loop for large in values
+            let allResults: any[] = []
+            let i = 0
+            while (i < meta.in.values.length) {
+               const chunk = meta.in.values.slice(i, i + BATCH_SIZE)
+               const res = await this.excute(args, {
+                  parent_table: meta.parent_table,
+                  in: {
+                     column: meta.in.column,
+                     values: chunk
+                  }
+               })
+               allResults = allResults.concat(res)
+               i += BATCH_SIZE
+            }
+            return allResults
+         }
+      } else if (args.limit && (args as any).limit.take > BATCH_SIZE) {
+
+         let allResults: any[] = []
+         let remaining = args.limit.take || 0
+         let skip = args.limit.skip || 0
+         while (remaining > 0) {
+            const res = await this.excute({
+               ...args,
+               limit: {
+                  take: Math.min(remaining, BATCH_SIZE),
+                  skip: skip
+               }
+            })
+            allResults = allResults.concat(res)
+            remaining -= res.length
+            skip = Math.max(0, skip - res.length)
+            if (res.length < Math.min(remaining, BATCH_SIZE)) {
+               // no more records
+               break;
+            }
+         }
+         return allResults
+
+      }
+
       const res = await this.excute(args, meta)
       return res
    }
@@ -26,10 +95,9 @@ class FindResult {
    private async excute(args: FindArgs, meta?: Meta) {
       const model = this.model
       const xansql = model.xansql
-      const { select, where, limit, orderBy } = args
+      let { distinct, select, where, limit, orderBy } = args
       const columns: string[] = []
       const relationColumns: string[] = []
-
       const Where = new WhereArgs(model, where || {})
       const Limit = this.limit(limit || {})
       const OrderBy = this.orderby(orderBy || {})
@@ -43,7 +111,6 @@ class FindResult {
          };
 
          const value: any = select[column]
-
          if (xansql.isForeign(xanv)) {
             const foreign = xansql.foreignInfo(model.table, column)
             const FModel = xansql.getModel(foreign.table)
@@ -59,20 +126,12 @@ class FindResult {
                orderBy: isObject(value) && value.orderBy ? value.orderBy : {},
             }
 
-            if (value === true || (isObject(value) && Object.keys(value).length === 0)) {
-               for (let rcol in FModel.schema) {
-                  const rxanv = FModel.schema[rcol]
-                  if (rxanv && !xansql.isForeign(rxanv)) {
-                     fargs.select[rcol] = true
-                  }
-               }
-            }
             relationArgs[column] = {
                args: fargs,
                foreign
             }
          } else {
-            if (value === false) continue
+            if (value === false || column === model.IDColumn) continue
             if (value === true) {
                columns.push(`${model.table}.${column}`)
             } else {
@@ -94,20 +153,46 @@ class FindResult {
          where_sql += where_sql ? ` AND ${insql}` : `WHERE ${insql}`
       }
 
-      let cols = [...columns, ...relationColumns]
-      let idcol = `${model.table}.${model.IDColumn}`
-      if (cols.length && !cols.includes(idcol)) {
-         cols.unshift(idcol)
+
+      if (distinct && distinct.length) {
+         let dcols: string[] = []
+         for (let col of distinct) {
+            if (!(col in model.schema)) {
+               throw new Error("Invalid column in distinct clause: " + col)
+            };
+            let MX = orderBy && orderBy[col] === "desc" ? "MAX" : "min"
+            dcols.push(`${model.table}.${model.IDColumn} IN (
+               SELECT ${MX}(${model.table}.${model.IDColumn})
+               FROM ${model.table}
+               ${where_sql}
+               GROUP BY  ${col}
+            )`)
+         }
+         if (dcols.length) {
+            where_sql = where_sql ? `${where_sql} AND ${dcols.join(" AND ")}` : `WHERE ${dcols.join(" AND ")}`
+         }
       }
 
-      let select_sql = cols.length ? cols.join(", ") : "*"
+      if (!columns.length) {
+         for (let c in model.schema) {
+            if (!xansql.isForeign(model.schema[c])) {
+               columns.push(`${model.table}.${c}`)
+            }
+         }
+      }
+
+      let cols = [...columns, ...relationColumns]
+      let idcol = `${model.table}.${model.IDColumn}`
+      cols.unshift(idcol)
+
+      let sql_cols = cols.join(", ").trim()
       let sql = ``
 
       if (meta) {
          sql = `
-         SELECT ${select_sql} FROM (
+         SELECT ${sql_cols} FROM (
            SELECT
-               ${select_sql},
+               ${sql_cols},
              ROW_NUMBER() OVER (PARTITION BY ${model.table}.${meta.in.column} ${OrderBy.sql}) AS ${model.table}_rank
            FROM ${model.table}
             ${where_sql}
@@ -115,7 +200,11 @@ class FindResult {
          WHERE ${model.table}_rank > ${Limit.skip} AND ${model.table}_rank <= ${Limit.take + Limit.skip};
       `
       } else {
-         sql = `SELECT ${select_sql} FROM ${model.table} ${where_sql} ${OrderBy.sql} ${Limit.sql}`.trim()
+         sql = `SELECT ${sql_cols} 
+         FROM ${model.table} 
+         ${where_sql} 
+         ${OrderBy.sql} 
+         ${Limit.sql}`.trim()
       }
 
       const { result } = await model.excute(sql)
