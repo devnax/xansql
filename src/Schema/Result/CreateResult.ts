@@ -29,8 +29,6 @@ class CreateResult {
       if (ids.length) {
          let results: any[] = []
          for (let { chunk } of chunkArray(ids)) {
-            console.log(chunk.length);
-
             if (args.select) {
                const findArgs: any = {
                   where: {
