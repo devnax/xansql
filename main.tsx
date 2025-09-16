@@ -3,26 +3,15 @@ import { createRoot } from 'react-dom/client';
 import { x } from './src/Types';
 import { Xansql, Schema } from './src';
 import MysqlDialect from './src/Dialects/Mysql';
-import { PostModel } from './example'
+import { chunkArray, chunkNumbers } from './src/utils/chunk';
 
-PostModel.create({
-  data: {
-    title: "Hello World",
-    content: "This is a test post",
 
-    user: {
-      name: "John Doe",
-      email: "",
+// --- Example usage ---
+// 1️⃣ Array pagination
+const arr = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+for (const page of chunkArray(arr, 2)) console.log(page);
 
-      posts: [
-        {
-          title: "Nested Post",
-          content: "This is a nested post"
-        }
-      ]
-    }
-  }
-})
+for (const page of chunkNumbers(10, 3)) console.log(page);
 
 const Button = ({ label, onClick }) => {
   return (

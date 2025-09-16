@@ -1,11 +1,13 @@
 import Schema from "..";
 import { ForeignInfo } from "../../type";
 import { isObject } from "../../utils";
-import { FindArgs, LimitArgs, OrderByArgs } from "../type";
+import { chunkArray, chunkNumbers } from "../../utils/chunk";
+import { AggregateArgs, FindArgs, FindArgsAggregate, LimitArgs, OrderByArgs } from "../type";
 import AggregateResult from "./AggregateResult";
 import WhereArgsQuery from "./WhereArgsQuery";
 
-const BATCH_SIZE = 500;
+
+type RelationInfo = { [column: string]: { args: FindArgs, foreign: ForeignInfo } }
 
 type Meta = {
    parent_table: string,
@@ -22,78 +24,21 @@ class FindResult {
    }
 
    async result(args: FindArgs, meta?: Meta) {
+      const xansql = this.model.xansql
+      // return await this.excute(args, meta)
 
-      if (meta) {
-         if (args.limit && (args as any).limit.take > BATCH_SIZE) {
-            // use while loop for large limit
-            let allResults: any[] = []
-            let remaining = args.limit.take || 0
-            let skip = args.limit.skip || 0
-            while (remaining > 0) {
-               const res = await this.excute({
-                  ...args,
-                  limit: {
-                     take: Math.min(remaining, BATCH_SIZE),
-                     skip: skip
-                  }
-               }, meta)
-               allResults = allResults.concat(res)
-               remaining -= res.length
-               skip = Math.max(0, skip - res.length)
-               if (res.length < Math.min(remaining, BATCH_SIZE)) {
-                  // no more records
-                  break;
-               }
-            }
-            return allResults
-         } else if (meta.in.values.length > BATCH_SIZE) {
-            // use while loop for large in values
-            let allResults: any[] = []
-            let i = 0
-            while (i < meta.in.values.length) {
-               const chunk = meta.in.values.slice(i, i + BATCH_SIZE)
-               const res = await this.excute(args, {
-                  parent_table: meta.parent_table,
-                  in: {
-                     column: meta.in.column,
-                     values: chunk
-                  }
-               })
-               allResults = allResults.concat(res)
-               i += BATCH_SIZE
-            }
-            return allResults
-         }
-      } else if (args.limit && (args as any).limit.take > BATCH_SIZE) {
-
-         let allResults: any[] = []
-         let remaining = args.limit.take || 0
-         let skip = args.limit.skip || 0
-         while (remaining > 0) {
-            const res = await this.excute({
-               ...args,
-               limit: {
-                  take: Math.min(remaining, BATCH_SIZE),
-                  skip: skip
-               }
-            })
-            allResults = allResults.concat(res)
-            remaining -= res.length
-            skip = Math.max(0, skip - res.length)
-            if (res.length < Math.min(remaining, BATCH_SIZE)) {
-               // no more records
-               break;
-            }
-         }
-         return allResults
-
+      const chunk = chunkNumbers(args.limit?.take || xansql.config.maxFindLimit)
+      let result: any[] = []
+      for (let { take, skip } of chunk) {
+         args.limit = { take, skip }
+         const res = await this.excute(args, meta)
+         result = result.concat(res)
       }
-
-      const res = await this.excute(args, meta)
-      return res
+      return result
    }
 
    private async excute(args: FindArgs, meta?: Meta) {
+
       const model = this.model
       const xansql = model.xansql
       let { distinct, select, where, limit, orderBy, aggregate } = args
@@ -103,7 +48,7 @@ class FindResult {
       const Limit = this.limit(limit || {})
       const OrderBy = this.orderby(orderBy || {})
 
-      let relationArgs: { [column: string]: { args: FindArgs, foreign: ForeignInfo } } = {}
+      let relationArgs: RelationInfo = {}
 
       for (let column in select) {
          const xanv = model.schema[column]
@@ -208,52 +153,90 @@ class FindResult {
          ${Limit.sql}`.trim()
       }
 
-      const { result } = await model.excute(sql)
+      const { result: main_result } = await model.excute(sql)
+      if (main_result.length) {
+         for (let { chunk: result } of chunkArray(main_result)) {
+            const aggResults = await this.aggregate(aggregate || {}, result)
+            const freses = await this.excuteRelation(relationArgs, result, meta)
 
-      if (result.length) {
-
-         // aggregate
-         let aggResults: any = []
-         if (aggregate && Object.keys(aggregate).length) {
-            for (let col in aggregate) {
-               if (!(col in model.schema)) {
-                  throw new Error(`Invalid column in aggregate clause: ${col}`)
-               }
-               const foreign = xansql.foreignInfo(model.table, col)
-               if (!foreign) {
-                  throw new Error(`Column ${col} is not a foreign key, cannot aggregate on it.`)
-               }
-               if (!xansql.isForeignArray(model.schema[col])) {
-                  throw new Error(`Column ${col} is not a foreign array, cannot aggregate on it.`)
+            for (let row of result) {
+               for (let { col, foreign, aggRes } of aggResults) {
+                  let find = aggRes.find((ar: any) => ar[foreign.relation.main] === row[foreign.relation.target]) || null
+                  if (!("aggregate" in row)) {
+                     row["aggregate"] = {}
+                  }
+                  if (find) delete find[foreign.relation.main]
+                  row["aggregate"][col] = find
                }
 
-               const FModel = xansql.getModel(foreign.table)
-               let ids: number[] = []
-               for (let r of result) {
-                  let id = r[foreign.relation.target]
-                  if (typeof id === "number" && !ids.includes(id)) {
-                     ids.push(id)
+               for (let { rel_args, foreign, fres } of freses) {
+                  if (xansql.isForeignArray(model.schema[rel_args])) {
+                     row[rel_args] = fres.filter((fr: any) => {
+                        let is = fr[foreign.relation.main] === row[foreign.relation.target]
+                        if (is) {
+                           delete fr[foreign.relation.main]
+                        }
+                        return is
+                     })
+                  } else {
+                     row[rel_args] = fres.find((fr: any) => fr[foreign.relation.main] === row[foreign.relation.target]) || null
                   }
                }
-               if (ids.length === 0) continue;
-               const aggregateResult = new AggregateResult(FModel)
-               const aggRes = await aggregateResult.result({
-                  where: {
-                     [foreign.relation.main]: {
-                        in: ids
-                     }
-                  },
-                  groupBy: [foreign.relation.main],
-                  aggregate: aggregate[col]
-               })
-               aggResults.push({ col, foreign, aggRes })
+            }
+         }
+      }
+
+      return main_result
+   }
+
+   private async excuteRelation(relationArgs: RelationInfo, result: any[], meta?: Meta) {
+      const model = this.model
+      let freses = []
+      for (let rel_args in relationArgs) {
+         const { args, foreign } = relationArgs[rel_args]
+         const FModel = model.xansql.getModel(foreign.table)
+         let ids: number[] = []
+         for (let r of result) {
+            let id = r[foreign.relation.target]
+            if (typeof id === "number" && !ids.includes(id)) {
+               ids.push(id)
             }
          }
 
-         let freses = []
-         for (let rel_args in relationArgs) {
-            const { args, foreign } = relationArgs[rel_args]
-            const FModel = model.xansql.getModel(foreign.table)
+         if (meta && meta.parent_table === foreign.table) {
+            throw new Error("Circular reference detected in relation " + rel_args);
+         }
+         const findResult = new FindResult(FModel)
+         const fres: any = await findResult.result(args, {
+            parent_table: model.table,
+            in: {
+               column: foreign.relation.main,
+               values: Array.from(new Set(ids))
+            }
+         })
+         freses.push({ rel_args, foreign, fres })
+      }
+      return freses
+   }
+
+   private async aggregate(aggregate: FindArgsAggregate, result: any[]) {
+      const model = this.model
+      const xansql = model.xansql
+      let aggResults: any = []
+      if (aggregate && Object.keys(aggregate).length) {
+         for (let col in aggregate) {
+            if (!(col in model.schema)) {
+               throw new Error(`Invalid column in aggregate clause: ${col}`)
+            }
+            const foreign = xansql.foreignInfo(model.table, col)
+            if (!foreign) {
+               throw new Error(`Column ${col} is not a foreign key, cannot aggregate on it.`)
+            }
+            if (!xansql.isForeignArray(model.schema[col])) {
+               throw new Error(`Column ${col} is not a foreign array, cannot aggregate on it.`)
+            }
+
+            const FModel = xansql.getModel(foreign.table)
             let ids: number[] = []
             for (let r of result) {
                let id = r[foreign.relation.target]
@@ -261,56 +244,27 @@ class FindResult {
                   ids.push(id)
                }
             }
-
-            if (meta && meta.parent_table === foreign.table) {
-               throw new Error("Circular reference detected in relation " + rel_args);
-            }
-            const findResult = new FindResult(FModel)
-            const fres: any = await findResult.result(args, {
-               parent_table: model.table,
-               in: {
-                  column: foreign.relation.main,
-                  values: Array.from(new Set(ids))
-               }
+            if (ids.length === 0) continue;
+            const aggregateResult = new AggregateResult(FModel)
+            const aggRes = await aggregateResult.result({
+               where: {
+                  [foreign.relation.main]: {
+                     in: ids
+                  }
+               },
+               groupBy: [foreign.relation.main],
+               aggregate: aggregate[col]
             })
-            freses.push({ rel_args, foreign, fres })
-         }
-
-         for (let row of result) {
-
-            // merge aggregate
-
-            for (let { col, foreign, aggRes } of aggResults) {
-               let find = aggRes.find((ar: any) => ar[foreign.relation.main] === row[foreign.relation.target]) || null
-               if (!("aggregate" in row)) {
-                  row["aggregate"] = {}
-               }
-               delete find[foreign.relation.main]
-               row["aggregate"][col] = find
-            }
-
-            for (let { rel_args, foreign, fres } of freses) {
-               if (xansql.isForeignArray(model.schema[rel_args])) {
-                  row[rel_args] = fres.filter((fr: any) => {
-                     let is = fr[foreign.relation.main] === row[foreign.relation.target]
-                     if (is) {
-                        delete fr[foreign.relation.main]
-                     }
-                     return is
-                  })
-               } else {
-                  row[rel_args] = fres.find((fr: any) => fr[foreign.relation.main] === row[foreign.relation.target]) || null
-               }
-            }
+            aggResults.push({ col, foreign, aggRes })
          }
       }
-
-      return result
+      return aggResults
    }
 
    private limit(args: LimitArgs) {
-
-      let take = args.take ?? 50
+      const model = this.model
+      const xansql = model.xansql
+      let take = args.take ?? xansql.config.maxFindLimit
       let skip = args.skip ?? 0
       if (take < 0 || !Number.isInteger(take)) {
          throw new Error("Invalid take value in limit clause")

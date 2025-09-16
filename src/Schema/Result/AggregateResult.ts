@@ -11,7 +11,7 @@ class AggregateResult {
       this.model = schema
    }
 
-   async result(args: AggregateArgs, meta?: any) {
+   async result(args: AggregateArgs) {
       const model = this.model
       const table = model.table
 
@@ -20,7 +20,7 @@ class AggregateResult {
       orderBy = orderBy || {}
       let formated = this.formatAggregate(aggregate)
       let Where = new WhereArgsQuery(model, where || {})
-      let Limit = this.limit(limit || {})
+      let limitSql = this.limit(limit || {})
       let OrderBy = this.orderby(orderBy || {}).concat(formated.orderby || [])
 
       let sql = `SELECT `
@@ -29,7 +29,7 @@ class AggregateResult {
       sql += ` FROM ${table} ${Where.sql}`
       sql += groupBy && groupBy.length ? ` GROUP BY ${groupBy.join(", ")} ` : ""
       sql += OrderBy.length ? ` ORDER BY ${OrderBy.join(", ")} ` : ""
-      sql += ` ${Limit.sql}`
+      sql += ` ${limitSql}`
 
       const { result } = await model.excute(sql)
       return result
@@ -50,12 +50,12 @@ class AggregateResult {
             if (!this.methods.includes(method)) {
                throw new Error(`Invalid aggregate method: ${method} for column: ${column}`);
             }
-            let alias = `${method}_${column}`
+            let alias = column === model.IDColumn ? `${method}` : `${method}_${column}`
             let round;
             let opts: any = agg_methods[method]
 
             if (isObject(opts)) {
-               alias = opts.alias ? opts.alias : `${method}_${column}`
+               alias = opts.alias ?? alias
                round = opts.round
                if (opts.orderBy) {
                   orderByParts.push(`${alias} ${opts.orderBy.toUpperCase()}`)
@@ -75,8 +75,13 @@ class AggregateResult {
    }
 
    private limit(args: LimitArgs) {
+      if (Object.keys(args).length === 0) {
+         return ""
+      }
 
-      let take = args.take ?? 50
+      const model = this.model
+      const xansql = model.xansql
+      let take = args.take ?? xansql.config.maxFindLimit
       let skip = args.skip ?? 0
       if (take < 0 || !Number.isInteger(take)) {
          throw new Error("Invalid take value in limit clause")
@@ -85,13 +90,7 @@ class AggregateResult {
          throw new Error("Invalid skip value in limit clause")
       }
 
-      const info: any = {
-         take: take,
-         skip: skip,
-         sql: `LIMIT ${take} ${skip ? `OFFSET ${skip}` : ""}`.trim(),
-      }
-
-      return info
+      return `LIMIT ${take} ${skip ? `OFFSET ${skip}` : ""}`.trim()
    }
 
    private orderby(args: OrderByArgs) {

@@ -1,7 +1,7 @@
 import { xt } from ".";
 import restrictedColumn from "./RestrictedColumn";
 import Schema from "./Schema";
-import { ForeignsInfo, XansqlConfig } from "./type";
+import { ForeignsInfo, XansqlConfig, XansqlConfigOptions } from "./type";
 import XqlArray from "./Types/fields/Array";
 import XqlSchema from "./Types/fields/Schema";
 import { XqlFields } from "./Types/types";
@@ -10,14 +10,27 @@ class Xansql {
    private _models = new Map<string, Schema>();
    private _config: XansqlConfig;
    private _aliases = new Map<string, string>();
-   private _foreigns: ForeignsInfo | null = null
 
    constructor(config: XansqlConfig) {
       this._config = config;
    }
 
    get config() {
-      return typeof this._config === 'function' ? this._config() : this._config;
+      const isFn = typeof this._config === 'function';
+      let config = this._config as Required<XansqlConfigOptions>;
+      if (isFn) {
+         config = (this._config as Function)();
+      }
+      if (!config.connection) {
+         throw new Error("Connection is required in Xansql config");
+      }
+      if (!config.dialect) {
+         throw new Error("Dialect is required in Xansql config");
+      }
+      config.maxFindLimit = config.maxFindLimit || 100;
+      config.cachePlugins = config.cachePlugins || [];
+
+      return config;
    }
 
    private _dialect: any = null;

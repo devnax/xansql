@@ -2,11 +2,10 @@ import Schema from "..";
 import { ForeignInfo } from "../../type";
 import XqlIDField from "../../Types/fields/IDField";
 import { isArray, isObject } from "../../utils";
+import { chunkArray } from "../../utils/chunk";
 import { CreateArgs } from "../type";
 import DeleteResult from "./DeleteResult";
 import FindResult from "./FindResult";
-
-const BATCH_SIZE = 500;
 
 type MetaInfo = {
    table: string;
@@ -26,28 +25,29 @@ class CreateResult {
 
    async result(args: CreateArgs, meta?: MetaInfo) {
       let ids = await this.excute(args, meta)
-      if (meta) {
-         return ids
-      }
+      if (meta) return ids
       if (ids.length) {
-         if (args.select) {
-            const findArgs: any = {
-               limit: {
-                  take: ids.length,
-                  skip: 0
-               },
-               where: {
-                  [this.model.IDColumn]: {
-                     in: ids
-                  }
-               },
-               select: args.select || {}
-            }
-            return await this.finder.result(findArgs)
-         }
-         return ids.map((id: any) => ({ [this.model.IDColumn]: id }))
-      }
+         let results: any[] = []
+         for (let { chunk } of chunkArray(ids)) {
+            console.log(chunk.length);
 
+            if (args.select) {
+               const findArgs: any = {
+                  where: {
+                     [this.model.IDColumn]: {
+                        in: chunk
+                     }
+                  },
+                  select: args.select || {}
+               }
+               const r = await this.finder.result(findArgs)
+               results = results.concat(r)
+            }
+            const r = chunk.map((id: any) => ({ [this.model.IDColumn]: id }))
+            results = results.concat(r)
+         }
+         return results
+      }
       throw new Error("Create failed, no records created.");
    }
 
@@ -57,32 +57,55 @@ class CreateResult {
       const data = args.data
 
       if (Array.isArray(data)) {
-         if (data.length > BATCH_SIZE) {
-            let allIds: number[] = []
-            for (let i = 0; i < data.length; i += BATCH_SIZE) {
-               const chunk = data.slice(i, i + BATCH_SIZE)
-               const ids = await this.excute({ data: chunk }, meta)
-               allIds = allIds.concat(ids as number[])
+         let allids: number[] = []
+         let relations: any = {}
+         const relationArrayColumns: string[] = []
+         for (let col in model.schema) {
+
+            if (xansql.isForeignArray(model.schema[col])) {
+               relationArrayColumns.push(col)
             }
-            return allIds
          }
-         const ids: number[] = []
-         for (let item of data) {
-            const id = await this.excute({ data: item }, meta)
-            if (id) {
-               if (Array.isArray(id)) {
-                  ids.push(...(id as number[]))
-               } else {
-                  ids.push(id as number)
+
+         for (let { chunk } of chunkArray(data, 100)) {
+            let relation: any = {}
+            for (let item of chunk) {
+               for (let col in item) {
+                  if (xansql.isForeignArray(model.schema[col]) && isArray(item[col])) {
+                     relation[col] = {
+                        foreign: xansql.foreignInfo(model.table, col) as ForeignInfo,
+                        data: item[col]
+                     }
+                     delete item[col]
+                  }
+               }
+               const ids = await this.excute({ data: item }, meta)
+               if (Object.keys(relation).length) relations[ids[0]] = relation
+               allids = allids.concat(ids as number[])
+            }
+         }
+
+         let ids = Object.keys(relations)
+         if (ids.length) {
+            for (let { chunk } of chunkArray<any>(ids)) {
+               for (let id of chunk) {
+                  id = parseInt(id)
+                  const relation = relations[id]
+                  for (let col in relation) {
+                     await this.excuteArraySchema({
+                        [col]: relation[col]
+                     }, id)
+                  }
                }
             }
          }
-         return ids
+
+         return allids
       } else {
          const { columns, values, hasManyRelations, hasOneRelations } = this.formatData(data, meta)
          await this.excuteSchema(hasOneRelations, columns, values)
          let sql = `INSERT INTO ${model.table} (${columns.join(",")}) VALUES (${values.join(",")})`
-         const result = await model.excute(sql)
+         const result: any = await model.excute(sql)
 
          if (!result.insertId) {
             for (let col in hasOneRelations) {
@@ -114,7 +137,7 @@ class CreateResult {
          if (!meta) {
             return [result.insertId]
          }
-         return result.insertId || null
+         return [(result as any).insertId as number]
       }
    }
 
@@ -126,12 +149,12 @@ class CreateResult {
          const foreign = rel.foreign
          const FModel = xansql.getModel(foreign.table)
          const instance = new CreateResult(FModel)
-         const insertId = await instance.excute({ data: rel.data }, {
+         const res = await instance.result({ data: rel.data }, {
             table: this.model.table,
          })
-         if (insertId) {
+         if (res.length) {
             columns.push(foreign.relation.target)
-            values.push(insertId || null);
+            values.push(res[0] || null);
          }
          insertedItems[rel_col] = rel
       }

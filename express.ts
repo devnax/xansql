@@ -59,7 +59,7 @@ const server = async (app) => {
             // email: "desc"
          },
          limit: {
-            take: 10,
+            take: 100000,
             skip: 0
          },
          where: {
@@ -70,23 +70,23 @@ const server = async (app) => {
             //    pid: 375,
             // }
          },
-         aggregate: {
-            metas: {
-               uoid: {
-                  count: true
-               }
-            },
-            products: {
-               price: {
-                  sum: {
-                     alias: "total_price"
-                  },
-                  avg: {
-                     alias: "avg_price"
-                  }
-               }
-            }
-         },
+         // aggregate: {
+         //    metas: {
+         //       uoid: {
+         //          count: true
+         //       }
+         //    },
+         //    products: {
+         //       price: {
+         //          sum: {
+         //             alias: "total_price"
+         //          },
+         //          avg: {
+         //             alias: "avg_price"
+         //          }
+         //       }
+         //    }
+         // },
          select: {
             name: true,
             // email: true,
@@ -271,9 +271,11 @@ const server = async (app) => {
       const start = Date.now()
       const users = await UserModel.create({
          data: d,
-         select: {
-            username: true,
-         }
+         // select: {
+         //    username: true,
+         //    metas: true,
+         //    products: true,
+         // }
       })
       const end = Date.now()
       console.log(`Created ${users.length} users in ${end - start}ms`)
