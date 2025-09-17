@@ -25,7 +25,16 @@ export type XansqlConfigOptions = {
    dialect: Dialect;
    connection: string | XansqlConnectionOptions;
    cachePlugins?: any[];
-   maxFindLimit?: number;
+   maxLimit?: {
+      find?: number;
+      create?: number;
+      update?: number;
+      delete?: number;
+   }
+}
+
+export type XansqlConfigOptionsFormated = Required<XansqlConfigOptions> & {
+   maxLimit: Required<XansqlConfigOptions['maxLimit']>
 }
 
 export type XansqlConfigFunction = () => XansqlConfigOptions;

@@ -1,10 +1,8 @@
 import Schema from "..";
 import XqlArray from "../../Types/fields/Array";
 import XqlFile from "../../Types/fields/File";
-import XqlMap from "../../Types/fields/Map";
 import XqlObject from "../../Types/fields/Object";
 import XqlRecord from "../../Types/fields/Record";
-import XqlSet from "../../Types/fields/Set";
 import XqlTuple from "../../Types/fields/Tuple";
 import { escapeSqlValue, isArray, isNumber, isObject } from "../../utils";
 import { WhereArgs, WhereSubCondition } from "../type";
@@ -199,8 +197,6 @@ class WhereArgsQuery {
       }
       const isNotAllowed = xanv instanceof XqlArray
          || xanv instanceof XqlObject
-         || xanv instanceof XqlSet
-         || xanv instanceof XqlMap
          || xanv instanceof XqlRecord
          || xanv instanceof XqlTuple
          || xanv instanceof XqlFile

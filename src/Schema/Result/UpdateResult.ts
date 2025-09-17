@@ -1,5 +1,8 @@
 import Schema from "..";
 import { ForeignInfo } from "../../type";
+import XqlDate from "../../Types/fields/Date";
+import XqlIDField from "../../Types/fields/IDField";
+import XqlSchema from "../../Types/fields/Schema";
 import { isObject } from "../../utils";
 import { SelectArgs, UpdateArgs } from "../type";
 import FindResult from "./FindResult";
@@ -28,6 +31,15 @@ class UpdateResult {
       const where_sql = Where.sql
       if (!where_sql) {
          throw new Error("Update operation requires a valid where clause to prevent mass updates.");
+      }
+
+      const count = await this.model.count({ where: args.where })
+      if (count === 0) return []
+      if (count > model.xansql.config.maxLimit.update) {
+         throw new Error(`Update operation exceeds the maximum limit of ${model.xansql.config.maxLimit.update} rows. Found ${count} rows matching the where clause.`);
+      }
+      if (data.columns.length === 0) {
+         throw new Error("No valid columns to update.");
       }
 
       let sql = `UPDATE ${model.table} SET ${data.sql} ${where_sql}`
@@ -61,15 +73,12 @@ class UpdateResult {
             }
          }
 
-         if (args.select) {
-            const fres = await this.finder.result({
-               select: args.select,
-               where: args.where
-            } as SelectArgs)
-            return fres
-         }
+         return await this.finder.result({
+            select: args.select,
+            where: args.where
+         })
       }
-      return !!result.affectedRows
+      return []
    }
 
    private formatData(data: UpdateArgs["data"]) {
@@ -81,12 +90,32 @@ class UpdateResult {
       const values: any[] = []
 
       for (const column in data) {
-         const dataValue = (data as any)[column]
-         if (xansql.isForeign(schema[column]) && isObject(dataValue)) {
+         const field = schema[column]
+         if (!field) {
+            throw new Error(`Column ${column} does not exist in model ${model.table}`);
+         }
+         if (field instanceof XqlIDField) {
+            throw new Error(`Cannot update ID field: ${column} in table: ${model.table}`);
+         }
+
+         let value = (data as any)[column]
+         if (xansql.isForeign(schema[column]) && isObject(value)) {
             relations.push(column)
          } else {
+            if (field instanceof XqlDate) {
+               if (field.meta.create) {
+                  if (value !== undefined) {
+                     throw new Error(`Cannot set create date field: ${column} in table: ${model.table}`);
+                  }
+               } else if (field.meta.update) {
+                  if (value !== undefined) {
+                     throw new Error(`Cannot set update date field: ${column} in table: ${model.table}`);
+                  }
+                  value = new Date();
+               }
+            }
             columns.push(column)
-            values.push(`${column}=${model.toSql(column, dataValue)}`)
+            values.push(`${column}=${model.toSql(column, value)}`)
          }
       }
 

@@ -3,12 +3,10 @@ import XqlBoolean from "../Types/fields/Boolean";
 import XqlDate from "../Types/fields/Date";
 import XqlEnum from "../Types/fields/Enum";
 import XqlIDField from "../Types/fields/IDField";
-import XqlMap from "../Types/fields/Map";
 import XqlNumber from "../Types/fields/Number";
 import XqlObject from "../Types/fields/Object";
 import XqlRecord from "../Types/fields/Record";
 import XqlSchema from "../Types/fields/Schema";
-import XqlSet from "../Types/fields/Set";
 import XqlString from "../Types/fields/String";
 import XqlTuple from "../Types/fields/Tuple";
 import XqlUnion from "../Types/fields/Union";
@@ -53,7 +51,7 @@ abstract class SchemaBase {
       await this.xansql.dialect.migrate(this as any);
    }
 
-   private iof(column: string, ...instances: any[]) {
+   iof(column: string, ...instances: any[]) {
       const xanv: any = this.schema[column];
       return instances.some(instance => xanv instanceof instance);
    }
@@ -68,16 +66,28 @@ abstract class SchemaBase {
             return 'NULL';
          } else if (this.iof(column, XqlIDField, XqlNumber, XqlSchema)) {
             return value
-         } else if (this.iof(column, XqlString, XqlEnum, XqlUnion)) {
+         } else if (this.iof(column, XqlString, XqlEnum)) {
             return `'${escapeSqlValue(value)}'`;
-         } else if (this.iof(column, XqlObject, XqlRecord, XqlArray, XqlMap, XqlSet, XqlTuple)) {
-            if (this.iof(column, XqlMap, XqlSet)) {
-               value = [...value]
-            }
+         } else if (this.iof(column, XqlObject, XqlRecord, XqlArray, XqlTuple, XqlUnion)) {
             value = JSON.stringify(value);
             return `'${escapeSqlValue(value)}'`;
          } else if (this.iof(column, XqlDate)) {
-            value = (value as Date).toISOString().slice(0, 19).replace('T', ' ')
+            if (value instanceof String) {
+               value = new Date(value as any)
+            }
+            if (!(value instanceof Date) || isNaN(value.getTime())) {
+               throw new Error(`Invalid date value for column ${column}`);
+            }
+
+            const pad = (n: number) => n.toString().padStart(2, '0');
+            let date = value as Date;
+            const year = date.getUTCFullYear();
+            const month = pad(date.getUTCMonth() + 1); // months are 0-indexed
+            const day = pad(date.getUTCDate());
+            const hours = pad(date.getUTCHours());
+            const minutes = pad(date.getUTCMinutes());
+            const seconds = pad(date.getUTCSeconds());
+            value = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
             return `'${value}'`;
          } else if (this.iof(column, XqlBoolean)) {
             return value ? 1 : 0;
@@ -95,16 +105,10 @@ abstract class SchemaBase {
          return null;
       }
 
-      if (this.iof(column, XqlIDField, XqlNumber, XqlString, XqlEnum, XqlUnion)) {
+      if (this.iof(column, XqlIDField, XqlNumber, XqlString, XqlEnum)) {
          return value
-      } else if (this.iof(column, XqlObject, XqlRecord, XqlArray, XqlMap, XqlSet, XqlTuple)) {
-         value = JSON.parse(value);
-         if (this.iof(column, XqlMap)) {
-            value = new Map(value);
-         } else if (this.iof(column, XqlSet)) {
-            value = new Set(value);
-         }
-         return value
+      } else if (this.iof(column, XqlObject, XqlRecord, XqlArray, XqlTuple, XqlUnion)) {
+         return JSON.parse(value);
       } else if (this.iof(column, XqlDate)) {
          return new Date(value);
       } else if (this.iof(column, XqlBoolean)) {

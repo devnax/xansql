@@ -6,13 +6,13 @@ import XqlDate from "../../Types/fields/Date";
 import XqlEnum from "../../Types/fields/Enum";
 import XqlFile from "../../Types/fields/File";
 import XqlIDField from "../../Types/fields/IDField";
-import XqlMap from "../../Types/fields/Map";
 import XqlNumber from "../../Types/fields/Number";
 import XqlObject from "../../Types/fields/Object";
 import XqlRecord from "../../Types/fields/Record";
 import XqlSchema from "../../Types/fields/Schema";
-import XqlSet from "../../Types/fields/Set";
 import XqlString from "../../Types/fields/String";
+import XqlTuple from "../../Types/fields/Tuple";
+import XqlUnion from "../../Types/fields/Union";
 import { XqlFields } from "../../Types/types";
 import Xansql from "../../Xansql";
 
@@ -51,12 +51,17 @@ const buildColumn = (column: string, field: XqlFields) => {
          sql += col(column, "DECIMAL(10, 2)");
       }
    } else if (field instanceof XqlBoolean) {
-      sql += col(column, "TINYINT(1)");
+      sql += col(column, "BOOLEAN");
    } else if (field instanceof XqlDate) {
       sql += col(column, "DATETIME");
    } else if (field instanceof XqlEnum) {
       sql += col(column, `ENUM(${(field as any).values.map((v: any) => `'${v}'`).join(', ')})`);
-   } else if (field instanceof XqlSet || field instanceof XqlObject || field instanceof XqlMap || field instanceof XqlRecord) {
+   } else if (
+      field instanceof XqlObject
+      || field instanceof XqlRecord
+      || field instanceof XqlTuple
+      || field instanceof XqlUnion
+   ) {
       sql += col(column, "TEXT");
    } else if (field instanceof XqlArray) {
       const arrayType = (field as any).type;
@@ -105,11 +110,17 @@ const mysqldialect = (xansql: Xansql): DialectOptions => {
       sql = sql.slice(0, -2);
       sql += `);`;
 
-      for (let column in indexable) {
-         sql += `CREATE INDEX ${makeIndexKey(schema.table, column)} ON ${schema.table}(${column});`;
-      }
-
       await excute(sql, schema);
+
+      for (let column in indexable) {
+         const idxname = makeIndexKey(schema.table, column)
+         let idxExists = `SELECT COUNT(1) AS count FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema = DATABASE() AND table_name = '${schema.table}' AND index_name = '${idxname}';`
+         let res = await excute(idxExists, schema)
+         if (res[0].count === 0) {
+            sql = `CREATE INDEX ${idxname} ON ${schema.table}(${column});`;
+            await excute(sql, schema);
+         }
+      }
    }
 
 

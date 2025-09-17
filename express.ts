@@ -59,7 +59,7 @@ const server = async (app) => {
             // email: "desc"
          },
          limit: {
-            take: 100000,
+            take: 100,
             skip: 0
          },
          where: {
@@ -89,8 +89,17 @@ const server = async (app) => {
          // },
          select: {
             name: true,
-            // email: true,
-            metas: true,
+            email: true,
+            username: true,
+            password: true,
+            created_at: true,
+            metas: {
+               select: {
+                  meta_key: true,
+                  meta_value: true,
+               },
+               limit: { take: 2 }
+            },
             // products: {
             //    distinct: ["price"],
             //    orderBy: { price: "desc" },
@@ -110,16 +119,22 @@ const server = async (app) => {
    });
 
    app.get("/aggregate", async (req, res) => {
+      const start = Date.now()
       const result = await ProductModel.aggregate({
          orderBy: {
             // name: "asc",
          },
-         // groupBy: ["user"],
+         groupBy: ["user"],
          // where: {
          //    name: {
          //       contains: "Hello"
          //    }
          // },
+         where: {
+            // user: {
+            //    in: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+            // }
+         },
          aggregate: {
             price: {
                sum: {
@@ -138,6 +153,8 @@ const server = async (app) => {
             }
          }
       })
+      const end = Date.now()
+      console.log(`Aggregate ${result.length} products in ${end - start}ms`)
       res.json(result)
    })
    app.get("/count", async (req, res) => {
@@ -266,16 +283,14 @@ const server = async (app) => {
 
    app.get('/faker', async (req, res) => {
       const d = await fakeData(10000)
-      // performance log
-
       const start = Date.now()
       const users = await UserModel.create({
          data: d,
-         // select: {
-         //    username: true,
-         //    metas: true,
-         //    products: true,
-         // }
+         select: {
+            username: true,
+            metas: true,
+            products: true,
+         }
       })
       const end = Date.now()
       console.log(`Created ${users.length} users in ${end - start}ms`)

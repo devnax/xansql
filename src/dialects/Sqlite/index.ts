@@ -6,13 +6,13 @@ import XqlDate from "../../Types/fields/Date";
 import XqlEnum from "../../Types/fields/Enum";
 import XqlFile from "../../Types/fields/File";
 import XqlIDField from "../../Types/fields/IDField";
-import XqlMap from "../../Types/fields/Map";
 import XqlNumber from "../../Types/fields/Number";
 import XqlObject from "../../Types/fields/Object";
 import XqlRecord from "../../Types/fields/Record";
 import XqlSchema from "../../Types/fields/Schema";
-import XqlSet from "../../Types/fields/Set";
 import XqlString from "../../Types/fields/String";
+import XqlTuple from "../../Types/fields/Tuple";
+import XqlUnion from "../../Types/fields/Union";
 import { XqlFields } from "../../Types/types";
 import Xansql from "../../Xansql";
 
@@ -32,14 +32,13 @@ const buildColumn = (column: string, field: XqlFields): string => {
       sql += `"${column}" INTEGER PRIMARY KEY AUTOINCREMENT, `;
    } else if (field instanceof XqlSchema) {
       sql += col(column, "INTEGER");
-   } else if (field instanceof XqlString) {
-      let length = meta.length || meta.max;
-      if (!length || length > 65535) {
-         sql += col(column, "TEXT");
-      } else {
-         sql += col(column, "TEXT"); // SQLite ignores length, TEXT covers VARCHAR
-      }
-   } else if (field instanceof XqlFile) {
+   } else if (field instanceof XqlString
+      || field instanceof XqlFile
+      || field instanceof XqlObject
+      || field instanceof XqlRecord
+      || field instanceof XqlTuple
+      || field instanceof XqlUnion
+   ) {
       sql += col(column, "TEXT");
    } else if (field instanceof XqlNumber) {
       if (meta.integer) {
@@ -54,11 +53,8 @@ const buildColumn = (column: string, field: XqlFields): string => {
    } else if (field instanceof XqlDate) {
       sql += col(column, "TEXT"); // store ISO string (SQLite has no native DATETIME)
    } else if (field instanceof XqlEnum) {
-      // SQLite has no ENUM → store as TEXT with CHECK constraint
       const values = (field as any).values.map((v: any) => `'${v}'`).join(", ");
       sql += `"${column}" TEXT CHECK("${column}" IN (${values})) ${nullable} ${unique} ${defaultValue}, `;
-   } else if (field instanceof XqlSet || field instanceof XqlObject || field instanceof XqlMap || field instanceof XqlRecord) {
-      sql += col(column, "TEXT"); // store JSON string
    } else if (field instanceof XqlArray) {
       const arrayType = (field as any).type;
       if (!(arrayType instanceof XqlSchema)) {
@@ -103,13 +99,15 @@ const sqlitedialect = (xansql: Xansql): DialectOptions => {
       sql = sql.slice(0, -2);
       sql += `);`;
 
-      for (let column in indexable) {
-         sql += `CREATE INDEX ${makeIndexKey(schema.table, column)} ON "${schema.table}"("${column}");`;
-      }
 
       await excute(sql, schema);
       await excute(`PRAGMA journal_mode = WAL;`, schema);
       await excute(`PRAGMA wal_autocheckpoint = 1000;`, schema);
+
+      for (let column in indexable) {
+         sql = `CREATE INDEX IF NOT EXISTS ${makeIndexKey(schema.table, column)} ON "${schema.table}"("${column}");`;
+         await excute(sql, schema);
+      }
    }
 
    return {

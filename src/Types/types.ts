@@ -4,19 +4,12 @@ import XqlDate from "./fields/Date"
 import XqlEnum from "./fields/Enum"
 import XqlFile from "./fields/File"
 import XqlIDField from "./fields/IDField"
-import XqlMap from "./fields/Map"
 import XqlNumber from "./fields/Number"
 import XqlObject from "./fields/Object"
 import XqlRecord from "./fields/Record"
-import XqlJoin from "./fields/Join"
-import XqlSet from "./fields/Set"
 import XqlString from "./fields/String"
 import XqlTuple from "./fields/Tuple"
 import XqlUnion from "./fields/Union"
-import XqlHasMany from "./fields/HasMany"
-import XqlHasOne from "./fields/HasOne"
-import XqlCreatedAt from "./fields/CreatedAt"
-import XqlUpdatedAt from "./fields/UpdatedAt"
 import XqlSchema from "./fields/Schema"
 
 export type XqlFields =
@@ -25,21 +18,15 @@ export type XqlFields =
    | XqlDate
    | XqlEnum
    | XqlFile
-   | XqlMap
    | XqlNumber
    | XqlObject
    | XqlRecord
-   | XqlSet
    | XqlString
    | XqlTuple
    | XqlUnion
    | XqlSchema
 
    | XqlIDField
-   | XqlHasMany
-   | XqlHasOne
-   | XqlCreatedAt
-   | XqlUpdatedAt
 
 
 

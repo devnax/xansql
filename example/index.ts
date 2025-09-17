@@ -24,10 +24,8 @@ const UserSchema = new Schema("users", {
    email: xt.string().index(),
    password: xt.string(),
    metas: xt.array(xt.schema("user_metas", "user")),
-
-   created_at: xt.createdAt(),
-   updated_at: xt.updatedAt(),
-
+   created_at: xt.date().create(),
+   updated_at: xt.date().update(),
 });
 
 const ProductCategorySchema = new Schema("categories", {

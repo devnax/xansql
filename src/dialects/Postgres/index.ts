@@ -6,13 +6,13 @@ import XqlDate from "../../Types/fields/Date";
 import XqlEnum from "../../Types/fields/Enum";
 import XqlFile from "../../Types/fields/File";
 import XqlIDField from "../../Types/fields/IDField";
-import XqlMap from "../../Types/fields/Map";
 import XqlNumber from "../../Types/fields/Number";
 import XqlObject from "../../Types/fields/Object";
 import XqlRecord from "../../Types/fields/Record";
 import XqlSchema from "../../Types/fields/Schema";
-import XqlSet from "../../Types/fields/Set";
 import XqlString from "../../Types/fields/String";
+import XqlTuple from "../../Types/fields/Tuple";
+import XqlUnion from "../../Types/fields/Union";
 import { XqlFields } from "../../Types/types";
 import Xansql from "../../Xansql";
 
@@ -29,7 +29,6 @@ const buildColumn = (column: string, field: XqlFields): string => {
 
    let sql = '';
    if (field instanceof XqlIDField) {
-      // PostgreSQL SERIAL for auto-increment primary key
       sql += `"${column}" SERIAL PRIMARY KEY, `;
    } else if (field instanceof XqlSchema) {
       sql += col(column, "INTEGER");
@@ -55,7 +54,6 @@ const buildColumn = (column: string, field: XqlFields): string => {
    } else if (field instanceof XqlDate) {
       sql += col(column, "TIMESTAMP");
    } else if (field instanceof XqlEnum) {
-      // PostgreSQL ENUM type
       const enumName = `${column}_enum`;
       sql += `"${column}" ${enumName} ${nullable} ${unique} ${defaultValue}, `;
    } else if (field instanceof XqlArray) {
@@ -63,7 +61,12 @@ const buildColumn = (column: string, field: XqlFields): string => {
       if (!(arrayType instanceof XqlSchema)) {
          sql += col(column, "TEXT");
       }
-   } else if (field instanceof XqlSet || field instanceof XqlObject || field instanceof XqlMap || field instanceof XqlRecord) {
+   } else if (
+      field instanceof XqlObject
+      || field instanceof XqlRecord
+      || field instanceof XqlTuple
+      || field instanceof XqlUnion
+   ) {
       sql += col(column, "TEXT");
    } else {
       throw new Error(`Unsupported field type for column ${column}`);
@@ -105,7 +108,6 @@ const postgresDialect = (xansql: Xansql): DialectOptions => {
          }
       }
 
-      // create table
       sql += `CREATE TABLE IF NOT EXISTS "${schema.table}" (`;
       for (let [column, field] of Object.entries(schema.schema)) {
          sql += buildColumn(column, field);
@@ -113,14 +115,14 @@ const postgresDialect = (xansql: Xansql): DialectOptions => {
       sql = sql.slice(0, -2);
       sql += `);`;
 
+      await excute(sql, schema);
       // create indexes
       for (let [column, field] of Object.entries(schema.schema)) {
          if (field.meta?.index) {
-            sql += `CREATE INDEX ${makeIndexKey(schema.table, column)} ON "${schema.table}"("${column}");`;
+            sql = `CREATE INDEX IF NOT EXISTS ${makeIndexKey(schema.table, column)} ON "${schema.table}"("${column}");`;
+            await excute(sql, schema);
          }
       }
-
-      await excute(sql, schema);
    }
 
 

@@ -1,5 +1,6 @@
 import Schema from "..";
 import { ForeignInfo } from "../../type";
+import XqlDate from "../../Types/fields/Date";
 import XqlIDField from "../../Types/fields/IDField";
 import { isArray, isObject } from "../../utils";
 import { chunkArray } from "../../utils/chunk";
@@ -24,6 +25,19 @@ class CreateResult {
    }
 
    async result(args: CreateArgs, meta?: MetaInfo) {
+      const model = this.model
+      const xansql = model.xansql
+      const maxLimit = xansql.config.maxLimit.create
+      if (Array.isArray(args.data) && args.data.length === 0) {
+         throw new Error("No data to create.");
+      }
+      if (Array.isArray(args.data) && args.data.length > maxLimit) {
+         throw new Error(`Create operation exceeds the maximum limit of ${maxLimit} rows. Found ${args.data.length} rows to create.`);
+      }
+      if (!args.data || (isObject(args.data) && Object.keys(args.data).length === 0)) {
+         throw new Error("No data to create.");
+      }
+
       let ids = await this.excute(args, meta)
       if (meta) return ids
       if (ids.length) {
@@ -36,13 +50,15 @@ class CreateResult {
                         in: chunk
                      }
                   },
+                  limit: { take: chunk.length },
                   select: args.select || {}
                }
                const r = await this.finder.result(findArgs)
                results = results.concat(r)
+            } else {
+               const r = chunk.map((id: any) => ({ [this.model.IDColumn]: id }))
+               results = results.concat(r)
             }
-            const r = chunk.map((id: any) => ({ [this.model.IDColumn]: id }))
-            results = results.concat(r)
          }
          return results
       }
@@ -57,47 +73,14 @@ class CreateResult {
       if (Array.isArray(data)) {
          let allids: number[] = []
          let relations: any = {}
-         const relationArrayColumns: string[] = []
-         for (let col in model.schema) {
-
-            if (xansql.isForeignArray(model.schema[col])) {
-               relationArrayColumns.push(col)
-            }
-         }
-
-         for (let { chunk } of chunkArray(data, 100)) {
+         for (let { chunk } of chunkArray(data)) {
             let relation: any = {}
             for (let item of chunk) {
-               for (let col in item) {
-                  if (xansql.isForeignArray(model.schema[col]) && isArray(item[col])) {
-                     relation[col] = {
-                        foreign: xansql.foreignInfo(model.table, col) as ForeignInfo,
-                        data: item[col]
-                     }
-                     delete item[col]
-                  }
-               }
                const ids = await this.excute({ data: item }, meta)
                if (Object.keys(relation).length) relations[ids[0]] = relation
                allids = allids.concat(ids as number[])
             }
          }
-
-         let ids = Object.keys(relations)
-         if (ids.length) {
-            for (let { chunk } of chunkArray<any>(ids)) {
-               for (let id of chunk) {
-                  id = parseInt(id)
-                  const relation = relations[id]
-                  for (let col in relation) {
-                     await this.excuteArraySchema({
-                        [col]: relation[col]
-                     }, id)
-                  }
-               }
-            }
-         }
-
          return allids
       } else {
          const { columns, values, hasManyRelations, hasOneRelations } = this.formatData(data, meta)
@@ -185,34 +168,50 @@ class CreateResult {
       const hasOneRelations: RelationItems = {}
 
       for (const column in data) {
-         const dataValue = (data as any)[column]
-
-         if (schema[column] instanceof XqlIDField) {
+         const field = schema[column]
+         if (!field) {
+            throw new Error(`Column ${column} does not exist in model ${model.table}`);
+         }
+         let value = (data as any)[column]
+         if (field instanceof XqlIDField) {
             throw new Error(`Cannot insert ID field: ${column} in table: ${model.table}`);
          }
 
-         if (xansql.isForeign(schema[column])) {
+         if (xansql.isForeign(field)) {
             const foreign = xansql.foreignInfo(model.table, column) as ForeignInfo
             if (meta && foreign.table === meta.table) {
                throw new Error(`Circular reference detected for relation ${column} in create data. table: ${model.table}`);
             }
 
-            if (xansql.isForeignSchema(schema[column]) && isObject(dataValue)) {
+            if (xansql.isForeignSchema(schema[column]) && isObject(value)) {
                hasOneRelations[column] = {
                   foreign,
-                  data: dataValue
+                  data: value
                }
-            } else if (xansql.isForeignArray(schema[column]) && isArray(dataValue)) {
+            } else if (xansql.isForeignArray(schema[column]) && isArray(value)) {
                hasManyRelations[column] = {
                   foreign,
-                  data: dataValue as any
+                  data: value as any
                }
             } else {
                throw new Error(`Invalid data for relation ${column} in create data. table: ${model.table}`);
             }
          } else {
+            if (field instanceof XqlDate) {
+               if (field.meta.create) {
+                  if (value !== undefined) {
+                     throw new Error(`Cannot set create date field: ${column} in table: ${model.table}`);
+                  }
+                  value = new Date();
+               } else if (field.meta.update) {
+                  if (value !== undefined) {
+                     throw new Error(`Cannot set update date field: ${column} in table: ${model.table}`);
+                  }
+                  value = new Date();
+               }
+            }
             columns.push(column)
-            values.push(model.toSql(column, dataValue))
+            values.push(model.toSql(column, value))
          }
       }
 

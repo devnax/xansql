@@ -1,5 +1,12 @@
 import Schema from "..";
 import { ForeignInfo } from "../../type";
+import XqlArray from "../../Types/fields/Array";
+import XqlDate from "../../Types/fields/Date";
+import XqlEnum from "../../Types/fields/Enum";
+import XqlObject from "../../Types/fields/Object";
+import XqlRecord from "../../Types/fields/Record";
+import XqlTuple from "../../Types/fields/Tuple";
+import XqlUnion from "../../Types/fields/Union";
 import { isObject } from "../../utils";
 import { chunkArray, chunkNumbers } from "../../utils/chunk";
 import { AggregateArgs, FindArgs, FindArgsAggregate, LimitArgs, OrderByArgs } from "../type";
@@ -25,9 +32,8 @@ class FindResult {
 
    async result(args: FindArgs, meta?: Meta) {
       const xansql = this.model.xansql
-      // return await this.excute(args, meta)
-
-      const chunk = chunkNumbers(args.limit?.take || xansql.config.maxFindLimit)
+      const maxLimit = xansql.config.maxLimit.find
+      const chunk = chunkNumbers(args.limit?.take || maxLimit, args.limit?.skip || 0)
       let result: any[] = []
       for (let { take, skip } of chunk) {
          args.limit = { take, skip }
@@ -43,6 +49,7 @@ class FindResult {
       const xansql = model.xansql
       let { distinct, select, where, limit, orderBy, aggregate } = args
       const columns: string[] = []
+      const formatableColumns = []
       const relationColumns: string[] = []
       const Where = new WhereArgsQuery(model, where || {})
       const Limit = this.limit(limit || {})
@@ -83,6 +90,9 @@ class FindResult {
             } else {
                throw new Error("Invalid select value for column " + column)
             }
+            if (model.iof(column, XqlEnum, XqlArray, XqlObject, XqlRecord, XqlTuple, XqlUnion)) {
+               formatableColumns.push(column)
+            }
          }
       }
 
@@ -98,7 +108,6 @@ class FindResult {
          let insql = `${meta.in.column} IN (${meta.in.values.join(",")})`
          where_sql += where_sql ? ` AND ${insql}` : `WHERE ${insql}`
       }
-
 
       if (distinct && distinct.length) {
          let dcols: string[] = []
@@ -153,6 +162,7 @@ class FindResult {
          ${Limit.sql}`.trim()
       }
 
+
       const { result: main_result } = await model.excute(sql)
       if (main_result.length) {
          for (let { chunk: result } of chunkArray(main_result)) {
@@ -160,6 +170,14 @@ class FindResult {
             const freses = await this.excuteRelation(relationArgs, result, meta)
 
             for (let row of result) {
+
+               // format columns
+               for (let col of formatableColumns) {
+                  let val = row[col]
+                  if (val === null || val === undefined) continue
+                  row[col] = JSON.parse(val)
+               }
+
                for (let { col, foreign, aggRes } of aggResults) {
                   let find = aggRes.find((ar: any) => ar[foreign.relation.main] === row[foreign.relation.target]) || null
                   if (!("aggregate" in row)) {
@@ -206,7 +224,9 @@ class FindResult {
          if (meta && meta.parent_table === foreign.table) {
             throw new Error("Circular reference detected in relation " + rel_args);
          }
+
          const findResult = new FindResult(FModel)
+
          const fres: any = await findResult.result(args, {
             parent_table: model.table,
             in: {
@@ -214,6 +234,7 @@ class FindResult {
                values: Array.from(new Set(ids))
             }
          })
+
          freses.push({ rel_args, foreign, fres })
       }
       return freses
@@ -264,7 +285,8 @@ class FindResult {
    private limit(args: LimitArgs) {
       const model = this.model
       const xansql = model.xansql
-      let take = args.take ?? xansql.config.maxFindLimit
+      const maxLimit = xansql.config.maxLimit.find
+      let take = args.take ?? maxLimit
       let skip = args.skip ?? 0
       if (take < 0 || !Number.isInteger(take)) {
          throw new Error("Invalid take value in limit clause")
