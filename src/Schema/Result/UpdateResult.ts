@@ -2,9 +2,8 @@ import Schema from "..";
 import { ForeignInfo } from "../../type";
 import XqlDate from "../../Types/fields/Date";
 import XqlIDField from "../../Types/fields/IDField";
-import XqlSchema from "../../Types/fields/Schema";
 import { isObject } from "../../utils";
-import { SelectArgs, UpdateArgs } from "../type";
+import { UpdateArgs } from "../type";
 import FindResult from "./FindResult";
 import WhereArgsQuery from "./WhereArgsQuery";
 

@@ -10,13 +10,17 @@ const server = async (app) => {
    app.use(express.json());
    app.use(express.urlencoded({ extended: true }));
    app.disable('etag');
-   // app.use('/data/*', async (req, res) => {
-   //    const response = await db.handleClient({
-   //       signeture: req.headers['x-signeture'],
-   //       path: req.originalUrl,
-   //       body: req.body,
-   //       method: req.method as any,
-   //    })
+
+   app.use('/data/*', express.raw({ type: "application/octet-stream", limit: "10mb" }), async (req, res) => {
+      const response = await db.listen({
+         signeture: req.headers['x-signeture'],
+         path: req.originalUrl,
+         body: req.body,
+         method: req.method,
+         origin: req.headers['x-origin'],
+      }, { name: "express" })
+      res.status(response.status).end(response.content);
+   })
 
 
    app.get('/where', async (req, res) => {

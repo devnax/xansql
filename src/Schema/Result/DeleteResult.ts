@@ -1,6 +1,6 @@
 import Schema from "..";
 import { ForeignInfo } from "../../type";
-import { chunkArray, chunkNumbers } from "../../utils/chunk";
+import { chunkArray } from "../../utils/chunker";
 import { DeleteArgs } from "../type";
 import FindResult from "./FindResult";
 import UpdateResult from "./UpdateResult";

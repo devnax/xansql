@@ -1,15 +1,14 @@
 import Schema from "..";
 import { ForeignInfo } from "../../type";
 import XqlArray from "../../Types/fields/Array";
-import XqlDate from "../../Types/fields/Date";
 import XqlEnum from "../../Types/fields/Enum";
 import XqlObject from "../../Types/fields/Object";
 import XqlRecord from "../../Types/fields/Record";
 import XqlTuple from "../../Types/fields/Tuple";
 import XqlUnion from "../../Types/fields/Union";
 import { isObject } from "../../utils";
-import { chunkArray, chunkNumbers } from "../../utils/chunk";
-import { AggregateArgs, FindArgs, FindArgsAggregate, LimitArgs, OrderByArgs } from "../type";
+import { chunkArray, chunkNumbers } from "../../utils/chunker";
+import { FindArgs, FindArgsAggregate, LimitArgs, OrderByArgs } from "../type";
 import AggregateResult from "./AggregateResult";
 import WhereArgsQuery from "./WhereArgsQuery";
 

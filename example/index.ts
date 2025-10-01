@@ -54,11 +54,30 @@ const conn = {
    },
    sqlite: {
       connection: sqliteConn,
-      dialect: SqliteDialect
+      dialect: SqliteDialect,
+      server: {}
    }
 }
 
-export const db = new Xansql(conn.sqlite)
+export const db = new Xansql({
+   ...conn.sqlite,
+   listenerConfig: {
+      server: {
+         mode: "development",
+         basepath: '/data',
+         clients: [
+            {
+               origin: "http://localhost:3000",
+               secret: "clientsecretclientsecret"
+            }
+         ]
+      },
+      client: {
+         url: "http://localhost:3000/data",
+         secret: "clientsecretclientsecret",
+      }
+   }
+})
 
 // export const UserOptionModel = db.model(UserOptionSchema)
 export const UserModel = db.model(UserSchema)

@@ -1,17 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { x } from './src/Types';
-import { Xansql, Schema } from './src';
-import MysqlDialect from './src/Dialects/Mysql';
-import { chunkArray, chunkNumbers } from './src/utils/chunk';
+import { db, ProductModel, UserModel } from './example'
 
-
-// --- Example usage ---
-// 1️⃣ Array pagination
-const arr = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-for (const page of chunkArray(arr, 2)) console.log(page);
-
-for (const page of chunkNumbers(10, 3)) console.log(page);
 
 const Button = ({ label, onClick }) => {
   return (
@@ -31,8 +21,68 @@ const App = () => {
     <div style={{ fontFamily: 'monospace,math, sans-serif', textAlign: 'center', marginTop: '50px' }}>
 
       <div style={{ marginTop: "50px" }}>
-        {/* 
         <Button label="Find" onClick={async () => {
+          const result = await UserModel.find({
+            // distinct: ["email"],
+            orderBy: {
+              // uid: "desc",
+              // email: "desc"
+            },
+            limit: {
+              take: 100,
+              skip: 0
+            },
+            where: {
+              // uid: {
+              //    in: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+              // },
+              // user_posts: {
+              //    pid: 375,
+              // }
+            },
+            // aggregate: {
+            //    metas: {
+            //       uoid: {
+            //          count: true
+            //       }
+            //    },
+            //    products: {
+            //       price: {
+            //          sum: {
+            //             alias: "total_price"
+            //          },
+            //          avg: {
+            //             alias: "avg_price"
+            //          }
+            //       }
+            //    }
+            // },
+            select: {
+              name: true,
+              email: true,
+              username: true,
+              password: true,
+              created_at: true,
+              metas: {
+                select: {
+                  meta_key: true,
+                  meta_value: true,
+                },
+                limit: { take: 2 }
+              },
+              // products: {
+              //    distinct: ["price"],
+              //    orderBy: { price: "desc" },
+
+              //    select: {
+              //       name: true,
+              //       price: true,
+              //    },
+              //    limit: { take: 3 }
+              // }
+            },
+          })
+          console.log(result);
 
         }} />
         <Button label="Update" onClick={async () => {
@@ -41,7 +91,7 @@ const App = () => {
         }} />
         <Button label="Delete" onClick={async () => {
 
-        }} /> */}
+        }} />
       </div>
     </div>
   );

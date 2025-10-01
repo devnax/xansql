@@ -4,7 +4,7 @@ import XqlFile from "../../Types/fields/File";
 import XqlObject from "../../Types/fields/Object";
 import XqlRecord from "../../Types/fields/Record";
 import XqlTuple from "../../Types/fields/Tuple";
-import { escapeSqlValue, isArray, isNumber, isObject } from "../../utils";
+import { escapeSqlValue, isNumber, isObject } from "../../utils";
 import { WhereArgs, WhereSubCondition } from "../type";
 
 type Meta = {

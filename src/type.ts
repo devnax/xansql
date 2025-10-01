@@ -1,3 +1,4 @@
+import { SecurequClientConfig, SecurequServerConfig } from "securequ";
 import Schema from "./Schema";
 import Xansql from "./Xansql";
 
@@ -30,6 +31,10 @@ export type XansqlConfigOptions = {
       create?: number;
       update?: number;
       delete?: number;
+   },
+   listenerConfig?: {
+      server: SecurequServerConfig,
+      client: SecurequClientConfig
    }
 }
 

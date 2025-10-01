@@ -46,7 +46,7 @@ abstract class SchemaBase {
 
 
    async migrate(force = false) {
-      ErrorWhene(typeof window !== "undefined", "This method can only be used on the server side.");
+      if (typeof window !== "undefined") return;
       if (force) await this.drop();
       await this.xansql.dialect.migrate(this as any);
    }

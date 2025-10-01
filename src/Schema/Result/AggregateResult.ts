@@ -1,6 +1,6 @@
 import Schema from ".."
 import { isObject } from "../../utils"
-import { chunkNumbers } from "../../utils/chunk"
+import { chunkNumbers } from "../../utils/chunker"
 import { AggregateArgs, AggregateArgsAggregate, LimitArgs, OrderByArgs } from "../type"
 import WhereArgsQuery from "./WhereArgsQuery"
 

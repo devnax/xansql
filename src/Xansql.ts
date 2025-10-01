@@ -1,3 +1,4 @@
+import { ArgsInfo, crypto, ListenerInfo } from "securequ";
 import { xt } from ".";
 import restrictedColumn from "./RestrictedColumn";
 import Schema from "./Schema";
@@ -5,11 +6,15 @@ import { XansqlConfig, XansqlConfigOptionsFormated } from "./type";
 import XqlArray from "./Types/fields/Array";
 import XqlSchema from "./Types/fields/Schema";
 import { XqlFields } from "./Types/types";
+import XansqlServer from "./XansqlServer";
+import youid from "youid";
 
 class Xansql {
    private _models = new Map<string, Schema>();
    private _config: XansqlConfig;
    private _aliases = new Map<string, string>();
+   private XansqlServer: XansqlServer | null = null;
+   private XansqlClient: any = null;
 
    constructor(config: XansqlConfig) {
       this._config = config;
@@ -47,7 +52,6 @@ class Xansql {
       this._dialect = dialect;
       return dialect;
    }
-
 
    private makeAlias(table: string) {
       let wordLength = 1;
@@ -209,16 +213,60 @@ class Xansql {
       }
    }
 
-   async excute(sql: string, model: Schema, requestData?: any): Promise<any> {
+   async excute(sql: string, model: Schema, args?: ArgsInfo): Promise<any> {
       if (typeof window === "undefined") {
          return await this.dialect.excute(sql, model);
-      } else {
+      } else if (this.config.listenerConfig) {
          return await this.excuteClient(sql, model);
       }
    }
 
-   async excuteClient(sql: string, model: Schema) {
+   async excuteClient(sql: string, model: Schema): Promise<any> {
+      if (!this.XansqlClient && this.config.listenerConfig?.client) {
+         const mod = await import("securequ/client");
+         this.XansqlClient = new mod.default(this.config.listenerConfig.client);
+      }
+      if (!this.XansqlClient) {
+         throw new Error("Xansql client configuration is not set. Please provide a client configuration in the XansqlConfig.");
+      }
 
+      let type = sql.split(' ')[0].toUpperCase();
+      const client = this.XansqlClient;
+
+      let info = { table: model.table, sql, key: await crypto.hash(sql) };
+      if (type === "CREATE" || type === "ALTER" || type === "DROP") {
+         throw new Error(`${type}, This method is not allowed in client side.`);
+      } else if (type == "INSERT") {
+         let res = await client.post(`/${youid('insert')}`, { body: info })
+         !res.success && console.error(res);
+         return res.data || null
+      } else if (type == "UPDATE") {
+         let res = await client.put(`/${youid('update')}`, { body: info })
+         !res.success && console.error(res);
+         return res.data || null
+      } else if (type == "DELETE") {
+         let res = await client.delete(`/${youid('delete')}`, { params: info })
+         !res.success && console.error(res);
+         return res.data || null
+      } else {
+         let res = await client.get(`/${youid('find')}`, { params: info })
+         !res.success && console.error(res);
+         return res.data || null
+      }
+   }
+
+   async listen(options: ListenerInfo, args?: ArgsInfo) {
+      if (typeof window !== "undefined") {
+         throw new Error("listen method is not available in client side.");
+      }
+      if (!this.XansqlServer && this.config.listenerConfig?.server) {
+         const mod = await import('./XansqlServer');
+         this.XansqlServer = new mod.default(this, this.config.listenerConfig?.server);
+      }
+      if (!this.XansqlServer) {
+         throw new Error("Xansql server configuration is not set. Please provide a server configuration in the XansqlConfig.");
+      }
+      return await this.XansqlServer.listen(options, args)
    }
 
 }

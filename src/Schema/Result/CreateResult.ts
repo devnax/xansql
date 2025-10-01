@@ -3,7 +3,7 @@ import { ForeignInfo } from "../../type";
 import XqlDate from "../../Types/fields/Date";
 import XqlIDField from "../../Types/fields/IDField";
 import { isArray, isObject } from "../../utils";
-import { chunkArray } from "../../utils/chunk";
+import { chunkArray } from "../../utils/chunker";
 import { CreateArgs } from "../type";
 import DeleteResult from "./DeleteResult";
 import FindResult from "./FindResult";
