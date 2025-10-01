@@ -2,6 +2,7 @@ import dotenv from 'dotenv'
 import { Xansql, Schema, xt } from '../src'
 import Mysqldialect from '../src/Dialects/Mysql';
 import SqliteDialect from '../src/Dialects/Sqlite';
+import TestCache from './TestCache';
 
 if (typeof process !== 'undefined' && process?.env) {
    try {
@@ -61,6 +62,9 @@ const conn = {
 
 export const db = new Xansql({
    ...conn.sqlite,
+   cachePlugins: [
+      TestCache
+   ],
    listenerConfig: {
       server: {
          mode: "development",

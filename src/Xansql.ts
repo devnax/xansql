@@ -2,7 +2,7 @@ import { ArgsInfo, crypto, ListenerInfo } from "securequ";
 import { xt } from ".";
 import restrictedColumn from "./RestrictedColumn";
 import Schema from "./Schema";
-import { XansqlConfig, XansqlConfigOptionsFormated } from "./type";
+import { ExcuterResult, XansqlCacheOptions, XansqlConfig, XansqlConfigOptionsRequired } from "./type";
 import XqlArray from "./Types/fields/Array";
 import XqlSchema from "./Types/fields/Schema";
 import { XqlFields } from "./Types/types";
@@ -11,35 +11,54 @@ import youid from "youid";
 
 class Xansql {
    private _models = new Map<string, Schema>();
-   private _config: XansqlConfig;
+   config: XansqlConfigOptionsRequired = {} as XansqlConfigOptionsRequired;
    private _aliases = new Map<string, string>();
    private XansqlServer: XansqlServer | null = null;
    private XansqlClient: any = null;
 
    constructor(config: XansqlConfig) {
-      this._config = config;
+      let format = (typeof config === 'function' ? config() : config)
+      if (!format.connection) throw new Error("Connection is required in Xansql config")
+      if (!format.dialect) throw new Error("Dialect is required in Xansql config")
+
+      this.config = {
+         ...format,
+         maxLimit: {
+            find: format.maxLimit?.find || 1000,
+            create: format.maxLimit?.create || 1000,
+            update: format.maxLimit?.update || 1000,
+            delete: format.maxLimit?.delete || 1000,
+         },
+         cachePlugins: format.cachePlugins || [],
+         listenerConfig: format.listenerConfig || null
+      }
    }
 
-   get config() {
-      const isFn = typeof this._config === 'function';
-      let config = this._config as XansqlConfigOptionsFormated;
-      if (isFn) {
-         config = (this._config as Function)();
-      }
-      if (!config.connection) {
-         throw new Error("Connection is required in Xansql config");
-      }
-      if (!config.dialect) {
-         throw new Error("Dialect is required in Xansql config");
-      }
-      config.cachePlugins = config.cachePlugins || [];
-      config.maxLimit = config.maxLimit || {};
-      if (!config.maxLimit.find) config.maxLimit.find = 100;
-      if (!config.maxLimit.create) config.maxLimit.create = 100;
-      if (!config.maxLimit.update) config.maxLimit.update = 100;
-      if (!config.maxLimit.delete) config.maxLimit.delete = 100;
+   private _cachePlugins: XansqlCacheOptions[] = [];
+   private async cachePlugins() {
+      if (this._cachePlugins.length) return this._cachePlugins;
+      const config = this.config;
+      if (config.cachePlugins.length > 0) {
+         const self = new Xansql({
+            ...config,
+            listenerConfig: null,
+            cachePlugins: []
+         });
 
-      return config;
+         // assign models to self
+         for (let [table, model] of this._models) {
+            self.model(new Schema(table, model.schema));
+         }
+         const cachePlugins: XansqlCacheOptions[] = []
+         for (let plugin of config.cachePlugins) {
+            if (typeof plugin === 'function') {
+               const p = await plugin(self);
+               cachePlugins.push(p);
+            }
+         }
+         this._cachePlugins = cachePlugins;
+      }
+      return this._cachePlugins;
    }
 
    private _dialect: any = null;
@@ -213,12 +232,54 @@ class Xansql {
       }
    }
 
-   async excute(sql: string, model: Schema, args?: ArgsInfo): Promise<any> {
-      if (typeof window === "undefined") {
-         return await this.dialect.excute(sql, model);
-      } else if (this.config.listenerConfig) {
-         return await this.excuteClient(sql, model);
+   async excute(sql: string, model: Schema, args?: ArgsInfo): Promise<ExcuterResult> {
+      sql = sql.trim().replaceAll(/\s+/g, ' ');
+      let type = sql.split(' ')[0].toUpperCase();
+      const cachePlugins = await this.cachePlugins();
+      if (type === "SELECT") {
+         for (let plugin of cachePlugins) {
+            const cache = await plugin.cache(sql, model);
+            if (cache) {
+               return {
+                  result: cache,
+                  affectedRows: cache.length,
+                  insertId: null
+               };
+            }
+         }
       }
+
+      // execute query
+      let res: ExcuterResult | null = null;
+
+      if (typeof window === "undefined") {
+         res = await this.dialect.excute(sql, model);
+      } else if (this.config.listenerConfig) {
+         res = await this.excuteClient(sql, model);
+      } else {
+         throw new Error("Dialect excute method is not available in client side. Please provide a listenerConfig in XansqlConfig.");
+      }
+
+      if (res) {
+         let result = res.result || [];
+         let length = res.result?.length || 0;
+         let insertId = res.insertId || null;
+         for (let plugin of cachePlugins) {
+            if (type === "SELECT" && length) {
+               await plugin.onFind(sql, model, result)
+            } else if (type === "CREATE" && insertId) {
+               await plugin.onCreate(model, insertId);
+            } else if (type === "UPDATE" && length) {
+               await plugin.onUpdate(model, result);
+            } else if (type === "DELETE" && length) {
+               await plugin.onDelete(model, result);
+            } else {
+               await plugin.clear(model);
+            }
+         }
+      }
+
+      return res as any
    }
 
    async excuteClient(sql: string, model: Schema): Promise<any> {
