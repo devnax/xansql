@@ -30,14 +30,26 @@ class FindResult {
    }
 
    async result(args: FindArgs, meta?: Meta) {
+      // hooks beforeFind
+      if (this.model.options.hooks?.beforeFind) {
+         const res = await this.model.options.hooks.beforeFind(args)
+         args = res
+      }
       const xansql = this.model.xansql
       const maxLimit = xansql.config.maxLimit.find
       const chunk = chunkNumbers(args.limit?.take || maxLimit, args.limit?.skip || 0)
+
       let result: any[] = []
       for (let { take, skip } of chunk) {
          args.limit = { take, skip }
          const res = await this.excute(args, meta)
          result = result.concat(res)
+         if (res.length < take) break; // no more rows
+      }
+      // hooks afterFind
+      if (this.model.options.hooks?.afterFind) {
+         const res = await this.model.options.hooks.afterFind(result, args)
+         result = res
       }
       return result
    }
@@ -59,13 +71,13 @@ class FindResult {
       for (let column in select) {
          const xanv = model.schema[column]
          if (!xanv) {
-            throw new Error("Invalid column in select clause: " + column)
+            throw new Error(`Invalid column in select clause: ${column} in model ${model.table}`)
          };
 
          const value: any = select[column]
          if (xansql.isForeign(xanv)) {
             const foreign = xansql.foreignInfo(model.table, column)
-            const FModel = xansql.getModel(foreign.table)
+            // const FModel = xansql.getModel(foreign.table)
             let col = `${model.table}.${foreign.relation.target}`
             if (!columns.includes(col) && !relationColumns.includes(col)) {
                relationColumns.push(col)
@@ -87,7 +99,7 @@ class FindResult {
             if (value === true) {
                columns.push(`${model.table}.${column}`)
             } else {
-               throw new Error("Invalid select value for column " + column)
+               throw new Error(`Invalid select value for column ${column} in model ${model.table}`)
             }
             if (model.iof(column, XqlEnum, XqlArray, XqlObject, XqlRecord, XqlTuple, XqlUnion)) {
                formatableColumns.push(column)
@@ -174,7 +186,11 @@ class FindResult {
                for (let col of formatableColumns) {
                   let val = row[col]
                   if (val === null || val === undefined) continue
-                  row[col] = JSON.parse(val)
+                  try {
+                     row[col] = JSON.parse(val)
+                  } catch (error) {
+                     row[col] = val
+                  }
                }
 
                for (let { col, foreign, aggRes } of aggResults) {
@@ -221,7 +237,7 @@ class FindResult {
          }
 
          if (meta && meta.parent_table === foreign.table) {
-            throw new Error("Circular reference detected in relation " + rel_args);
+            throw new Error(`Circular reference detected in relation ${rel_args}. table: ${model.table}`);
          }
 
          const findResult = new FindResult(FModel)
@@ -246,14 +262,14 @@ class FindResult {
       if (aggregate && Object.keys(aggregate).length) {
          for (let col in aggregate) {
             if (!(col in model.schema)) {
-               throw new Error(`Invalid column in aggregate clause: ${col}`)
+               throw new Error(`Invalid column in aggregate clause: ${col} in model ${model.table}`)
             }
             const foreign = xansql.foreignInfo(model.table, col)
             if (!foreign) {
-               throw new Error(`Column ${col} is not a foreign key, cannot aggregate on it.`)
+               throw new Error(`Column ${col} is not a foreign column in ${model.table}, cannot aggregate on it.`)
             }
             if (!xansql.isForeignArray(model.schema[col])) {
-               throw new Error(`Column ${col} is not a foreign array, cannot aggregate on it.`)
+               throw new Error(`Column ${col} is not a foreign array column in ${model.table}, cannot aggregate on it.`)
             }
 
             const FModel = xansql.getModel(foreign.table)
@@ -288,10 +304,10 @@ class FindResult {
       let take = args.take ?? maxLimit
       let skip = args.skip ?? 0
       if (take < 0 || !Number.isInteger(take)) {
-         throw new Error("Invalid take value in limit clause")
+         throw new Error(`Invalid take value in limit clause in model ${model.table}`)
       }
       if (skip < 0 || !Number.isInteger(skip)) {
-         throw new Error("Invalid skip value in limit clause")
+         throw new Error(`Invalid skip value in limit clause in model ${model.table}`)
       }
 
       const info: any = {
@@ -313,10 +329,10 @@ class FindResult {
       for (let column in args) {
          const val = args[column]
          if (!(column in model.schema)) {
-            throw new Error("Invalid column in orderBy clause: " + column)
+            throw new Error(`Invalid column in orderBy clause: ${column} in model ${model.table}`)
          };
          if (['asc', 'desc'].includes(val) === false) {
-            throw new Error("Invalid orderBy value for column " + column)
+            throw new Error(`Invalid orderBy value for column ${column} in model ${model.table}`)
          }
          items.push(`${model.table}.${column} ${val.toUpperCase()}`)
       }

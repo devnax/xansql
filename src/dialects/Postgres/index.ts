@@ -22,10 +22,10 @@ const buildColumn = (column: string, field: XqlFields): string => {
    const meta = field.meta || {};
    const nullable = meta.nullable || meta.optional ? 'NULL' : 'NOT NULL';
    const unique = meta.unique ? 'UNIQUE' : '';
-   const defaultValue = meta.default !== undefined ? `DEFAULT '${meta.default}'` : '';
+   // const defaultValue = meta.default !== undefined ? `DEFAULT '${meta.default}'` : '';
 
    const col = (column: string, sqlType: string) =>
-      `"${column}" ${sqlType} ${nullable} ${unique} ${defaultValue}, `;
+      `"${column}" ${sqlType} ${nullable} ${unique}, `;
 
    let sql = '';
    if (field instanceof XqlIDField) {
@@ -55,7 +55,7 @@ const buildColumn = (column: string, field: XqlFields): string => {
       sql += col(column, "TIMESTAMP");
    } else if (field instanceof XqlEnum) {
       const enumName = `${column}_enum`;
-      sql += `"${column}" ${enumName} ${nullable} ${unique} ${defaultValue}, `;
+      sql += `"${column}" ${enumName} ${nullable} ${unique}, `;
    } else if (field instanceof XqlArray) {
       const arrayType = (field as any).type;
       if (!(arrayType instanceof XqlSchema)) {

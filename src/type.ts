@@ -49,6 +49,7 @@ export type XansqlConfigOptions = {
    dialect: Dialect;
    connection: string | XansqlConnectionOptions;
    cachePlugins?: XansqlCachePlugin[];
+   logging?: boolean
    maxLimit?: {
       find?: number;
       create?: number;

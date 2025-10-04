@@ -3,7 +3,8 @@ import XanvType from "xanv/XanvType"
 
 export const isServer = () => typeof window === 'undefined'
 export const isArray = (v: any) => Array.isArray(v)
-export const isObject = (v: any) => typeof v === 'object' && v !== null && !isArray(v)
+// export const isObject = (v: any) => typeof v === 'object' && v !== null && !isArray(v) && !(v instanceof Date) && !(v instanceof RegExp) && !(v instanceof Buffer) && !(v instanceof Uint8Array) && !(v instanceof ArrayBuffer)
+export const isObject = (v: any) => Object.prototype.toString.call(v) === '[object Object]';
 export const isString = (v: any) => typeof v === 'string'
 export const isNumber = (v: any) => typeof v === 'number' && !isNaN(v)
 export const isBoolean = (v: any) => typeof v === 'boolean'

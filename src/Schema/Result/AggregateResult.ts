@@ -13,6 +13,11 @@ class AggregateResult {
    }
 
    async result(args: AggregateArgs) {
+      // hooks beforeAggregate
+      if (this.model.options.hooks?.beforeAggregate) {
+         const res = await this.model.options.hooks.beforeAggregate(args)
+         args = res
+      }
       const model = this.model
       const table = model.table
       const xansql = model.xansql
@@ -52,6 +57,11 @@ class AggregateResult {
          sql += ` ${limitSql}`
       }
       const { result } = await model.excute(sql)
+      // hooks afterAggregate
+      if (this.model.options.hooks?.afterAggregate) {
+         const res = await this.model.options.hooks.afterAggregate(result, args)
+         return res
+      }
       return result
    }
 
@@ -63,12 +73,12 @@ class AggregateResult {
       for (let column in aggregate) {
          let agg_methods: any = aggregate[column]
          if (!(column in model.schema)) {
-            throw new Error(`Invalid column in aggregate clause: ${column}`)
+            throw new Error(`Invalid column in aggregate clause: ${column} in table: ${model.table}`);
          }
 
          for (let method in agg_methods) {
             if (!this.methods.includes(method)) {
-               throw new Error(`Invalid aggregate method: ${method} for column: ${column}`);
+               throw new Error(`Invalid aggregate method: ${method} for column: ${column} in table: ${model.table}`);
             }
 
             let alias = column === model.IDColumn ? `${method}` : `${method}_${column}`
@@ -106,10 +116,10 @@ class AggregateResult {
       let take = args.take ?? maxLimit
       let skip = args.skip ?? 0
       if (take < 0 || !Number.isInteger(take)) {
-         throw new Error("Invalid take value in limit clause")
+         throw new Error(`Invalid take value in limit clause in table ${model.table}`);
       }
       if (skip < 0 || !Number.isInteger(skip)) {
-         throw new Error("Invalid skip value in limit clause")
+         throw new Error(`Invalid skip value in limit clause in table ${model.table}`);
       }
 
       return `LIMIT ${take} ${skip ? `OFFSET ${skip}` : ""}`.trim()
@@ -122,10 +132,10 @@ class AggregateResult {
       for (let column in args) {
          const val = args[column]
          if (!(column in model.schema)) {
-            throw new Error("Invalid column in orderBy clause: " + column)
+            throw new Error(`Invalid column in orderBy clause: ${column} in table: ${model.table}`)
          };
          if (['asc', 'desc'].includes(val) === false) {
-            throw new Error("Invalid orderBy value for column " + column)
+            throw new Error(`Invalid orderBy value for column ${column} in table ${model.table}`);
          }
          items.push(`${model.table}.${column} ${val.toUpperCase()}`)
       }

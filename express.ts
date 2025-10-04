@@ -286,7 +286,7 @@ const server = async (app) => {
    });
 
    app.get('/faker', async (req, res) => {
-      const d = await fakeData(10000)
+      const d = await fakeData(100)
       const start = Date.now()
       const users = await UserModel.create({
          data: d,

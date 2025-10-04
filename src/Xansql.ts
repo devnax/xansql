@@ -9,12 +9,14 @@ import { XqlFields } from "./Types/types";
 import XansqlServer from "./XansqlServer";
 import youid from "youid";
 
+
 class Xansql {
    private _models = new Map<string, Schema>();
    config: XansqlConfigOptionsRequired = {} as XansqlConfigOptionsRequired;
    private _aliases = new Map<string, string>();
    private XansqlServer: XansqlServer | null = null;
    private XansqlClient: any = null;
+   readonly log: Schema | null = null;
 
    constructor(config: XansqlConfig) {
       let format = (typeof config === 'function' ? config() : config)
@@ -24,36 +26,57 @@ class Xansql {
       this.config = {
          ...format,
          maxLimit: {
-            find: format.maxLimit?.find || 1000,
-            create: format.maxLimit?.create || 1000,
-            update: format.maxLimit?.update || 1000,
-            delete: format.maxLimit?.delete || 1000,
+            find: format.maxLimit?.find || 100,
+            create: format.maxLimit?.create || 100,
+            update: format.maxLimit?.update || 100,
+            delete: format.maxLimit?.delete || 100,
          },
          cachePlugins: format.cachePlugins || [],
-         listenerConfig: format.listenerConfig || null
+         listenerConfig: format.listenerConfig || null,
+         logging: format.logging !== undefined ? format.logging : true,
+      }
+
+      if (this.config.logging) {
+         const logSchema = new Schema('xanlogs', {
+            id: xt.id(),
+            model: xt.string().max(100).index(),
+            action: xt.enum(['create', 'update', 'delete', 'drop']),
+            rows: xt.array(xt.number()), // array of affected row ids
+            expires_at: xt.number().index().default(() => Date.now() + 3 * 24 * 60 * 60 * 1000), // 7 days
+         });
+
+         this.log = this.model(logSchema);
       }
    }
 
+   clone(config?: Partial<XansqlConfig>) {
+      const self = new XansqlClone({
+         ...this.config,
+         ...(config || {})
+      });
+
+      // assign models to self
+      for (let [table, model] of this._models) {
+         if (!this.isLogModel(model)) {
+            self.model(new Schema(table, model.schema));
+         }
+      }
+      return self;
+   }
+
    private _cachePlugins: XansqlCacheOptions[] = [];
-   private async cachePlugins() {
+   async cachePlugins() {
+
       if (this._cachePlugins.length) return this._cachePlugins;
       const config = this.config;
       if (config.cachePlugins.length > 0) {
-         const self = new Xansql({
-            ...config,
-            listenerConfig: null,
+         const self = this.clone({
             cachePlugins: []
          });
-
-         // assign models to self
-         for (let [table, model] of this._models) {
-            self.model(new Schema(table, model.schema));
-         }
          const cachePlugins: XansqlCacheOptions[] = []
          for (let plugin of config.cachePlugins) {
             if (typeof plugin === 'function') {
-               const p = await plugin(self);
-               cachePlugins.push(p);
+               cachePlugins.push(await plugin(self));
             }
          }
          this._cachePlugins = cachePlugins;
@@ -94,7 +117,7 @@ class Xansql {
          throw new Error("Schema must have an ID column");
       }
       if (this._models.has(model.table)) {
-         throw new Error("Model already exists for this table");
+         throw new Error(`Model already exists for this table ${model.table}`);
       }
       model.alias = this.makeAlias(model.table);
       model.xansql = this;
@@ -172,6 +195,10 @@ class Xansql {
       return models;
    }
 
+   isLogModel(model: Schema) {
+      return model.table === this.log?.table;
+   }
+
    isForeign(field: XqlFields) {
       return this.isForeignArray(field) || this.isForeignSchema(field)
    }
@@ -224,19 +251,20 @@ class Xansql {
    }
 
    async migrate(force?: boolean) {
-      const models = this.models
-      const tables = Array.from(models.keys())
+      const tables = Array.from(this.models.keys())
       for (let table of tables) {
-         const model = models.get(table) as Schema
+         const model = this.models.get(table) as Schema
          await model.migrate(force)
       }
    }
 
+
    async excute(sql: string, model: Schema, args?: ArgsInfo): Promise<ExcuterResult> {
       sql = sql.trim().replaceAll(/\s+/g, ' ');
+      const isLogModel = this.isLogModel(model)
       let type = sql.split(' ')[0].toUpperCase();
       const cachePlugins = await this.cachePlugins();
-      if (type === "SELECT") {
+      if (model.options?.log && type === "SELECT" && !isLogModel) {
          for (let plugin of cachePlugins) {
             const cache = await plugin.cache(sql, model);
             if (cache) {
@@ -256,26 +284,42 @@ class Xansql {
          res = await this.dialect.excute(sql, model);
       } else if (this.config.listenerConfig) {
          res = await this.excuteClient(sql, model);
-      } else {
-         throw new Error("Dialect excute method is not available in client side. Please provide a listenerConfig in XansqlConfig.");
       }
 
-      if (res) {
-         let result = res.result || [];
-         let length = res.result?.length || 0;
-         let insertId = res.insertId || null;
+      if (model.options?.log && res && cachePlugins.length > 0 && !isLogModel) {
          for (let plugin of cachePlugins) {
-            if (type === "SELECT" && length) {
-               await plugin.onFind(sql, model, result)
-            } else if (type === "CREATE" && insertId) {
-               await plugin.onCreate(model, insertId);
-            } else if (type === "UPDATE" && length) {
-               await plugin.onUpdate(model, result);
-            } else if (type === "DELETE" && length) {
-               await plugin.onDelete(model, result);
-            } else {
+            if (type === "SELECT") {
+               res.result?.length && await plugin.onFind(sql, model, res.result)
+            } else if (type === "INSERT") {
+               res.insertId && await plugin.onCreate(model, res.insertId);
+            } else if (type === "UPDATE") {
+               res.result?.length && await plugin.onUpdate(model, res.result);
+            } else if (type === "DELETE") {
+               res.result?.length && await plugin.onDelete(model, res.result);
+            } else if (['DROP', 'CREATE', 'ALTER', 'REPLACE'].includes(type)) {
                await plugin.clear(model);
             }
+         }
+      }
+
+      // clear logs of model
+      if (model.options?.log && this.log && !this.isLogModel(model)) {
+         if (res && ['DROP', 'CREATE', 'ALTER', 'REPLACE'].includes(type)) {
+            await this.log.delete({
+               where: {
+                  model: model.table,
+               }
+            })
+         } else if (res?.affectedRows && ['INSERT', 'UPDATE', 'DELETE'].includes(type)) {
+            await this.log.delete({
+               where: {
+                  model: model.table,
+                  expires_at: {
+                     lt: Date.now()
+                  }
+               }
+            })
+
          }
       }
 
@@ -294,7 +338,7 @@ class Xansql {
       let type = sql.split(' ')[0].toUpperCase();
       const client = this.XansqlClient;
 
-      let info = { table: model.table, sql, key: await crypto.hash(sql) };
+      let info = { table: model.table, sql };
       if (type === "CREATE" || type === "ALTER" || type === "DROP") {
          throw new Error(`${type}, This method is not allowed in client side.`);
       } else if (type == "INSERT") {
@@ -331,5 +375,8 @@ class Xansql {
    }
 
 }
+
+class XansqlClone extends Xansql { }
+
 
 export default Xansql

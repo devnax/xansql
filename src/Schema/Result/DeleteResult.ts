@@ -15,11 +15,16 @@ class DeleteResult {
    }
 
    async result(args: DeleteArgs) {
+      // hooks beforeDelete
+      if (this.model.options.hooks?.beforeDelete) {
+         const res = await this.model.options.hooks.beforeDelete(args.where)
+         args.where = res
+      }
       const model = this.model
       const xansql = model.xansql
       const maxLimit = xansql.config.maxLimit.delete
       if (!args.where || Object.keys(args.where).length === 0) {
-         throw new Error("Delete operation requires a valid where clause to prevent mass deletions.");
+         throw new Error(`Delete operation requires a valid where clause to prevent mass deletions in ${model.table} model.`);
       }
 
       const where = new WhereArgsQuery(model, args.where || {})
@@ -32,7 +37,7 @@ class DeleteResult {
       if (count === 0) return []
 
       if (count > maxLimit) {
-         throw new Error(`Delete operation exceeds the maximum limit of ${maxLimit} rows. Found ${count} rows matching the where clause.`);
+         throw new Error(`Delete operation exceeds the maximum limit of ${maxLimit} rows in ${model.table} model. Found ${count} rows matching the where clause.`);
       }
 
       let results = await this.finder.result({
@@ -40,13 +45,29 @@ class DeleteResult {
          select: args.select
       })
 
+
+      let allids: number[] = []
       for (let { chunk } of chunkArray(results)) {
          const ids = chunk.map((i: any) => i[model.IDColumn])
+         allids = allids.concat(ids)
          let sql = `DELETE FROM ${model.table} ${where.sql}`
          const r = await model.excute(sql)
          if (r.affectedRows) {
             await this.deleteRelations(ids)
          }
+      }
+
+      // create log
+      if (model.options.log && !xansql.isLogModel(model) && allids.length) {
+         await xansql.log?.create({
+            data: { model: model.table, action: 'create', rows: allids }
+         });
+      }
+
+      // hooks afterDelete
+      if (this.model.options.hooks?.afterDelete) {
+         const res = await this.model.options.hooks.afterDelete(results, args.where)
+         results = res
       }
 
       return results

@@ -3,6 +3,7 @@ import { Xansql, Schema, xt } from '../src'
 import Mysqldialect from '../src/Dialects/Mysql';
 import SqliteDialect from '../src/Dialects/Sqlite';
 import TestCache from './TestCache';
+import XansqlCache from './cache';
 
 if (typeof process !== 'undefined' && process?.env) {
    try {
@@ -62,8 +63,11 @@ const conn = {
 
 export const db = new Xansql({
    ...conn.sqlite,
+   maxLimit: {
+      // create: 10000
+   },
    cachePlugins: [
-      TestCache
+      XansqlCache
    ],
    listenerConfig: {
       server: {
@@ -79,7 +83,8 @@ export const db = new Xansql({
       client: {
          url: "http://localhost:3000/data",
          secret: "clientsecretclientsecret",
-      }
+      },
+
    }
 })
 

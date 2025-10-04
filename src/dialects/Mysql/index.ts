@@ -25,9 +25,9 @@ const buildColumn = (column: string, field: XqlFields) => {
    const meta = field.meta || {};
    const nullable = meta.nullable || meta.optional ? 'NULL' : 'NOT NULL';
    const unique = meta.unique ? 'UNIQUE' : '';
-   const defaultValue = meta.default ? `DEFAULT '${meta.default}'` : '';
+   // const defaultValue = meta.default ? `DEFAULT '${meta.default}'` : '';
 
-   const col = (column: string, sqlType: string) => `\`${column}\` ${sqlType} ${nullable} ${unique} ${defaultValue}, `;
+   const col = (column: string, sqlType: string) => `\`${column}\` ${sqlType} ${nullable} ${unique}, `;
    let sql = '';
    if (field instanceof XqlIDField) {
       sql += `\`${column}\` INT AUTO_INCREMENT PRIMARY KEY, `;

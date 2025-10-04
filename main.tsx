@@ -22,6 +22,18 @@ const App = () => {
 
       <div style={{ marginTop: "50px" }}>
         <Button label="Find" onClick={async () => {
+
+          // const l = await db.log?.find({
+          //   where: {
+          //     id: { gt: 0 }
+          //   },
+          //   orderBy: { id: 'desc' },
+          //   limit: { take: 10 },
+          // })
+          // console.log(l);
+          // return
+
+
           const result = await UserModel.find({
             // distinct: ["email"],
             orderBy: {
@@ -63,22 +75,22 @@ const App = () => {
               username: true,
               password: true,
               created_at: true,
-              metas: {
-                select: {
-                  meta_key: true,
-                  meta_value: true,
-                },
-                limit: { take: 2 }
-              },
+              // metas: {
+              //   select: {
+              //     meta_key: true,
+              //     meta_value: true,
+              //   },
+              //   limit: { take: 2 }
+              // },
               // products: {
-              //    distinct: ["price"],
-              //    orderBy: { price: "desc" },
+              //   distinct: ["price"],
+              //   orderBy: { price: "desc" },
 
-              //    select: {
-              //       name: true,
-              //       price: true,
-              //    },
-              //    limit: { take: 3 }
+              //   select: {
+              //     name: true,
+              //     price: true,
+              //   },
+              //   limit: { take: 3 }
               // }
             },
           })

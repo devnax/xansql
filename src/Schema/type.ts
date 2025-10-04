@@ -123,3 +123,20 @@ export type DeleteArgs = {
    where: WhereArgs;
    select?: SelectArgs;
 }
+
+
+export type XansqlSchemaOptions = {
+   log?: boolean;
+   hooks?: {
+      beforeFind?: (args: FindArgs) => Promise<FindArgs> | FindArgs;
+      afterFind?: (result: any, args: FindArgs) => Promise<any> | any;
+      beforeCreate?: (data: DataArgs | DataArgs[]) => Promise<DataArgs | DataArgs[]> | (DataArgs | DataArgs[]);
+      afterCreate?: (result: any, data: DataArgs | DataArgs[]) => Promise<any> | any;
+      beforeUpdate?: (data: UpdateDataArgs, where: WhereArgs) => Promise<UpdateDataArgs> | UpdateDataArgs;
+      afterUpdate?: (result: any, data: UpdateDataArgs, where: WhereArgs) => Promise<any> | any;
+      beforeDelete?: (where: WhereArgs) => Promise<WhereArgs> | WhereArgs;
+      afterDelete?: (result: any, where: WhereArgs) => Promise<any> | any;
+      beforeAggregate?: (args: AggregateArgs) => Promise<AggregateArgs> | AggregateArgs;
+      afterAggregate?: (result: any, args: AggregateArgs) => Promise<any> | any;
+   }
+}

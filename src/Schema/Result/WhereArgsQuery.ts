@@ -68,7 +68,7 @@ class WhereArgsQuery {
                let _ors = []
                for (let w of value) {
                   if (!isObject(w)) {
-                     throw new Error(`${column} must be an object in the WHERE clause, but received ${typeof w}`);
+                     throw new Error(`${column} must be an object in the WHERE clause, but received ${typeof w} in table ${model.table}`);
                   }
                   const where = new WhereArgsQuery(FModel, w, { parentTable: model.table })
                   if (where.is) {
@@ -82,7 +82,7 @@ class WhereArgsQuery {
                   _sql = where.wheres.join(" AND ")
                }
             } else {
-               throw new Error(`${column} must be an object or array in the WHERE clause, but received ${typeof value}`);
+               throw new Error(`${column} must be an object or array in the WHERE clause, but received ${typeof value} in table ${model.table}`);
             }
 
             wheres.push(`EXISTS (SELECT 1 FROM ${foreign.table} WHERE ${foreign.table}.${foreign.relation.main} = ${model.table}.${foreign.relation.target} ${_sql ? ` AND ${_sql}` : ""})`)
@@ -183,7 +183,7 @@ class WhereArgsQuery {
             case 'isFalse':
                return `${col} = ${val}`;
             default:
-               throw new Error("Invalid operator in where clause: " + subKey);
+               throw new Error(`Invalid operator in where clause: ${subKey} for ${model.table}.${column}`);
          }
       });
 
@@ -202,7 +202,7 @@ class WhereArgsQuery {
          || xanv instanceof XqlFile
 
       if (isNotAllowed) {
-         throw new Error(`${column} is not allowed in where clause`)
+         throw new Error(`${column} is not allowed in where clause in table ${this.model.table}`);
       }
    }
 }

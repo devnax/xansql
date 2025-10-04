@@ -22,9 +22,9 @@ const buildColumn = (column: string, field: XqlFields): string => {
    const meta = field.meta || {};
    const nullable = meta.nullable || meta.optional ? 'NULL' : 'NOT NULL';
    const unique = meta.unique ? 'UNIQUE' : '';
-   const defaultValue = meta.default ? `DEFAULT '${meta.default}'` : '';
+   // const defaultValue = meta.default ? `DEFAULT '${meta.default}'` : '';
    const col = (column: string, sqlType: string) =>
-      `"${column}" ${sqlType} ${nullable} ${unique} ${defaultValue}, `;
+      `"${column}" ${sqlType} ${nullable} ${unique}, `;
 
    let sql = '';
    if (field instanceof XqlIDField) {
@@ -54,7 +54,7 @@ const buildColumn = (column: string, field: XqlFields): string => {
       sql += col(column, "TEXT"); // store ISO string (SQLite has no native DATETIME)
    } else if (field instanceof XqlEnum) {
       const values = (field as any).values.map((v: any) => `'${v}'`).join(", ");
-      sql += `"${column}" TEXT CHECK("${column}" IN (${values})) ${nullable} ${unique} ${defaultValue}, `;
+      sql += `"${column}" TEXT CHECK("${column}" IN (${values})) ${nullable} ${unique}, `;
    } else if (field instanceof XqlArray) {
       const arrayType = (field as any).type;
       if (!(arrayType instanceof XqlSchema)) {

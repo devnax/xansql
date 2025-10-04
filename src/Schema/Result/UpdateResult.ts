@@ -24,21 +24,28 @@ class UpdateResult {
          throw new Error("No data to update.");
       }
 
+      // hooks beforeUpdate
+      if (this.model.options.hooks?.beforeUpdate) {
+         const res = await this.model.options.hooks.beforeUpdate(args.data, args.where)
+         args.data = res
+      }
+
+      const xansql = this.model.xansql
       const model = this.model
       const data = this.formatData(args.data)
       const Where = new WhereArgsQuery(model, args.where || {})
       const where_sql = Where.sql
       if (!where_sql) {
-         throw new Error("Update operation requires a valid where clause to prevent mass updates.");
+         throw new Error(`Update operation requires a valid where clause to prevent mass updates in ${model.table} model.`);
       }
 
       const count = await this.model.count({ where: args.where })
       if (count === 0) return []
       if (count > model.xansql.config.maxLimit.update) {
-         throw new Error(`Update operation exceeds the maximum limit of ${model.xansql.config.maxLimit.update} rows. Found ${count} rows matching the where clause.`);
+         throw new Error(`Update operation exceeds the maximum limit of ${model.xansql.config.maxLimit.update} rows in ${model.table} model. Found ${count} rows matching the where clause.`);
       }
       if (data.columns.length === 0) {
-         throw new Error("No valid columns to update.");
+         throw new Error(`No valid columns to update in ${model.table} model.`);
       }
 
       let sql = `UPDATE ${model.table} SET ${data.sql} ${where_sql}`
@@ -49,7 +56,7 @@ class UpdateResult {
             for (let col of data.relations) {
                let val = (args.data as any)[col]
                if (!val) {
-                  throw new Error("No data for relation " + col);
+                  throw new Error(`No data for relation ${col} in update data. table: ${model.table}`);
                }
 
                let foreign = model.xansql.foreignInfo(model.table, col) as ForeignInfo
@@ -72,10 +79,25 @@ class UpdateResult {
             }
          }
 
-         return await this.finder.result({
+         const find = await this.finder.result({
             select: args.select,
             where: args.where
          })
+
+         // create log
+         if (model.options.log && !xansql.isLogModel(model) && find.length) {
+            await xansql.log?.create({
+               data: { model: model.table, action: 'create', rows: find.map(i => i[model.IDColumn]) }
+            });
+         }
+
+         // hooks afterUpdate
+         if (this.model.options.hooks?.afterUpdate) {
+            const res = await this.model.options.hooks.afterUpdate(find, args.data, args.where)
+            return res
+         }
+
+         return find
       }
       return []
    }

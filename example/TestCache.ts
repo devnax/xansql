@@ -38,7 +38,7 @@ const TestCache: XansqlCachePlugin = async (xansql: Xansql) => {
       onDelete: async (model, rows) => {
       },
       clear: async (model) => {
-         console.log("onDestroy");
+         // console.log("onDestroy");
       }
    }
 }

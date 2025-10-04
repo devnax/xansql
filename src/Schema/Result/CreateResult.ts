@@ -25,17 +25,24 @@ class CreateResult {
    }
 
    async result(args: CreateArgs, meta?: MetaInfo) {
+
+      // hooks beforeCreate
+      if (this.model.options.hooks?.beforeCreate) {
+         const res = await this.model.options.hooks.beforeCreate(args.data)
+         args.data = res
+      }
+
       const model = this.model
       const xansql = model.xansql
       const maxLimit = xansql.config.maxLimit.create
       if (Array.isArray(args.data) && args.data.length === 0) {
-         throw new Error("No data to create.");
+         throw new Error(`No data to create in ${model.table} model.`);
       }
       if (Array.isArray(args.data) && args.data.length > maxLimit) {
-         throw new Error(`Create operation exceeds the maximum limit of ${maxLimit} rows. Found ${args.data.length} rows to create.`);
+         throw new Error(`Create operation exceeds in ${model.table} model. the maximum limit of ${maxLimit} rows. Found ${args.data.length} rows to create.`);
       }
       if (!args.data || (isObject(args.data) && Object.keys(args.data).length === 0)) {
-         throw new Error("No data to create.");
+         throw new Error(`No data to create in ${model.table} model.`);
       }
 
       let ids = await this.excute(args, meta)
@@ -60,9 +67,15 @@ class CreateResult {
                results = results.concat(r)
             }
          }
+
+         // hooks afterCreate
+         if (this.model.options.hooks?.afterCreate) {
+            const res = await this.model.options.hooks.afterCreate(results, args.data)
+            results = res
+         }
          return results
       }
-      throw new Error("Create failed, no records created.");
+      throw new Error(`Create failed, no records created in table: ${model.table}`);
    }
 
    async excute(args: CreateArgs, meta?: MetaInfo) {
@@ -101,6 +114,13 @@ class CreateResult {
                })
             }
             throw new Error(`Insert failed for table: ${model.table}`);
+         }
+
+         // create log
+         if (model.options.log && xansql.isLogModel(model) === false) {
+            await xansql.log?.create({
+               data: { model: model.table, action: 'create', rows: [result.insertId] }
+            });
          }
 
          try {
@@ -234,8 +254,8 @@ class CreateResult {
             try {
                values.push(model.toSql(col, null));
                columns.push(col);
-            } catch (err) {
-               throw new Error(`Field ${col} is required in create data. table: ${model.table}`);
+            } catch (err: any) {
+               throw new Error(`${err.message} in table ${model.table}`);
             }
          }
       }
