@@ -20,6 +20,7 @@ class DeleteResult {
          const res = await this.model.options.hooks.beforeDelete(args.where)
          args.where = res
       }
+
       const model = this.model
       const xansql = model.xansql
       const maxLimit = xansql.config.maxLimit.delete

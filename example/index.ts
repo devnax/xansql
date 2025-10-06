@@ -67,7 +67,7 @@ export const db = new Xansql({
       // create: 10000
    },
    cachePlugins: [
-      XansqlCache
+      // XansqlCache
    ],
    listenerConfig: {
       server: {

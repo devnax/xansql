@@ -105,8 +105,20 @@ export type CreateArgs = {
 }
 
 export type UpdateDataRelationArgs = {
-   data: UpdateDataArgs;
-   where?: WhereArgs;
+   create?: {
+      data: DataArgs | DataArgs[];
+   }
+   update?: {
+      data: DataArgs | DataArgs[];
+      where: WhereArgs;
+   }
+   delete?: {
+      where: WhereArgs;
+   }
+   upsert?: {
+      where: WhereArgs;
+      data: DataArgs;
+   }
 }
 
 export type UpdateDataArgs = {

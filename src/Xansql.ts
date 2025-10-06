@@ -286,6 +286,8 @@ class Xansql {
          res = await this.excuteClient(sql, model);
       }
 
+
+
       if (model.options?.log && res && cachePlugins.length > 0 && !isLogModel) {
          for (let plugin of cachePlugins) {
             if (type === "SELECT") {
@@ -302,26 +304,27 @@ class Xansql {
          }
       }
 
-      // clear logs of model
-      if (model.options?.log && this.log && !this.isLogModel(model)) {
-         if (res && ['DROP', 'CREATE', 'ALTER', 'REPLACE'].includes(type)) {
-            await this.log.delete({
-               where: {
-                  model: model.table,
-               }
-            })
-         } else if (res?.affectedRows && ['INSERT', 'UPDATE', 'DELETE'].includes(type)) {
-            await this.log.delete({
-               where: {
-                  model: model.table,
-                  expires_at: {
-                     lt: Date.now()
-                  }
-               }
-            })
 
-         }
-      }
+      // clear logs of model
+      // if (model.options?.log && this.log && !this.isLogModel(model)) {
+      //    if (res && ['DROP', 'CREATE', 'ALTER', 'REPLACE'].includes(type)) {
+      //       await this.log.delete({
+      //          where: {
+      //             model: model.table,
+      //          }
+      //       })
+      //    } else if (res?.affectedRows && ['INSERT', 'UPDATE', 'DELETE'].includes(type)) {
+      //       await this.log.delete({
+      //          where: {
+      //             model: model.table,
+      //             expires_at: {
+      //                lt: Date.now()
+      //             }
+      //          }
+      //       })
+
+      //    }
+      // }
 
       return res as any
    }

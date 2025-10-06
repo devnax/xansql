@@ -239,15 +239,7 @@ const server = async (app) => {
          select: {
             name: true,
             email: true,
-            user_posts: {
-               select: {
-                  content: true,
-                  title: true,
-
-                  metas: true,
-                  categories: true,
-               }
-            }
+            products: true
          },
          where: {
             uid: 4,
@@ -255,20 +247,47 @@ const server = async (app) => {
          data: {
             name: "John Updated",
             email: `john${Math.floor(Math.random() * 10000)}@doe.com`,
-            user_posts: {
-               data: {
-                  title: `Updated Title ${Math.floor(Math.random() * 10000)}`,
-                  content: "Updated Content",
-                  metas: {
-                     data: {
-                        views: Math.floor(Math.random() * 1000),
-                        likes: Math.floor(Math.random() * 100),
-                     },
+            products: {
+               create: {
+                  data: {
+                     name: `New Post ${Math.floor(Math.random() * 10000)}`,
+                     description: "This is a new post",
+                     price: "9.99",
                   }
                },
-               where: {
-                  // pid: 5
-               }
+
+               // update: {
+               //    where: { pid: 3 },
+               //    data: {
+               //       title: `Updated Title ${Math.floor(Math.random() * 10000)}`,
+               //       content: "Updated Content",
+               //    }
+               // },
+               // delete: {
+               //    where: {
+               //       pid: 5
+               //    }
+               // },
+               // upsert: {
+               //    where: {
+               //       pid: 6
+               //    },
+
+               // },
+
+               // data: {
+               //    title: `Updated Title ${Math.floor(Math.random() * 10000)}`,
+               //    content: "Updated Content",
+               //    metas: {
+               //       data: {
+               //          views: Math.floor(Math.random() * 1000),
+               //          likes: Math.floor(Math.random() * 100),
+               //       },
+               //    }
+               // },
+               // where: {
+               //    // pid: 5
+               // }
             }
          }
       })
