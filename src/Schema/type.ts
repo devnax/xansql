@@ -22,10 +22,10 @@ export interface WhereSubCondition {
    isFalse?: boolean;
 }
 
-export type WhereArgsValue = string | number | boolean | WhereSubCondition | null | Date | WhereArgs
+export type WhereArgsTypeValue = string | number | boolean | WhereSubCondition | null | Date | WhereArgsType
 
-export interface WhereArgs {
-   [column: string]: WhereArgsValue | WhereArgsValue[];
+export interface WhereArgsType {
+   [column: string]: WhereArgsTypeValue | WhereArgsTypeValue[];
 }
 
 export type LimitArgs = {
@@ -49,11 +49,11 @@ export type DataValue =
    | Record<string | number, any>
    | any[]
 
-export type DataArgs = {
-   [column: string]: DataValue | DataArgs[] | DataArgs;
+export type DataArgsType = {
+   [column: string]: DataValue | DataArgsType[] | DataArgsType;
 }
 
-export type SelectArgs = {
+export type SelectArgsType = {
    [column: string]: boolean | FindArgs
 }
 
@@ -73,7 +73,7 @@ export type AggregateArgs = {
    orderBy?: OrderByArgs;
    limit?: LimitArgs;
    groupBy?: string[];
-   where?: WhereArgs;
+   where?: WhereArgsType;
    aggregate: AggregateArgsAggregate;
 }
 
@@ -82,7 +82,7 @@ export type AggregatePartialArgs = {
    column?: string
    round?: number
    groupBy?: string[];
-   where?: WhereArgs;
+   where?: WhereArgsType;
 }
 
 export type FindArgsAggregate = {
@@ -91,8 +91,8 @@ export type FindArgsAggregate = {
 
 export type FindArgs = {
    distinct?: string[];
-   where?: WhereArgs;
-   select?: SelectArgs;
+   where?: WhereArgsType;
+   select?: SelectArgsType;
    limit?: LimitArgs
    orderBy?: OrderByArgs;
    aggregate?: FindArgsAggregate;
@@ -100,40 +100,40 @@ export type FindArgs = {
 }
 
 export type CreateArgs = {
-   data: DataArgs | DataArgs[];
-   select?: SelectArgs;
+   data: DataArgsType | DataArgsType[];
+   select?: SelectArgsType;
 }
 
 export type UpdateDataRelationArgs = {
    create?: {
-      data: DataArgs | DataArgs[];
+      data: DataArgsType | DataArgsType[];
    }
    update?: {
-      data: DataArgs | DataArgs[];
-      where: WhereArgs;
+      data: DataArgsType | DataArgsType[];
+      where: WhereArgsType;
    }
    delete?: {
-      where: WhereArgs;
+      where: WhereArgsType;
    }
    upsert?: {
-      where: WhereArgs;
-      data: DataArgs;
+      where: WhereArgsType;
+      data: DataArgsType;
    }
 }
 
-export type UpdateDataArgs = {
+export type UpdateDataArgsType = {
    [column: string]: DataValue | UpdateDataRelationArgs;
 }
 
 export type UpdateArgs = {
-   data: UpdateDataArgs;
-   where: WhereArgs;
-   select?: SelectArgs
+   data: UpdateDataArgsType;
+   where: WhereArgsType;
+   select?: SelectArgsType
 }
 
 export type DeleteArgs = {
-   where: WhereArgs;
-   select?: SelectArgs;
+   where: WhereArgsType;
+   select?: SelectArgsType;
 }
 
 
@@ -142,12 +142,12 @@ export type XansqlSchemaOptions = {
    hooks?: {
       beforeFind?: (args: FindArgs) => Promise<FindArgs> | FindArgs;
       afterFind?: (result: any, args: FindArgs) => Promise<any> | any;
-      beforeCreate?: (data: DataArgs | DataArgs[]) => Promise<DataArgs | DataArgs[]> | (DataArgs | DataArgs[]);
-      afterCreate?: (result: any, data: DataArgs | DataArgs[]) => Promise<any> | any;
-      beforeUpdate?: (data: UpdateDataArgs, where: WhereArgs) => Promise<UpdateDataArgs> | UpdateDataArgs;
-      afterUpdate?: (result: any, data: UpdateDataArgs, where: WhereArgs) => Promise<any> | any;
-      beforeDelete?: (where: WhereArgs) => Promise<WhereArgs> | WhereArgs;
-      afterDelete?: (result: any, where: WhereArgs) => Promise<any> | any;
+      beforeCreate?: (data: DataArgsType | DataArgsType[]) => Promise<DataArgsType | DataArgsType[]> | (DataArgsType | DataArgsType[]);
+      afterCreate?: (result: any, data: DataArgsType | DataArgsType[]) => Promise<any> | any;
+      beforeUpdate?: (data: UpdateDataArgsType, where: WhereArgsType) => Promise<UpdateDataArgsType> | UpdateDataArgsType;
+      afterUpdate?: (result: any, data: UpdateDataArgsType, where: WhereArgsType) => Promise<any> | any;
+      beforeDelete?: (where: WhereArgsType) => Promise<WhereArgsType> | WhereArgsType;
+      afterDelete?: (result: any, where: WhereArgsType) => Promise<any> | any;
       beforeAggregate?: (args: AggregateArgs) => Promise<AggregateArgs> | AggregateArgs;
       afterAggregate?: (result: any, args: AggregateArgs) => Promise<any> | any;
    }

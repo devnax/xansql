@@ -1,9 +1,9 @@
 import Schema from "..";
-import { ForeignInfo } from "../../type";
 import XqlDate from "../../Types/fields/Date";
 import XqlIDField from "../../Types/fields/IDField";
 import { isArray, isObject } from "../../utils";
 import { chunkArray } from "../../utils/chunker";
+import Foreign, { ForeignInfoType } from "../include/Foreign";
 import { CreateArgs } from "../type";
 import DeleteResult from "./DeleteResult";
 import FindResult from "./FindResult";
@@ -14,7 +14,7 @@ type MetaInfo = {
    column?: string
 }
 
-type RelationItems = { [column: string]: { foreign: ForeignInfo, data: CreateArgs } }
+type RelationItems = { [column: string]: { foreign: ForeignInfoType, data: CreateArgs } }
 
 class CreateResult {
    finder: FindResult
@@ -116,13 +116,6 @@ class CreateResult {
             throw new Error(`Insert failed for table: ${model.table}`);
          }
 
-         // create log
-         if (model.options.log && xansql.isLogModel(model) === false) {
-            await xansql.log?.create({
-               data: { model: model.table, action: 'create', rows: [result.insertId] }
-            });
-         }
-
          try {
             await this.excuteArraySchema(hasManyRelations, result.insertId)
          } catch (error) {
@@ -180,7 +173,6 @@ class CreateResult {
 
    private formatData(data: CreateArgs["data"], meta?: MetaInfo) {
       const model = this.model
-      const xansql = model.xansql
       const schema = model.schema
       const columns: string[] = []
       const values: any[] = []
@@ -197,18 +189,18 @@ class CreateResult {
             throw new Error(`Cannot insert ID field: ${column} in table: ${model.table}`);
          }
 
-         if (xansql.isForeign(field) && typeof value !== "number") {
-            const foreign = xansql.foreignInfo(model.table, column) as ForeignInfo
+         if (Foreign.is(field) && typeof value !== "number") {
+            const foreign = Foreign.info(model, column)
             if (meta && foreign.table === meta.table) {
                throw new Error(`Circular reference detected for relation ${column} in create data. table: ${model.table}`);
             }
 
-            if (xansql.isForeignSchema(schema[column]) && isObject(value)) {
+            if (Foreign.isSchema(schema[column]) && isObject(value)) {
                hasOneRelations[column] = {
                   foreign,
                   data: value
                }
-            } else if (xansql.isForeignArray(schema[column]) && isArray(value)) {
+            } else if (Foreign.isArray(schema[column]) && isArray(value)) {
                hasManyRelations[column] = {
                   foreign,
                   data: value as any
@@ -249,7 +241,7 @@ class CreateResult {
       let model = this.model
       const schema = model.schema
       for (let col in schema) {
-         const foreign = model.xansql.isForeign(schema[col])
+         const foreign = Foreign.is(schema[col])
          if (!columns.includes(col) && col !== model.IDColumn && !foreign) {
             try {
                values.push(model.toSql(col, null));

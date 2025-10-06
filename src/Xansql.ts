@@ -1,14 +1,10 @@
-import { ArgsInfo, crypto, ListenerInfo } from "securequ";
+import { ArgsInfo, ListenerInfo } from "securequ";
 import { xt } from ".";
-import restrictedColumn from "./RestrictedColumn";
 import Schema from "./Schema";
 import { ExcuterResult, XansqlCacheOptions, XansqlConfig, XansqlConfigOptionsRequired } from "./type";
-import XqlArray from "./Types/fields/Array";
-import XqlSchema from "./Types/fields/Schema";
-import { XqlFields } from "./Types/types";
 import XansqlServer from "./XansqlServer";
 import youid from "youid";
-
+import ModelFormatter from "./Schema/include/ModelFormatter";
 
 class Xansql {
    private _models = new Map<string, Schema>();
@@ -17,6 +13,7 @@ class Xansql {
    private XansqlServer: XansqlServer | null = null;
    private XansqlClient: any = null;
    readonly log: Schema | null = null;
+   private ModelFormatter: ModelFormatter | null = null;
 
    constructor(config: XansqlConfig) {
       let format = (typeof config === 'function' ? config() : config)
@@ -57,9 +54,7 @@ class Xansql {
 
       // assign models to self
       for (let [table, model] of this._models) {
-         if (!this.isLogModel(model)) {
-            self.model(new Schema(table, model.schema));
-         }
+         self.model(new Schema(table, model.schema));
       }
       return self;
    }
@@ -93,6 +88,13 @@ class Xansql {
       }
       this._dialect = dialect;
       return dialect;
+   }
+
+   get models() {
+      if (!this.ModelFormatter) {
+         this.ModelFormatter = new ModelFormatter(this._models);
+      }
+      return this.ModelFormatter.models()
    }
 
    private makeAlias(table: string) {
@@ -131,118 +133,6 @@ class Xansql {
       return model
    }
 
-   private _modelFormated = false;
-   get models() {
-      if (this._modelFormated) return this._models;
-      let models = this._models;
-
-      for (let [table, model] of Array.from(this._models.entries())) {
-         const schema = model.schema;
-         for (let column in schema) {
-
-            // is column is restricted 
-            if (restrictedColumn(column)) {
-               throw new Error(`Column name "${column}" is restricted and cannot be used in schema "${table}". Please use a different column name.`);
-            }
-
-
-            const val = schema[column]
-            if (this.isForeignSchema(val)) {
-               const FModel = models.get(val.table);
-               if (!FModel) {
-                  throw new Error(`Foreign model ${val.table} not found for ${model.table}.${column}`);
-               }
-
-               if (val.column in FModel.schema) {
-                  const foreignCol = FModel.schema[val.column];
-                  if (this.isForeignArray(foreignCol)) {
-                     const foreignType = (foreignCol as any).type as XqlSchema;
-                     if (foreignType.table !== model.table || foreignType.column !== column) {
-                        throw new Error(`Foreign column ${val.table}.${val.column} does not reference back to ${model.table}.${column}`);
-                     }
-                  } else {
-                     throw new Error(`Foreign column ${val.table}.${val.column} is not an array of schemas`);
-                  }
-               } else {
-                  const n = xt.schema(model.table, column).nullable()
-                  n.dynamic = true
-                  FModel.schema[val.column] = xt.array(n)
-                  models.set(FModel.table, FModel);
-               }
-            } else if (this.isForeignArray(val)) {
-               const foreignType = (val as any).type as XqlSchema;
-               const FModel = models.get(foreignType.table);
-               if (!FModel) {
-                  throw new Error(`Foreign model ${foreignType.table} not found for ${model.table}.${column}`);
-               }
-
-               if (foreignType.column in FModel.schema) {
-                  const foreignCol = FModel.schema[foreignType.column] as XqlSchema;
-                  if (!this.isForeignSchema(foreignCol) || foreignCol.table !== model.table || foreignCol.column !== column) {
-                     throw new Error(`Foreign column ${foreignType.table}.${foreignType.column} does not reference back to ${model.table}.${column}`);
-                  }
-               } else {
-                  const n = xt.schema(model.table, column).nullable();
-                  n.dynamic = true
-                  FModel.schema[foreignType.column] = n
-                  models.set(FModel.table, FModel);
-               }
-            }
-         }
-      }
-
-      this._modelFormated = true;
-      return models;
-   }
-
-   isLogModel(model: Schema) {
-      return model.table === this.log?.table;
-   }
-
-   isForeign(field: XqlFields) {
-      return this.isForeignArray(field) || this.isForeignSchema(field)
-   }
-
-   isForeignArray(field: XqlFields) {
-      return field instanceof XqlArray && this.isForeignSchema((field as any).type)
-   }
-
-   isForeignSchema(field: XqlFields) {
-      return field instanceof XqlSchema
-   }
-
-   foreignInfo(table: string, column: string) {
-      let model = this.getModel(table)
-      let schema = model.schema
-      let field = schema[column]
-      if (!this.isForeign(field)) {
-         throw new Error(`${table}.${column} is not a foreign key`);
-      }
-      if (this.isForeignArray(field)) {
-         const foreignType = (field as any).type as XqlSchema;
-         return {
-            table: foreignType.table,
-            column: foreignType.column,
-            relation: {
-               main: foreignType.column,
-               target: model.IDColumn,
-            }
-         }
-      } else if (this.isForeignSchema(field)) {
-         const foreignType = field as XqlSchema;
-         const FModel = this.getModel(foreignType.table)
-         return {
-            table: foreignType.table,
-            column: foreignType.column,
-            relation: {
-               main: FModel.IDColumn,
-               target: column
-            }
-         }
-      }
-      throw new Error(`Unknown foreign key type for ${table}.${column}`);
-   }
-
    getModel(table: string): Schema {
       if (!this.models.has(table)) {
          throw new Error(`Model for table ${table} does not exist`);
@@ -258,13 +148,11 @@ class Xansql {
       }
    }
 
-
    async excute(sql: string, model: Schema, args?: ArgsInfo): Promise<ExcuterResult> {
       sql = sql.trim().replaceAll(/\s+/g, ' ');
-      const isLogModel = this.isLogModel(model)
       let type = sql.split(' ')[0].toUpperCase();
       const cachePlugins = await this.cachePlugins();
-      if (model.options?.log && type === "SELECT" && !isLogModel) {
+      if (model.options?.log && type === "SELECT") {
          for (let plugin of cachePlugins) {
             const cache = await plugin.cache(sql, model);
             if (cache) {
@@ -286,9 +174,7 @@ class Xansql {
          res = await this.excuteClient(sql, model);
       }
 
-
-
-      if (model.options?.log && res && cachePlugins.length > 0 && !isLogModel) {
+      if (model.options?.log && res && cachePlugins.length > 0) {
          for (let plugin of cachePlugins) {
             if (type === "SELECT") {
                res.result?.length && await plugin.onFind(sql, model, res.result)

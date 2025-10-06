@@ -1,12 +1,11 @@
 import Schema from "..";
-import { ForeignInfo } from "../../type";
 import XqlDate from "../../Types/fields/Date";
 import XqlIDField from "../../Types/fields/IDField";
 import { isObject } from "../../utils";
+import WhereArgs from "../Args/WhereArgs";
+import Foreign from "../include/Foreign";
 import { UpdateArgs, UpdateDataRelationArgs } from "../type";
-import CreateResult from "./CreateResult";
 import FindResult from "./FindResult";
-import WhereArgsQuery from "./WhereArgsQuery";
 
 type MetaInfo = {
    table: string;
@@ -35,7 +34,7 @@ class UpdateResult {
       const xansql = this.model.xansql
       const model = this.model
       const data = this.formatData(args.data)
-      const Where = new WhereArgsQuery(model, args.where || {})
+      const Where = new WhereArgs(model, args.where || {})
       const where_sql = Where.sql
       if (!where_sql) {
          throw new Error(`Update operation requires a valid where clause to prevent mass updates in ${model.table} model.`);
@@ -52,14 +51,16 @@ class UpdateResult {
       }
 
       let sql = `UPDATE ${model.table} SET ${data.sql} ${where_sql}`
+
       const result = await model.excute(sql)
 
       if (result.affectedRows) {
          if (data.relations.length) {
+
             const get = await this.finder.result({
                where: args.where,
                select: {
-                  [model.IDColumn]: true
+                  [model.IDColumn]: true,
                }
             })
             const updatedItem = get?.[0];
@@ -69,11 +70,7 @@ class UpdateResult {
 
                if (relation.create) {
                   if (!get.length) continue;
-                  // args.where = {
-                  //    ...args.where,
-                  //    [model.IDColumn]: get[0][model.IDColumn]
-                  // }
-                  let foreign = model.xansql.foreignInfo(model.table, col) as ForeignInfo
+                  let foreign = Foreign.info(model, col)
                   if (meta && foreign.table === meta.table) {
                      throw new Error(`Circular reference detected for relation ${col} in update data. table: ${model.table}`);
                   }
@@ -87,14 +84,11 @@ class UpdateResult {
                         [foreign.column]: updatedItem[model.IDColumn]
                      }
                   }
-                  console.log(cargs);
-                  const create = new CreateResult(FModel)
-                  await create.result(cargs)
-                  // await FModel.create(cargs)
+                  await FModel.create(cargs)
                }
 
                if (relation.update) {
-                  let foreign = model.xansql.foreignInfo(model.table, col) as ForeignInfo
+                  let foreign = Foreign.info(model, col)
                   if (meta && foreign.table === meta.table) {
                      throw new Error(`Circular reference detected for relation ${col} in update data. table: ${model.table}`);
                   }
@@ -114,7 +108,7 @@ class UpdateResult {
                }
 
                if (relation.delete) {
-                  let foreign = model.xansql.foreignInfo(model.table, col) as ForeignInfo
+                  let foreign = Foreign.info(model, col)
                   if (meta && foreign.table === meta.table) {
                      throw new Error(`Circular reference detected for relation ${col} in update data. table: ${model.table}`);
                   }
@@ -129,7 +123,7 @@ class UpdateResult {
                }
 
                if (relation.upsert) {
-                  let foreign = model.xansql.foreignInfo(model.table, col) as ForeignInfo
+                  let foreign = Foreign.info(model, col)
                   if (meta && foreign.table === meta.table) {
                      throw new Error(`Circular reference detected for relation ${col} in update data. table: ${model.table}`);
                   }
@@ -143,18 +137,19 @@ class UpdateResult {
                   }
 
                   const found = await FModel.count(uargs.where)
+
                   if (found) {
                      const r = new UpdateResult(FModel)
-                     await r.result(uargs, {
-                        table: model.table,
-                     })
+                     const l = await r.result(uargs)
+
                   } else {
                      let cargs = {
                         data: {
                            ...relation.upsert.data,
-                           [foreign.column]: args.where
+                           [foreign.column]: updatedItem[model.IDColumn]
                         }
                      }
+
                      await FModel.create(cargs)
                   }
                }
@@ -189,13 +184,6 @@ class UpdateResult {
             where: args.where
          })
 
-         // create log
-         if (model.options.log && !xansql.isLogModel(model) && find.length) {
-            await xansql.log?.create({
-               data: { model: model.table, action: 'create', rows: find.map(i => i[model.IDColumn]) }
-            });
-         }
-
          // hooks afterUpdate
          if (this.model.options.hooks?.afterUpdate) {
             const res = await this.model.options.hooks.afterUpdate(find, args.data, args.where)
@@ -225,7 +213,7 @@ class UpdateResult {
          }
 
          let value = (data as any)[column]
-         if (xansql.isForeign(schema[column]) && isObject(value)) {
+         if (Foreign.is(schema[column]) && isObject(value)) {
             relations.push(column)
          } else {
             if (field instanceof XqlDate) {

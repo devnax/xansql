@@ -1,10 +1,10 @@
 import Schema from "..";
-import { ForeignInfo } from "../../type";
 import { chunkArray } from "../../utils/chunker";
+import WhereArgs from "../Args/WhereArgs";
+import Foreign from "../include/Foreign";
 import { DeleteArgs } from "../type";
 import FindResult from "./FindResult";
 import UpdateResult from "./UpdateResult";
-import WhereArgsQuery from "./WhereArgsQuery";
 
 class DeleteResult {
    finder: FindResult
@@ -28,7 +28,7 @@ class DeleteResult {
          throw new Error(`Delete operation requires a valid where clause to prevent mass deletions in ${model.table} model.`);
       }
 
-      const where = new WhereArgsQuery(model, args.where || {})
+      const where = new WhereArgs(model, args.where || {})
       let select = args.select || {}
       if (!(model.IDColumn in select)) {
          select[model.IDColumn] = true
@@ -58,13 +58,6 @@ class DeleteResult {
          }
       }
 
-      // create log
-      if (model.options.log && !xansql.isLogModel(model) && allids.length) {
-         await xansql.log?.create({
-            data: { model: model.table, action: 'create', rows: allids }
-         });
-      }
-
       // hooks afterDelete
       if (this.model.options.hooks?.afterDelete) {
          const res = await this.model.options.hooks.afterDelete(results, args.where)
@@ -79,8 +72,8 @@ class DeleteResult {
       const xansql = model.xansql
       for (let column in model.schema) {
          const field = model.schema[column]
-         if (xansql.isForeignArray(field)) {
-            let foreign = xansql.foreignInfo(model.table, column) as ForeignInfo
+         if (Foreign.isArray(field)) {
+            let foreign = Foreign.info(model, column)
             let FModel = xansql.getModel(foreign.table)
             if (!FModel) {
                throw new Error(`Foreign model ${foreign.table} not found for ${model.table}.${column}`)

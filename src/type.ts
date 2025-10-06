@@ -80,18 +80,3 @@ export type RelationInfo = {
       column: string,
    }
 }
-
-
-export type ForeignInfo = {
-   table: string,
-   column: string,
-   relation: {
-      main: string,
-      target: string,
-   }
-}
-export type ForeignsInfo = {
-   [table: string]: {
-      [column: string]: ForeignInfo
-   }
-}

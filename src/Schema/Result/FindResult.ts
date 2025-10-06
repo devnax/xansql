@@ -1,5 +1,4 @@
 import Schema from "..";
-import { ForeignInfo } from "../../type";
 import XqlArray from "../../Types/fields/Array";
 import XqlEnum from "../../Types/fields/Enum";
 import XqlObject from "../../Types/fields/Object";
@@ -8,12 +7,13 @@ import XqlTuple from "../../Types/fields/Tuple";
 import XqlUnion from "../../Types/fields/Union";
 import { isObject } from "../../utils";
 import { chunkArray, chunkNumbers } from "../../utils/chunker";
+import WhereArgs from "../Args/WhereArgs";
+import Foreign, { ForeignInfoType } from "../include/Foreign";
 import { FindArgs, FindArgsAggregate, LimitArgs, OrderByArgs } from "../type";
 import AggregateResult from "./AggregateResult";
-import WhereArgsQuery from "./WhereArgsQuery";
 
 
-type RelationInfo = { [column: string]: { args: FindArgs, foreign: ForeignInfo } }
+type RelationInfo = { [column: string]: { args: FindArgs, foreign: ForeignInfoType } }
 
 type Meta = {
    parent_table: string,
@@ -62,7 +62,7 @@ class FindResult {
       const columns: string[] = []
       const formatableColumns = []
       const relationColumns: string[] = []
-      const Where = new WhereArgsQuery(model, where || {})
+      const Where = new WhereArgs(model, where || {})
       const Limit = this.limit(limit || {})
       const OrderBy = this.orderby(orderBy || {})
 
@@ -75,8 +75,8 @@ class FindResult {
          };
 
          const value: any = select[column]
-         if (xansql.isForeign(xanv)) {
-            const foreign = xansql.foreignInfo(model.table, column)
+         if (Foreign.is(xanv)) {
+            const foreign = Foreign.info(model, column)
             // const FModel = xansql.getModel(foreign.table)
             let col = `${model.table}.${foreign.relation.target}`
             if (!columns.includes(col) && !relationColumns.includes(col)) {
@@ -95,7 +95,7 @@ class FindResult {
                foreign
             }
          } else {
-            if (value === false || column === model.IDColumn) continue
+            if (value === false) continue
             if (value === true) {
                columns.push(`${model.table}.${column}`)
             } else {
@@ -141,7 +141,7 @@ class FindResult {
 
       if (!columns.length) {
          for (let c in model.schema) {
-            if (!xansql.isForeign(model.schema[c])) {
+            if (!Foreign.is(model.schema[c])) {
                columns.push(`${model.table}.${c}`)
             }
          }
@@ -149,7 +149,7 @@ class FindResult {
 
       let cols = [...columns, ...relationColumns]
       let idcol = `${model.table}.${model.IDColumn}`
-      cols.unshift(idcol)
+      !cols.includes(idcol) && cols.unshift(idcol)
 
       let sql_cols = cols.join(", ").trim()
       let sql = ``
@@ -203,7 +203,7 @@ class FindResult {
                }
 
                for (let { rel_args, foreign, fres } of freses) {
-                  if (xansql.isForeignArray(model.schema[rel_args])) {
+                  if (Foreign.isArray(model.schema[rel_args])) {
                      row[rel_args] = fres.filter((fr: any) => {
                         let is = fr[foreign.relation.main] === row[foreign.relation.target]
                         if (is) {
@@ -264,11 +264,11 @@ class FindResult {
             if (!(col in model.schema)) {
                throw new Error(`Invalid column in aggregate clause: ${col} in model ${model.table}`)
             }
-            const foreign = xansql.foreignInfo(model.table, col)
+            const foreign = Foreign.info(model, col)
             if (!foreign) {
                throw new Error(`Column ${col} is not a foreign column in ${model.table}, cannot aggregate on it.`)
             }
-            if (!xansql.isForeignArray(model.schema[col])) {
+            if (!Foreign.isArray(model.schema[col])) {
                throw new Error(`Column ${col} is not a foreign array column in ${model.table}, cannot aggregate on it.`)
             }
 

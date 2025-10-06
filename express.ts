@@ -3,7 +3,9 @@ dotenv.config()
 import fakeData from './faker'
 import express from 'express';
 import { db, ProductModel, UserModel } from './example'
-import WhereArgsQuery from './src/Schema/Result/WhereArgsQuery';
+import WhereArgsQuery from './src/Schema/Args/WhereArgs';
+import SelectArgs from './src/Schema/Args/SelectArgs';
+import DataArgs from './src/Schema/Args/DataArgs';
 
 const server = async (app) => {
    app.use('/static', express.static('public'));
@@ -23,34 +25,60 @@ const server = async (app) => {
    })
 
 
+   app.get('/datas', async (req, res) => {
+      const data = new DataArgs(UserModel, {
+         name: "John Doe",
+         email: `john${Math.floor(Math.random() * 10000)}@doe.com`,
+         password: "password",
+      })
+
+      res.json({
+         data: data.data
+      })
+   });
+
+   app.get('/select', async (req, res) => {
+      const Select = new SelectArgs(UserModel, {
+         name: true,
+         email: true,
+         username: true,
+         password: true,
+         products: {},
+         metas: {
+            select: {
+               meta_key: true,
+               meta_value: true,
+            },
+            limit: { take: 2 }
+         },
+      })
+
+      res.json({
+         sql: Select.sql,
+         columns: Select.columns,
+         relations: Select.relations
+      })
+   });
+
    app.get('/where', async (req, res) => {
       const where = new WhereArgsQuery(UserModel, {
          name: "John Doe",
-         user_posts: {
-            pid: 375,
-            metas: {
-               likes: 10
-            },
-            categories: {
-               name: "Tech",
-               section: {
-                  name: "Technology"
-               }
-            }
+         metas: {
+            meta_key: "role",
          }
       })
 
       res.json(where.sql)
    });
 
-   app.get('/foreign', async (req, res) => {
-      const f = db.foreignInfo("posts", "user")
-      const u = db.foreignInfo("users", "user_posts")
+   // app.get('/foreign', async (req, res) => {
+   //    const f = db.foreignInfo("posts", "user")
+   //    const u = db.foreignInfo("users", "user_posts")
 
-      res.json({
-         f, u
-      })
-   });
+   //    res.json({
+   //       f, u
+   //    })
+   // });
 
 
    app.get('/find', async (req, res) => {
@@ -239,7 +267,15 @@ const server = async (app) => {
          select: {
             name: true,
             email: true,
-            products: true
+            products: {
+               orderBy: { price: "asc" },
+               select: {
+                  pid: true,
+                  name: true,
+                  description: true,
+                  price: true,
+               }
+            }
          },
          where: {
             uid: 4,
@@ -248,11 +284,14 @@ const server = async (app) => {
             name: "John Updated",
             email: `john${Math.floor(Math.random() * 10000)}@doe.com`,
             products: {
-               create: {
+               upsert: {
+                  where: {
+                     pid: 3
+                  },
                   data: {
                      name: `New Post ${Math.floor(Math.random() * 10000)}`,
                      description: "This is a new post",
-                     price: "9.99",
+                     price: "9999",
                   }
                },
 
