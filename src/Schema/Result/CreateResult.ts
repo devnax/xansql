@@ -197,7 +197,7 @@ class CreateResult {
             throw new Error(`Cannot insert ID field: ${column} in table: ${model.table}`);
          }
 
-         if (xansql.isForeign(field)) {
+         if (xansql.isForeign(field) && typeof value !== "number") {
             const foreign = xansql.foreignInfo(model.table, column) as ForeignInfo
             if (meta && foreign.table === meta.table) {
                throw new Error(`Circular reference detected for relation ${column} in create data. table: ${model.table}`);
