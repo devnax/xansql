@@ -1,17 +1,25 @@
 import { XansqlSchemaObject } from "../Types/types";
+import LimitArgs from "./Args/LimitArgs";
+import OrderByArgs from "./Args/OrderByArgs";
+import SelectArgs from "./Args/SelectArgs";
+import WhereArgs from "./Args/WhereArgs";
 import SchemaBase from "./Base";
+import FindExcuter from "./Excuter/Find";
+import Foreign from "./include/Foreign";
 import AggregateResult from "./Result/AggregateResult";
 import CreateResult from "./Result/CreateResult";
 import DeleteResult from "./Result/DeleteResult";
 import FindResult from "./Result/FindResult";
 import UpdateResult from "./Result/UpdateResult";
-import { AggregatePartialArgs, CreateArgs, DeleteArgs, FindArgs, UpdateArgs, XansqlSchemaOptions } from "./type";
+import { AggregatePartialArgs, CreateArgs, DeleteArgs, FindArgsType, UpdateArgs, XansqlSchemaOptions } from "./type";
 
 class Schema extends SchemaBase {
    private CeateResult;
    private FindResult;
    private UpdateResult;
    private DeleteResult;
+
+   private FindExcuter;
    options: XansqlSchemaOptions
 
    constructor(table: string, schema: XansqlSchemaObject, options?: XansqlSchemaOptions) {
@@ -20,6 +28,7 @@ class Schema extends SchemaBase {
       this.FindResult = new FindResult(this)
       this.UpdateResult = new UpdateResult(this)
       this.DeleteResult = new DeleteResult(this)
+      this.FindExcuter = new FindExcuter(this)
       this.options = options || {
          log: true,
          hooks: {}
@@ -38,8 +47,10 @@ class Schema extends SchemaBase {
       return await this.DeleteResult.result(args);
    }
 
-   async find(args: FindArgs) {
-      return await this.FindResult.result(args);
+   async find(args: FindArgsType) {
+      const result = await this.FindExcuter.excute(args);
+      return result
+      // return await this.FindResult.result(args);
    }
 
    async aggregate(args: any) {
@@ -50,7 +61,7 @@ class Schema extends SchemaBase {
 
    // Helpers Methods
 
-   async findOne(args: FindArgs) {
+   async findOne(args: FindArgsType) {
       const res = await this.find({
          ...args,
          limit: {

@@ -14,7 +14,7 @@
    },
    "dependencies": {
       "securequ": "^1.1.2",
-      "xanv": "^1.0.7",
+      "xanv": "^1.0.9",
       "youid": "^1.0.13"
    },
    "devDependencies": {

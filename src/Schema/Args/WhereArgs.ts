@@ -6,6 +6,7 @@ import XqlRecord from "../../Types/fields/Record";
 import XqlTuple from "../../Types/fields/Tuple";
 import { escapeSqlValue, isArray, isObject } from "../../utils";
 import Foreign from "../include/Foreign";
+import ValueFormatter from "../include/ValueFormatter";
 import { WhereArgsType, WhereSubCondition } from "../type";
 
 type Meta = {
@@ -14,35 +15,21 @@ type Meta = {
 
 class WhereArgs {
    private model: Schema
-   private where: WhereArgsType
-   private meta: Meta | undefined
-   private _wheres: string[] | null = null
-   // private condition_keys = ["equals", "not", "lt", "lte", "gt", "gte", "in", "notIn", "between", "notBetween", "contains", "notContains", "startsWith", "endsWith", "isNull", "isNotNull", "isEmpty", "isNotEmpty", "isTrue", "isFalse"]
+   // private where: WhereArgsType
+   // private meta: Meta | undefined
+   readonly wheres: string[]
+   readonly sql: string = ''
+   private condition_keys = ["equals", "not", "lt", "lte", "gt", "gte", "in", "notIn", "between", "notBetween", "contains", "notContains", "startsWith", "endsWith", "isNull", "isNotNull", "isEmpty", "isNotEmpty", "isTrue", "isFalse"]
 
    constructor(model: Schema, where: WhereArgsType, meta?: Meta) {
       this.model = model
-      this.where = where
-      this.meta = meta
-   }
 
-   get is() {
-      return this.wheres.length > 0
-   }
-
-   get sql() {
-      const wheres = this.wheres
-      return wheres.length ? `WHERE ${wheres.join(" AND ")}` : ""
-   }
-
-   get wheres() {
-      if (this._wheres) return this._wheres
-      let model = this.model
       let schema = model.schema
       let wheres: string[] = []
 
-      for (let column in this.where) {
+      for (let column in where) {
          this.checkIsAllowed(column)
-         const value: any = this.where[column]
+         const value: any = where[column]
          const field = schema[column]
 
          if (Foreign.is(field)) {
@@ -53,9 +40,15 @@ class WhereArgs {
                continue;
             }
 
+            if (Foreign.isSchema(field) && isObject(value) && Object.keys(value).some(k => this.condition_keys.includes(k))) {
+               const v = this.condition(column, value as WhereSubCondition)
+               wheres.push(v)
+               continue
+            }
+
             let foreign = Foreign.info(model, column)
             let FModel = model.xansql.getModel(foreign.table)
-            if (this.meta && this.meta.parentTable === foreign.table) {
+            if (meta && meta.parentTable === foreign.table) {
                throw new Error(`Circular reference detected in where clause for ${model.table}.${column}`);
             }
             let _sql = ''
@@ -65,14 +58,14 @@ class WhereArgs {
                   if (!isObject(w)) throw new Error(`${column} must be an object in the WHERE clause, but received ${typeof w} in table ${model.table}`)
 
                   const where = new WhereArgs(FModel, w, { parentTable: model.table })
-                  if (where.is) {
+                  if (where.sql) {
                      _ors.push(`(${where.wheres.join(" AND ")})`)
                   }
                }
                _sql = _ors.length ? `(${_ors.join(" OR ")})` : ""
             } else if (isObject(value)) {
                const where = new WhereArgs(FModel, value, { parentTable: model.table })
-               if (where.is) {
+               if (where.sql) {
                   _sql = where.wheres.join(" AND ")
                }
             } else {
@@ -86,19 +79,19 @@ class WhereArgs {
                const sub = value.map((_v: any) => {
                   return isObject(_v)
                      ? this.condition(column, _v)
-                     : `${model.table}.${column} = ${model.toSql(column, _v)}`
+                     : `${model.table}.${column} = ${ValueFormatter.toSql(model, column, _v)}`
                })
                v = `(${sub.join(" OR ")})`
             } else if (isObject(value)) {
                v = this.condition(column, value)
             } else {
-               v = `${model.table}.${column} = ${model.toSql(column, value)}`
+               v = `${model.table}.${column} = ${ValueFormatter.toSql(model, column, value)}`
             }
             wheres.push(v)
          }
       }
-      this._wheres = wheres
-      return wheres
+      this.wheres = wheres
+      this.sql = this.wheres.length ? `WHERE ${this.wheres.join(" AND ")} ` : ""
    }
 
    private condition(column: string, conditions: WhereSubCondition) {
@@ -116,17 +109,17 @@ class WhereArgs {
          let val: any = value;
          if (Array.isArray(val)) {
             if (['in', 'notIn'].includes(subKey)) {
-               val = val.map((item) => model.toSql(column, item)).join(", ");
+               val = val.map((item) => ValueFormatter.toSql(model, column, item)).join(", ");
             } else if (['between', 'notBetween'].includes(subKey)) {
                if (val.length !== 2) {
                   throw new Error(`Invalid value ${val} for ${model.table}.${column}. Between requires an array of two values.`);
                }
-               val = val.map((item) => model.toSql(column, item)).join(" AND ");
+               val = val.map((item) => ValueFormatter.toSql(model, column, item)).join(" AND ");
             } else {
                throw new Error(`Invalid array value ${val} for ${model.table}.${column} with operator ${subKey}`);
             }
          } else {
-            val = model.toSql(column, val);
+            val = ValueFormatter.toSql(model, column, val);
          }
 
          let col = model.table + "." + column;

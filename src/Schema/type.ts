@@ -28,12 +28,12 @@ export interface WhereArgsType {
    [column: string]: WhereArgsTypeValue | WhereArgsTypeValue[];
 }
 
-export type LimitArgs = {
+export type LimitArgsType = {
    take?: number;
    skip?: number;
 }
 
-export type OrderByArgs = {
+export type OrderByArgsType = {
    [column: string]: "asc" | "desc";
 }
 
@@ -54,7 +54,7 @@ export type DataArgsType = {
 }
 
 export type SelectArgsType = {
-   [column: string]: boolean | FindArgs
+   [column: string]: boolean | FindArgsType
 }
 
 export type AggregateFunctions = "count" | "sum" | "avg" | "min" | "max"
@@ -70,9 +70,9 @@ export type AggregateArgsAggregate = {
 }
 
 export type AggregateArgs = {
-   orderBy?: OrderByArgs;
-   limit?: LimitArgs;
    groupBy?: string[];
+   orderBy?: OrderByArgsType;
+   limit?: LimitArgsType;
    where?: WhereArgsType;
    aggregate: AggregateArgsAggregate;
 }
@@ -89,12 +89,12 @@ export type FindArgsAggregate = {
    [foreign: string]: AggregateArgsAggregate
 }
 
-export type FindArgs = {
+export type FindArgsType = {
    distinct?: string[];
    where?: WhereArgsType;
    select?: SelectArgsType;
-   limit?: LimitArgs
-   orderBy?: OrderByArgs;
+   limit?: LimitArgsType
+   orderBy?: OrderByArgsType;
    aggregate?: FindArgsAggregate;
    cache?: boolean;
 }
@@ -140,8 +140,8 @@ export type DeleteArgs = {
 export type XansqlSchemaOptions = {
    log?: boolean;
    hooks?: {
-      beforeFind?: (args: FindArgs) => Promise<FindArgs> | FindArgs;
-      afterFind?: (result: any, args: FindArgs) => Promise<any> | any;
+      beforeFind?: (args: FindArgsType) => Promise<FindArgsType> | FindArgsType;
+      afterFind?: (result: any, args: FindArgsType) => Promise<any> | any;
       beforeCreate?: (data: DataArgsType | DataArgsType[]) => Promise<DataArgsType | DataArgsType[]> | (DataArgsType | DataArgsType[]);
       afterCreate?: (result: any, data: DataArgsType | DataArgsType[]) => Promise<any> | any;
       beforeUpdate?: (data: UpdateDataArgsType, where: WhereArgsType) => Promise<UpdateDataArgsType> | UpdateDataArgsType;

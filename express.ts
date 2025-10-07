@@ -2,7 +2,7 @@ import dotenv from 'dotenv'
 dotenv.config()
 import fakeData from './faker'
 import express from 'express';
-import { db, ProductModel, UserModel } from './example'
+import { db, ProductModel, UserModel, UserModelMeta } from './example'
 import WhereArgsQuery from './src/Schema/Args/WhereArgs';
 import SelectArgs from './src/Schema/Args/SelectArgs';
 import DataArgs from './src/Schema/Args/DataArgs';
@@ -26,15 +26,59 @@ const server = async (app) => {
 
 
    app.get('/datas', async (req, res) => {
-      const data = new DataArgs(UserModel, {
-         name: "John Doe",
-         email: `john${Math.floor(Math.random() * 10000)}@doe.com`,
-         password: "password",
-      })
+      const user = new DataArgs(UserModel, [
+         {
+            name: "John 'Doe",
+            email: `john${Math.floor(Math.random() * 10000)}@doe.com`,
+            password: "password",
+            metas: [
+               {
+                  meta_key: "role",
+                  meta_value: "admin",
+               }
+            ],
+            products: [
+               {
+                  name: "Hello World",
+                  description: "This is my first post",
+                  price: "19.99",
+                  categories: [
+                     {
+                        name: "Tech",
+                     },
+                     { name: "News" },
+                  ],
+               },
+            ]
+         },
+         {
+            name: "John 'Doe",
+            email: `john${Math.floor(Math.random() * 10000)}@doe.com`,
+            password: "password",
+            metas: [
+               {
+                  meta_key: "role",
+                  meta_value: "admin",
+               }
+            ],
+            products: [
+               {
+                  name: "Hello World",
+                  description: "This is my first post",
+                  price: "19.99",
+                  categories: [
+                     {
+                        name: "Tech",
+                     },
+                     { name: "News" },
+                  ],
+               },
+            ]
+         }
+      ])
 
-      res.json({
-         data: data.data
-      })
+
+      res.json(user.values)
    });
 
    app.get('/select', async (req, res) => {

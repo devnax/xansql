@@ -73,7 +73,13 @@ class ModelFormatter {
             throw new Error(`Foreign column ${FSchemaField.table}.${FSchemaField.column} does not reference back to ${model.table}.${column}`);
          }
       } else {
-         const n = xt.schema(model.table, column).nullable();
+
+         const n = xt.schema(model.table, column)
+         if (FSchemaField.meta.nullable) n.nullable()
+         if (FSchemaField.meta.optional) n.optional()
+         if (FSchemaField.meta.default !== undefined) n.default(FSchemaField.meta.default)
+         if (FSchemaField.meta.transform) n.transform(FSchemaField.meta.transform)
+
          n.dynamic = true // to identify that this is a dynamically added field
          FModel.schema[FSchemaField.column] = n
          this._models.set(FModel.table, FModel);
