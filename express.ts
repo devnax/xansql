@@ -87,7 +87,13 @@ const server = async (app) => {
          email: true,
          username: true,
          password: true,
-         products: {},
+         // products: {
+         //    select: {
+         //       name: true,
+         //       price: true,
+         //    },
+         //    limit: { take: 3 }
+         // },
          metas: {
             select: {
                meta_key: true,

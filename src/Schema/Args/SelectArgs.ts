@@ -47,19 +47,17 @@ class SelectArgs {
             let fargs: any = {}
             if (Foreign.isSchema(field) && value === true) {
                this.columns.push(column)
-            } else {
-               if (isObject(value)) {
-                  fargs.select = value.select || {}
-                  fargs.where = value.where || {}
-                  if (value.limit) fargs.limit = value.limit
-                  if (value.orderBy) fargs.orderBy = value.orderBy
-               } else {
-                  throw new Error(`Arguments for foreign key ${model.table}.${column} must be an object`);
-               }
+            } else if (isObject(value)) {
+               fargs.select = value.select || {}
+               fargs.where = value.where || {}
+               if (value.limit) fargs.limit = value.limit
+               if (value.orderBy) fargs.orderBy = value.orderBy
                this.relations[column] = {
                   args: fargs,
                   foreign: Foreign.info(model, column)
                }
+            } else {
+               throw new Error(`Invalid select args for foreign key ${model.table}.${column}`);
             }
          } else {
             this.columns.push(column)
