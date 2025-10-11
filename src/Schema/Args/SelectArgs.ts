@@ -52,9 +52,11 @@ class SelectArgs {
                fargs.where = value.where || {}
                if (value.limit) fargs.limit = value.limit
                if (value.orderBy) fargs.orderBy = value.orderBy
+               const foreign = Foreign.info(model, column)
+               const self = new SelectArgs(field.model, fargs.select)
                this.relations[column] = {
                   args: fargs,
-                  foreign: Foreign.info(model, column)
+                  foreign
                }
             } else {
                throw new Error(`Invalid select args for foreign key ${model.table}.${column}`);
