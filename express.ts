@@ -55,27 +55,23 @@ const server = async (app) => {
             name: "John 'Doe",
             email: `john${Math.floor(Math.random() * 10000)}@doe.com`,
             password: "password",
-            metas: [
-               {
-                  meta_key: "role",
-                  meta_value: "admin",
-               }
-            ],
-            products: [
-               {
-                  name: "Hello World",
-                  description: "This is my first post",
-                  price: "19.99",
-                  categories: [
-                     {
-                        name: "Tech",
-                     },
-                     { name: "News" },
-                  ],
-               },
-            ]
+            metas: {
+               meta_key: "role",
+               meta_value: "admin",
+            },
+            products: {
+               name: "Hello World",
+               description: "This is my first post",
+               price: "19.99",
+               categories: [
+                  {
+                     name: "Tech",
+                  },
+                  { name: "News" },
+               ],
+            }
          }
-      ])
+      ], 'update')
 
 
       res.json(user.values)
@@ -91,10 +87,20 @@ const server = async (app) => {
          //    select: {
          //       name: true,
          //       price: true,
+         //       categories: { select: { name: true } }
+
          //    },
-         //    limit: { take: 3 }
+         //    limit: { take: 3 },
          // },
          metas: {
+            distinct: ["meta_value"],
+            where: {
+               meta_key: "role",
+            },
+            orderBy: {
+               uoid: "desc"
+            },
+            // limit: { take: 1 }
             select: {
                meta_key: true,
                meta_value: true,
@@ -145,6 +151,9 @@ const server = async (app) => {
             skip: 0
          },
          where: {
+            // name: {
+            //    contains: "John"
+            // },
             // uid: {
             //    in: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
             // },
@@ -176,11 +185,12 @@ const server = async (app) => {
             password: true,
             created_at: true,
             metas: {
+               // distinct: ["meta_value"],
                select: {
                   meta_key: true,
                   meta_value: true,
                },
-               limit: { take: 2 }
+               // limit: { take: 2 }
             },
             // products: {
             //    distinct: ["price"],

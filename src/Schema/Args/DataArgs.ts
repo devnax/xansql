@@ -1,17 +1,21 @@
 import Schema from ".."
 import XqlDate from "../../Types/fields/Date"
 import { isArray, isNumber, isObject } from "../../utils"
-import Foreign from "../include/Foreign"
+import Foreign, { ForeignInfoType } from "../include/Foreign"
 import ValueFormatter from "../include/ValueFormatter"
 import { DataArgsType } from "../type"
 
 
 type DataObject = { [column: string]: any }
 type ArgsMode = "create" | "update"
-type RelationObject = { [relation: string]: DataArgsType }
+type RelationObject = {
+   [column: string]: {
+      data: DataArgsType,
+      foreign: ForeignInfoType
+   }
+}
 
 type DataValue = {
-   data: DataObject,
    relations: RelationObject
    sql: string
 }
@@ -60,7 +64,6 @@ class DataArgs {
             const field = model.schema[column]
             let value: any = data[column]
 
-
             if (Foreign.is(field)) {
                if (Foreign.isSchema(field)) {
                   if (isNumber(value)) {
@@ -71,7 +74,22 @@ class DataArgs {
                } else {
                   // array of foreign keys
                   if (isObject(value) || isArray(value)) {
-                     this.relations[column] = value
+                     const foreign = Foreign.info(model, column)
+                     const FModel = model.xansql.getModel(foreign.table)
+
+                     // validiting relation data
+                     let rdatas = isObject(value) ? [value] : value
+                     for (let rdata of rdatas) {
+                        new DataArgs(FModel, {
+                           ...rdata,
+                           [foreign.column]: 1
+                        }, mode)
+                     }
+
+                     this.relations[column] = {
+                        data: value,
+                        foreign
+                     }
                   } else {
                      throw new Error(`Invalid value for foreign key column ${model.table}.${column}. Expected object or array, got ${typeof value}`);
                   }
@@ -126,7 +144,7 @@ class DataArgs {
             this.sql = keys.map(col => `${col} = ${this.data[col]}`).join(", ")
          }
 
-         this.values.push({ sql: this.sql, data: this.data, relations: this.relations })
+         this.values.push({ sql: this.sql, relations: this.relations })
       }
    }
 

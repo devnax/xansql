@@ -89,14 +89,15 @@ export type FindArgsAggregate = {
    [foreign: string]: AggregateArgsAggregate
 }
 
+export type DistinctArgsType = string[]
+
 export type FindArgsType = {
-   distinct?: string[];
+   distinct?: DistinctArgsType;
    where?: WhereArgsType;
    select?: SelectArgsType;
    limit?: LimitArgsType
    orderBy?: OrderByArgsType;
    aggregate?: FindArgsAggregate;
-   cache?: boolean;
 }
 
 export type CreateArgs = {

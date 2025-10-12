@@ -1,9 +1,29 @@
 import Schema from "..";
 import { isObject } from "../../utils";
 import Foreign, { ForeignInfoType } from "../include/Foreign";
-import { FindArgsType, SelectArgsType } from "../type";
+import { SelectArgsType } from "../type";
+import DistinctArgs from "./DistinctArgs";
+import LimitArgs from "./LimitArgs";
+import OrderByArgs from "./OrderByArgs";
+import WhereArgs from "./WhereArgs";
 
-type RelationInfo = { [column: string]: { args: FindArgsType, foreign: ForeignInfoType } }
+export type SelectArgsRelationInfo = {
+   args: {
+      select: {
+         sql: string,
+         columns: string[],
+         relations?: SelectArgsRelations
+      },
+      where: string,
+      limit: Required<LimitArgs>,
+      orderBy: string
+   },
+   foreign: ForeignInfoType
+}
+
+type SelectArgsRelations = {
+   [column: string]: SelectArgsRelationInfo
+}
 
 class SelectArgs {
    private model: Schema
@@ -22,13 +42,13 @@ class SelectArgs {
     * @example
     * const sql = selectArgs.sql; // returns "table.column1, table.column2, ..."
     */
-   readonly relations: RelationInfo = {}
+   readonly relations: SelectArgsRelations = {}
 
 
    /**
     * Get Relations
     * @description Returns the relations to be selected
-    * @returns {RelationInfo} Object containing relation information
+    * @returns {SelectArgsRelations} Object containing relation information
     * @example
     * const relations = selectArgs.relations; // returns { column: { args: FindArgsType, foreign: ForeignInfoType }, ... }
     */
@@ -44,16 +64,54 @@ class SelectArgs {
          let value: any = args[column]
 
          if (Foreign.is(field)) {
-            let fargs: any = {}
             if (Foreign.isSchema(field) && value === true) {
                this.columns.push(column)
-            } else if (isObject(value)) {
-               fargs.select = value.select || {}
-               fargs.where = value.where || {}
-               if (value.limit) fargs.limit = value.limit
-               if (value.orderBy) fargs.orderBy = value.orderBy
-               const foreign = Foreign.info(model, column)
-               const self = new SelectArgs(field.model, fargs.select)
+               continue
+            }
+
+            const foreign = Foreign.info(model, column)
+            const FModel = model.xansql.getModel(foreign.table)
+
+            if (value === true) {
+               value = {
+                  select: {},
+               }
+            }
+            if (isObject(value)) {
+               let fargs: any = {}
+               let select = value.select || {}
+               if (Object.keys(select).length === 0) {
+                  for (let column in FModel.schema) {
+                     let field = FModel.schema[column]
+                     if (!Foreign.is(field)) {
+                        select[column] = true
+                     }
+                  }
+               }
+               select[foreign.relation.main] = true // always select main key
+               const Select = new SelectArgs(FModel, select)
+               fargs.select = {
+                  sql: Select.sql,
+                  columns: Select.columns,
+                  relations: Select.relations,
+               }
+               const Where = new WhereArgs(FModel, value.where || {})
+               fargs.where = Where.wheres.join(" AND ")
+               fargs.orderBy = (new OrderByArgs(FModel, value.orderBy || {})).sql
+
+               const limit = new LimitArgs(FModel, value.limit || {})
+               fargs.limit = {
+                  take: limit.take,
+                  skip: limit.skip,
+               }
+
+               if (value.distinct) {
+                  const distinct = new DistinctArgs(FModel, value.distinct || [], Where, value.orderBy)
+                  if (distinct.sql) {
+                     fargs.where += fargs.where ? ` AND ${distinct.sql}` : `WHERE ${distinct.sql}`
+                  }
+               }
+
                this.relations[column] = {
                   args: fargs,
                   foreign
