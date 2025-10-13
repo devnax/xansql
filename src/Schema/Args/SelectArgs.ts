@@ -59,14 +59,17 @@ class SelectArgs {
       this.model = model
 
       for (let column in args) {
-         this.checkColumnIsExist(column)
+         if (!(column in this.model.schema)) {
+            throw new Error(`Column ${column} does not exist in model ${this.model.table}`);
+         }
+
          let field = model.schema[column]
          let value: any = args[column]
 
          if (Foreign.is(field)) {
-            if (Foreign.isSchema(field) && value === true) {
+
+            if (Foreign.isSchema(field)) {
                this.columns.push(column)
-               continue
             }
 
             const foreign = Foreign.info(model, column)
@@ -77,7 +80,10 @@ class SelectArgs {
                   select: {},
                }
             }
+
             if (isObject(value)) {
+
+               // ====== Prepare select args for relation ======
                let fargs: any = {}
                let select = value.select || {}
                if (Object.keys(select).length === 0) {
@@ -88,13 +94,37 @@ class SelectArgs {
                      }
                   }
                }
-               select[foreign.relation.main] = true // always select main key
+
                const Select = new SelectArgs(FModel, select)
+
+               // ====== Prevent circular reference ======
+               for (let rcol in Select.relations) {
+                  let rel = Select.relations[rcol]
+                  if (rel.foreign.table === model.table) {
+                     throw new Error(`Circular reference detected in select args for model ${model.table} and foreign key ${foreign.table}.${rcol}`);
+                  }
+               }
+
+               // ====== Make sure main column of relation is selected ======
+
+               let columns = Select.columns
+               if (!columns.includes(foreign.relation.main)) {
+                  columns.unshift(foreign.relation.main)
+               }
+               let sql = Select.sql
+               let relcol = `${foreign.table}.${foreign.relation.main}`
+               if (!sql.includes(relcol)) {
+                  sql = `${sql}, ${relcol}`
+               }
+
+               // ====== Prepare relation args ======
+
                fargs.select = {
-                  sql: Select.sql,
-                  columns: Select.columns,
+                  sql,
+                  columns,
                   relations: Select.relations,
                }
+
                const Where = new WhereArgs(FModel, value.where || {})
                fargs.where = Where.wheres.join(" AND ")
                fargs.orderBy = (new OrderByArgs(FModel, value.orderBy || {})).sql
@@ -142,11 +172,6 @@ class SelectArgs {
       this.sql = this.columns.map(col => `${this.model.table}.${col}`).join(', ')
    }
 
-   private checkColumnIsExist(column: string) {
-      if (!(column in this.model.schema)) {
-         throw new Error(`Column ${column} does not exist in model ${this.model.table}`);
-      }
-   }
 
 }
 

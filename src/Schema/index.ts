@@ -1,46 +1,45 @@
 import { XansqlSchemaObject } from "../Types/types";
-import LimitArgs from "./Args/LimitArgs";
-import OrderByArgs from "./Args/OrderByArgs";
-import SelectArgs from "./Args/SelectArgs";
-import WhereArgs from "./Args/WhereArgs";
 import SchemaBase from "./Base";
-import FindExcuter from "./Excuter/Find";
-import Foreign from "./include/Foreign";
+import CreateExcuter from "./Excuter/CreateExcuter";
+import FindExcuter from "./Excuter/FindExcuter";
+import UpdateExcuter from "./Excuter/UpdateExcuter";
 import AggregateResult from "./Result/AggregateResult";
 import CreateResult from "./Result/CreateResult";
 import DeleteResult from "./Result/DeleteResult";
-import FindResult from "./Result/FindResult";
 import UpdateResult from "./Result/UpdateResult";
-import { AggregatePartialArgs, CreateArgs, DeleteArgs, FindArgsType, UpdateArgs, XansqlSchemaOptions } from "./type";
+import { AggregatePartialArgs, CreateArgsType, DeleteArgs, FindArgsType, UpdateArgsType, XansqlSchemaOptions } from "./type";
 
 class Schema extends SchemaBase {
-   private CeateResult;
-   private FindResult;
    private UpdateResult;
    private DeleteResult;
 
    private FindExcuter;
+   private CreateExcuter;
+   private UpdateExcuter;
    options: XansqlSchemaOptions
 
    constructor(table: string, schema: XansqlSchemaObject, options?: XansqlSchemaOptions) {
       super(table, schema)
-      this.CeateResult = new CreateResult(this)
-      this.FindResult = new FindResult(this)
       this.UpdateResult = new UpdateResult(this)
       this.DeleteResult = new DeleteResult(this)
+
       this.FindExcuter = new FindExcuter(this)
+      this.CreateExcuter = new CreateExcuter(this)
+      this.UpdateExcuter = new UpdateExcuter(this)
+
+
       this.options = options || {
          log: true,
          hooks: {}
       };
    }
 
-   async create(args: CreateArgs) {
-      return await this.CeateResult.result(args);
+   async create(args: CreateArgsType) {
+      return await this.CreateExcuter.excute(args);
    }
 
-   async update(args: UpdateArgs) {
-      return await this.UpdateResult.result(args);
+   async update(args: UpdateArgsType) {
+      return await this.UpdateExcuter.excute(args);
    }
 
    async delete(args: DeleteArgs) {

@@ -100,7 +100,7 @@ export type FindArgsType = {
    aggregate?: FindArgsAggregate;
 }
 
-export type CreateArgs = {
+export type CreateArgsType = {
    data: DataArgsType | DataArgsType[];
    select?: SelectArgsType;
 }
@@ -126,7 +126,7 @@ export type UpdateDataArgsType = {
    [column: string]: DataValue | UpdateDataRelationArgs;
 }
 
-export type UpdateArgs = {
+export type UpdateArgsType = {
    data: UpdateDataArgsType;
    where: WhereArgsType;
    select?: SelectArgsType

@@ -10,7 +10,7 @@ type DataObject = { [column: string]: any }
 type ArgsMode = "create" | "update"
 type RelationObject = {
    [column: string]: {
-      data: DataArgsType,
+      data: DataArgsType[],
       foreign: ForeignInfoType
    }
 }
@@ -80,6 +80,9 @@ class DataArgs {
                      // validiting relation data
                      let rdatas = isObject(value) ? [value] : value
                      for (let rdata of rdatas) {
+                        if (foreign.column in rdata) {
+                           throw new Error(`Cannot set foreign key column ${foreign.column} in relation data for model ${FModel.table}. It is automatically managed.`);
+                        }
                         new DataArgs(FModel, {
                            ...rdata,
                            [foreign.column]: 1
@@ -87,7 +90,7 @@ class DataArgs {
                      }
 
                      this.relations[column] = {
-                        data: value,
+                        data: rdatas,
                         foreign
                      }
                   } else {

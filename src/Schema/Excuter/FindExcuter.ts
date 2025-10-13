@@ -32,14 +32,14 @@ class FindExcuter {
       if (Select.relations && Object.keys(Select.relations).length) {
          for (let column in Select.relations) {
             const relation = Select.relations[column]
-            await this.excuteRelation(relation, column, result)
+            await this.excuteRelation(model, relation, column, result)
          }
       }
       return result;
    }
 
 
-   private async excuteRelation(relation: SelectArgsRelationInfo, column: string, result: any[]) {
+   private async excuteRelation(model: Schema, relation: SelectArgsRelationInfo, column: string, result: any[]) {
       let xansql = this.model.xansql
       let foreign = relation.foreign
       const table = foreign.table
@@ -53,25 +53,26 @@ class FindExcuter {
          }
       }
 
-      let fargs = relation.args
-      const limit = fargs.limit
-      let where_sql = fargs.where
+      let args = relation.args
+      const limit = args.limit
+      let where_sql = args.where
       let insql = `${foreign.relation.main} IN (${ids.join(",")})`
       where_sql += where_sql ? ` AND ${insql}` : `WHERE ${insql}`
 
       let sql = `
-         SELECT ${fargs.select.sql} FROM (
+         SELECT ${args.select.sql} FROM (
            SELECT
-               ${fargs.select.sql},
-             ROW_NUMBER() OVER (PARTITION BY ${table}.${foreign.relation.main} ${fargs.orderBy}) AS ${table}_rank
+               ${args.select.sql},
+             ROW_NUMBER() OVER (PARTITION BY ${table}.${foreign.relation.main} ${args.orderBy}) AS ${table}_rank
            FROM ${table}
             ${where_sql}
          ) AS ${table}
          WHERE ${table}_rank > ${limit.skip} AND ${table}_rank <= ${limit.take + limit.skip};
       `
       const fres = (await FModel.excute(sql)).result
+
       for (let r of result) {
-         if (Foreign.isArray(this.model.schema[column])) {
+         if (Foreign.isArray(model.schema[column])) {
             r[column] = fres.filter((fr: any) => {
                let is = fr[foreign.relation.main] === r[foreign.relation.target]
                if (is) delete fr[foreign.relation.main]
@@ -81,6 +82,15 @@ class FindExcuter {
             r[column] = fres.find((fr: any) => fr[foreign.relation.main] === r[foreign.relation.target]) || null
          }
       }
+
+      // excute nested relations
+      if (args.select.relations && Object.keys(args.select.relations).length) {
+         for (let rel_column in args.select.relations) {
+            const rel_relation = args.select.relations[rel_column]
+            await this.excuteRelation(FModel, rel_relation, rel_column, fres)
+         }
+      }
+
       return result
    }
 

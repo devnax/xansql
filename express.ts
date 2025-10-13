@@ -78,41 +78,30 @@ const server = async (app) => {
    });
 
    app.get('/select', async (req, res) => {
-      const Select = new SelectArgs(UserModel, {
+      let select;
+      select = new SelectArgs(UserModel, {
          name: true,
-         email: true,
-         username: true,
-         password: true,
-         // products: {
-         //    select: {
-         //       name: true,
-         //       price: true,
-         //       categories: { select: { name: true } }
-
-         //    },
-         //    limit: { take: 3 },
-         // },
-         metas: {
-            distinct: ["meta_value"],
-            where: {
-               meta_key: "role",
-            },
-            orderBy: {
-               uoid: "desc"
-            },
-            // limit: { take: 1 }
+         products: {
             select: {
-               meta_key: true,
-               meta_value: true,
-            },
-            limit: { take: 2 }
-         },
+               categories: true
+            }
+         }
       })
 
+      // select = new SelectArgs(ProductModel, {
+      //    name: true,
+      //    user: {
+      //       select: {
+      //          username: true,
+      //          metas: true,
+      //       },
+      //    },
+      // })
+
       res.json({
-         sql: Select.sql,
-         columns: Select.columns,
-         relations: Select.relations
+         sql: select.sql,
+         columns: select.columns,
+         relations: select.relations
       })
    });
 
@@ -140,69 +129,31 @@ const server = async (app) => {
    app.get('/find', async (req, res) => {
       const start = Date.now()
 
-      const result = await UserModel.find({
-         // distinct: ["email"],
-         orderBy: {
-            // uid: "desc",
-            // email: "desc"
-         },
-         limit: {
-            take: 100,
-            skip: 0
-         },
-         where: {
-            // name: {
-            //    contains: "John"
-            // },
-            // uid: {
-            //    in: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
-            // },
-            // user_posts: {
-            //    pid: 375,
-            // }
-         },
-         // aggregate: {
-         //    metas: {
-         //       uoid: {
-         //          count: true
-         //       }
-         //    },
-         //    products: {
-         //       price: {
-         //          sum: {
-         //             alias: "total_price"
-         //          },
-         //          avg: {
-         //             alias: "avg_price"
-         //          }
-         //       }
-         //    }
-         // },
+      // const result = await UserModel.find({
+      //    select: {
+      //       name: true,
+      //       products: {
+      //          select: {
+      //             categories: true
+      //          }
+      //       }
+      //    }
+      // })
+
+      const result = await ProductModel.find({
          select: {
             name: true,
-            email: true,
-            username: true,
-            password: true,
-            created_at: true,
-            metas: {
-               // distinct: ["meta_value"],
+            user: {
                select: {
-                  meta_key: true,
-                  meta_value: true,
-               },
-               // limit: { take: 2 }
-            },
-            // products: {
-            //    distinct: ["price"],
-            //    orderBy: { price: "desc" },
-
-            //    select: {
-            //       name: true,
-            //       price: true,
-            //    },
-            //    limit: { take: 3 }
-            // }
-         },
+                  username: true,
+                  metas: {
+                     select: {
+                        meta_key: true,
+                     }
+                  },
+               }
+            }
+         }
       })
 
       const end = Date.now()
@@ -262,45 +213,65 @@ const server = async (app) => {
 
    app.get('/create', async (req, res) => {
 
-      const result = await UserModel.create({
+      // const result = await UserModel.create({
+      //    select: {
+      //       name: true,
+      //       email: true,
+      //       products: {
+      //          select: {
+      //             description: true,
+      //             name: true,
+      //             categories: {
+      //                select: {
+      //                   name: true,
+      //                },
+      //             }
+      //          }
+      //       }
+      //    },
+      //    data: {
+      //       name: "John Doe",
+      //       email: `john${Math.floor(Math.random() * 10000)}@doe.com`,
+      //       password: "password",
+      //       // created_at: new Date(),
+      //       products: {
+      //          name: "Hello World",
+      //          description: "This is my first post",
+      //          price: "19.99",
+      //          // user: 3,
+      //          categories: [
+      //             {
+      //                name: "Tech",
+      //             },
+      //             { name: "News" },
+      //          ],
+      //       }
+      //    }
+      // })
+
+      const result = await ProductModel.create({
          select: {
+            description: true,
             name: true,
-            email: true,
-            products: {
+            user: true,
+            categories: {
                select: {
-                  description: true,
                   name: true,
-                  categories: {
-                     select: {
-                        name: true,
-                     },
-                  }
-               }
+               },
             }
          },
          data: {
-            name: "John Doe",
-            email: `john${Math.floor(Math.random() * 10000)}@doe.com`,
-            password: "password",
-            // created_at: new Date(),
-            products: [
+            user: 1,
+            name: "Hello World",
+            description: "This is my first post",
+            price: "19.99",
+            // user: 3,
+            categories: [
                {
-                  name: "Hello World",
-                  description: "This is my first post",
-                  price: "19.99",
-                  categories: [
-                     {
-                        name: "Tech",
-                     },
-                     { name: "News" },
-                  ],
+                  name: "Tech",
                },
-               {
-                  name: "Hello World",
-                  description: "This is my first post",
-                  price: "29.99",
-               }
-            ]
+               { name: "News" },
+            ],
          }
       })
       res.json(result)
