@@ -29,7 +29,7 @@ class FindExcuter {
       const sql = `SELECT ${Select.sql} FROM ${model.table} ${where_sql}${OrderBy.sql}${Limit.sql}`.trim()
       const { result } = await model.excute(sql)
 
-      if (Select.relations && Object.keys(Select.relations).length) {
+      if (result.length && Select.relations && Object.keys(Select.relations).length) {
          for (let column in Select.relations) {
             const relation = Select.relations[column]
             await this.excuteRelation(model, relation, column, result)
@@ -71,15 +71,23 @@ class FindExcuter {
       `
       const fres = (await FModel.excute(sql)).result
 
-      for (let r of result) {
+      for (let row of result) {
+         for (let col of args.select.formatable_columns) {
+            try {
+               row[col] = JSON.parse(row[col])
+            } catch (error) {
+               row[col] = row[col]
+            }
+         }
+
          if (Foreign.isArray(model.schema[column])) {
-            r[column] = fres.filter((fr: any) => {
-               let is = fr[foreign.relation.main] === r[foreign.relation.target]
+            row[column] = fres.filter((fr: any) => {
+               let is = fr[foreign.relation.main] === row[foreign.relation.target]
                if (is) delete fr[foreign.relation.main]
                return is
             })
          } else {
-            r[column] = fres.find((fr: any) => fr[foreign.relation.main] === r[foreign.relation.target]) || null
+            row[column] = fres.find((fr: any) => fr[foreign.relation.main] === row[foreign.relation.target]) || null
          }
       }
 

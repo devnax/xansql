@@ -47,14 +47,9 @@ export type DataValue =
    | Set<any>
    | File
    | Record<string | number, any>
-   | any[]
 
 export type DataArgsType = {
    [column: string]: DataValue | DataArgsType[] | DataArgsType;
-}
-
-export type SelectArgsType = {
-   [column: string]: boolean | FindArgsType
 }
 
 export type AggregateFunctions = "count" | "sum" | "avg" | "min" | "max"
@@ -91,6 +86,10 @@ export type FindArgsAggregate = {
 
 export type DistinctArgsType = string[]
 
+export type SelectArgsType = {
+   [column: string]: boolean | FindArgsType
+}
+
 export type FindArgsType = {
    distinct?: DistinctArgsType;
    where?: WhereArgsType;
@@ -110,7 +109,7 @@ export type UpdateDataRelationArgs = {
       data: DataArgsType | DataArgsType[];
    }
    update?: {
-      data: DataArgsType | DataArgsType[];
+      data: DataArgsType;
       where: WhereArgsType;
    }
    delete?: {
@@ -118,7 +117,8 @@ export type UpdateDataRelationArgs = {
    }
    upsert?: {
       where: WhereArgsType;
-      data: DataArgsType;
+      create: DataArgsType;
+      update: DataArgsType;
    }
 }
 
@@ -132,7 +132,7 @@ export type UpdateArgsType = {
    select?: SelectArgsType
 }
 
-export type DeleteArgs = {
+export type DeleteArgsType = {
    where: WhereArgsType;
    select?: SelectArgsType;
 }

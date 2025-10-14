@@ -5,6 +5,7 @@ import express from 'express';
 import { db, ProductModel, UserModel, UserModelMeta } from './example'
 import WhereArgsQuery from './src/Schema/Args/WhereArgs';
 import SelectArgs from './src/Schema/Excuter/Find/SelectArgs';
+import UpdateDataArgs from './src/Schema/Excuter/Update/UpdateDataArgs';
 
 const server = async (app) => {
    app.use('/static', express.static('public'));
@@ -29,9 +30,7 @@ const server = async (app) => {
       select = new SelectArgs(UserModel, {
          name: true,
          products: {
-            select: {
-               categories: true
-            }
+
          }
       })
 
@@ -76,32 +75,32 @@ const server = async (app) => {
    app.get('/find', async (req, res) => {
       const start = Date.now()
 
-      // const result = await UserModel.find({
-      //    select: {
-      //       name: true,
-      //       products: {
-      //          select: {
-      //             categories: true
-      //          }
-      //       }
-      //    }
-      // })
-
-      const result = await ProductModel.find({
+      const result = await UserModel.find({
          select: {
             name: true,
-            user: {
+            products: {
                select: {
-                  username: true,
-                  metas: {
-                     select: {
-                        meta_key: true,
-                     }
-                  },
+                  // categories: true
                }
             }
          }
       })
+
+      // const result = await ProductModel.find({
+      //    select: {
+      //       name: true,
+      //       user: {
+      //          select: {
+      //             username: true,
+      //             metas: {
+      //                select: {
+      //                   meta_key: true,
+      //                }
+      //             },
+      //          }
+      //       }
+      //    }
+      // })
 
       const end = Date.now()
       console.log(`Find ${result.length} users in ${end - start}ms`)
@@ -228,7 +227,17 @@ const server = async (app) => {
 
       const result = await UserModel.delete({
          where: {
-            uid: 1,
+            uid: 161,
+         },
+         select: {
+            name: true,
+            email: true,
+            products: {
+               select: {
+                  pid: true,
+                  name: true,
+               }
+            }
          }
       })
       // const result = await PostModel.delete({
@@ -239,6 +248,49 @@ const server = async (app) => {
       res.json(result)
    });
 
+   app.get('/update-data-args', async (req, res) => {
+
+      const result: any = new UpdateDataArgs(UserModel, {
+         name: "John Updated",
+         email: `john${Math.floor(Math.random() * 10000)}@doe.com`,
+         products: {
+            upsert: {
+               where: {
+                  pid: 3
+               },
+               create: {
+                  user: 1,
+                  name: `New Post ${Math.floor(Math.random() * 10000)}`,
+                  description: "This is a new post",
+                  price: "9999",
+               },
+               update: {
+                  name: `Updated Post ${Math.floor(Math.random() * 10000)}`,
+                  description: "This is an updated post",
+                  price: "8888",
+               }
+            },
+
+            // update: {
+            //    where: { pid: 3 },
+            //    data: {
+            //       name: `Updated Title ${Math.floor(Math.random() * 10000)}`,
+            //       description: "Updated Content",
+            //    }
+            // },
+            // delete: {
+            //    where: {
+            //       pid: 5
+            //    }
+            // },
+         }
+      })
+      res.json({
+         sql: result.sql,
+         relations: result.relations
+      })
+   });
+
    app.get('/update', async (req, res) => {
 
       const result = await UserModel.update({
@@ -246,7 +298,9 @@ const server = async (app) => {
             name: true,
             email: true,
             products: {
-               orderBy: { price: "asc" },
+               orderBy: {
+                  pid: "desc"
+               },
                select: {
                   pid: true,
                   name: true,
@@ -262,27 +316,32 @@ const server = async (app) => {
             name: "John Updated",
             email: `john${Math.floor(Math.random() * 10000)}@doe.com`,
             products: {
-               upsert: {
-                  where: {
-                     pid: 3
-                  },
-                  data: {
-                     name: `New Post ${Math.floor(Math.random() * 10000)}`,
-                     description: "This is a new post",
-                     price: "9999",
-                  }
-               },
+               // upsert: {
+               //    where: {
+               //       pid: 30
+               //    },
+               //    update: {
+               //       name: `New Post ${Math.floor(Math.random() * 10000)}`,
+               //       description: "This is a new post",
+               //       price: "9999",
+               //    },
+               //    create: {
+               //       name: `Updated Post ${Math.floor(Math.random() * 10000)}`,
+               //       description: "This is an updated post",
+               //       price: "8888",
+               //    }
+               // },
 
                // update: {
-               //    where: { pid: 3 },
+               //    where: { pid: 31 },
                //    data: {
-               //       title: `Updated Title ${Math.floor(Math.random() * 10000)}`,
-               //       content: "Updated Content",
+               //       name: `Updated Title ${Math.floor(Math.random() * 10000)}`,
+               //       description: "Updated Content",
                //    }
                // },
                // delete: {
                //    where: {
-               //       pid: 5
+               //       pid: 32
                //    }
                // },
                // upsert: {
@@ -291,20 +350,13 @@ const server = async (app) => {
                //    },
 
                // },
-
-               // data: {
-               //    title: `Updated Title ${Math.floor(Math.random() * 10000)}`,
-               //    content: "Updated Content",
-               //    metas: {
-               //       data: {
-               //          views: Math.floor(Math.random() * 1000),
-               //          likes: Math.floor(Math.random() * 100),
-               //       },
-               //    }
-               // },
-               // where: {
-               //    // pid: 5
-               // }
+               create: {
+                  data: {
+                     name: `New Post ${Math.floor(Math.random() * 10000)}`,
+                     description: "This is a new post",
+                     price: "9999",
+                  }
+               },
             }
          }
       })

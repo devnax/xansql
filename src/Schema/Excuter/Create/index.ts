@@ -1,5 +1,5 @@
 import Schema from "../.."
-import DataArgs from "./DataArgs"
+import CreateDataArgs from "./CreateDataArgs"
 import { CreateArgsType } from "../../type"
 import SelectArgs from "../Find/SelectArgs"
 
@@ -12,7 +12,7 @@ class CreateExcuter {
    async excute(args: CreateArgsType) {
       const xansql = this.model.xansql
       const model = this.model
-      const dataArgs = (new DataArgs(model, args.data, "create")).values
+      const dataArgs = (new CreateDataArgs(model, args.data)).values
 
       // only for validation
       if (args.select) {

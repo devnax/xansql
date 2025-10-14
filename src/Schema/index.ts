@@ -1,31 +1,29 @@
 import { XansqlSchemaObject } from "../Types/types";
 import SchemaBase from "./Base";
 import CreateExcuter from "./Excuter/Create";
+import DeleteExcuter from "./Excuter/Delete";
 import FindExcuter from "./Excuter/Find";
 import UpdateExcuter from "./Excuter/Update";
 import AggregateResult from "./Result/AggregateResult";
-import CreateResult from "./Result/CreateResult";
 import DeleteResult from "./Result/DeleteResult";
 import UpdateResult from "./Result/UpdateResult";
-import { AggregatePartialArgs, CreateArgsType, DeleteArgs, FindArgsType, UpdateArgsType, XansqlSchemaOptions } from "./type";
+import { AggregatePartialArgs, CreateArgsType, DeleteArgsType, FindArgsType, UpdateArgsType, XansqlSchemaOptions } from "./type";
 
 class Schema extends SchemaBase {
-   private UpdateResult;
-   private DeleteResult;
 
    private FindExcuter;
    private CreateExcuter;
    private UpdateExcuter;
+   private DeleteExcuter;
    options: XansqlSchemaOptions
 
    constructor(table: string, schema: XansqlSchemaObject, options?: XansqlSchemaOptions) {
       super(table, schema)
-      this.UpdateResult = new UpdateResult(this)
-      this.DeleteResult = new DeleteResult(this)
 
       this.FindExcuter = new FindExcuter(this)
       this.CreateExcuter = new CreateExcuter(this)
       this.UpdateExcuter = new UpdateExcuter(this)
+      this.DeleteExcuter = new DeleteExcuter(this)
 
 
       this.options = options || {
@@ -42,8 +40,8 @@ class Schema extends SchemaBase {
       return await this.UpdateExcuter.excute(args);
    }
 
-   async delete(args: DeleteArgs) {
-      return await this.DeleteResult.result(args);
+   async delete(args: DeleteArgsType) {
+      return await this.DeleteExcuter.excute(args);
    }
 
    async find(args: FindArgsType) {

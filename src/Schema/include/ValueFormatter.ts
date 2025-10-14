@@ -13,7 +13,7 @@ import XqlTuple from "../../Types/fields/Tuple";
 import XqlUnion from "../../Types/fields/Union";
 
 class ValueFormatter {
-   private static iof(model: Schema, column: string, ...instances: any[]) {
+   static iof(model: Schema, column: string, ...instances: any[]) {
       const field = model.schema[column];
       return instances.some(instance => field instanceof instance);
    }

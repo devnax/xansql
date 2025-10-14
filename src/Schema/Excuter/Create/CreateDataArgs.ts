@@ -7,7 +7,6 @@ import { DataArgsType } from "../../type"
 
 
 type DataObject = { [column: string]: any }
-type ArgsMode = "create" | "update"
 type RelationObject = {
    [column: string]: {
       data: DataArgsType[],
@@ -20,7 +19,7 @@ type DataValue = {
    sql: string
 }
 
-class DataArgs {
+class CreateDataArgs {
 
    /**
    * Generate SQL for data
@@ -41,7 +40,6 @@ class DataArgs {
     */
    private sql: string = ''
 
-
    /**
     * Get stack of data and relations for nested create or update
     * format: [{ data: { col1: val1, col2: val2 }, relations: { relation1: data1 }, sql: '(col1, col2) VALUES (val1, val2)' }, ...]
@@ -49,14 +47,14 @@ class DataArgs {
    readonly values: DataValue[] = []
 
 
-   constructor(model: Schema, data: DataArgsType | DataArgsType[], mode: ArgsMode = "create") {
+   constructor(model: Schema, data: DataArgsType | DataArgsType[]) {
 
       if (Array.isArray(data)) {
          for (let item of data) {
             if (!isObject(item)) {
                throw new Error(`Invalid data item in array for model ${model.table}. Expected object, got ${typeof item}`);
             }
-            const dataArgs = new DataArgs(model, item, mode)
+            const dataArgs = new CreateDataArgs(model, item)
             this.values.push(...dataArgs.values)
          }
       } else {
@@ -67,7 +65,7 @@ class DataArgs {
             if (Foreign.is(field)) {
                if (Foreign.isSchema(field)) {
                   if (isNumber(value)) {
-                     this.data[column] = ValueFormatter.toSql(model, column, value)
+                     this.data[column] = value
                   } else {
                      throw new Error(`Invalid value for foreign key column ${model.table}.${column}. Expected number, got ${typeof value}`);
                   }
@@ -83,10 +81,10 @@ class DataArgs {
                         if (foreign.column in rdata) {
                            throw new Error(`Cannot set foreign key column ${foreign.column} in relation data for model ${FModel.table}. It is automatically managed.`);
                         }
-                        new DataArgs(FModel, {
+                        new CreateDataArgs(FModel, {
                            ...rdata,
                            [foreign.column]: 1
-                        }, mode)
+                        })
                      }
 
                      this.relations[column] = {
@@ -118,34 +116,23 @@ class DataArgs {
           * Skip columns which are already set in data
           */
          for (let column in model.schema) {
-            const field = model.schema[column]
-            if (mode === 'create') {
-               // adding others columns which are not set in data
-               if (column in this.data || column === model.IDColumn) continue
-               if (Foreign.is(field)) {
+            if (column in this.data || column === model.IDColumn) continue
 
-                  // if foreign key is not optional or nullable, throw error
-                  if (Foreign.isSchema(field) && !(field.meta.optional || field.meta.nullable)) {
-                     throw new Error(`Foreign key column ${model.table}.${column} is required in create data.`);
-                  }
-                  continue
+            const field = model.schema[column]
+            if (Foreign.is(field)) {
+
+               // if foreign key is not optional or nullable, throw error
+               if (Foreign.isSchema(field) && !(field.meta.optional || field.meta.nullable)) {
+                  throw new Error(`Foreign key column ${model.table}.${column} is required in create data.`);
                }
-               this.data[column] = ValueFormatter.toSql(model, column, null)
-            } else {
-               // added updated_at field automatically
-               if (field instanceof XqlDate && field.meta.update) {
-                  this.data[column] = ValueFormatter.toSql(model, column, new Date())
-               }
+               continue
             }
+            this.data[column] = ValueFormatter.toSql(model, column, null)
          }
 
          // generate sql
          const keys = Object.keys(this.data)
-         if (mode === "create") {
-            this.sql = `(${keys.join(", ")}) VALUES (${keys.map(k => this.data[k]).join(", ")})`
-         } else {
-            this.sql = keys.map(col => `${col} = ${this.data[col]}`).join(", ")
-         }
+         this.sql = `(${keys.join(", ")}) VALUES (${keys.map(k => this.data[k]).join(", ")})`
 
          this.values.push({ sql: this.sql, relations: this.relations })
       }
@@ -153,4 +140,4 @@ class DataArgs {
 
 }
 
-export default DataArgs
+export default CreateDataArgs
