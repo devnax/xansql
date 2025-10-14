@@ -1,5 +1,5 @@
-import Schema from ".."
-import { OrderByArgsType } from "../type"
+import Schema from "../.."
+import { OrderByArgsType } from "../../type"
 
 class OrderByArgs {
    /**

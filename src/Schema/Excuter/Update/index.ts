@@ -1,7 +1,7 @@
-import Schema from ".."
-import DataArgs from "../Args/DataArgs"
-import SelectArgs from "../Args/SelectArgs"
-import { UpdateArgsType } from "../type"
+import Schema from "../.."
+import { UpdateArgsType } from "../../type"
+import SelectArgs from "../Find/SelectArgs"
+import DataArgs from "./DataArgs"
 
 
 class UpdateExcuter {

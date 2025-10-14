@@ -1,6 +1,6 @@
-import Schema from "..";
-import { DistinctArgsType, OrderByArgsType } from "../type";
-import WhereArgs from "./WhereArgs";
+import Schema from "../.."
+import WhereArgs from "../../Args/WhereArgs"
+import { DistinctArgsType, OrderByArgsType } from "../../type"
 
 class DistinctArgs {
    /**

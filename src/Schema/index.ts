@@ -1,8 +1,8 @@
 import { XansqlSchemaObject } from "../Types/types";
 import SchemaBase from "./Base";
-import CreateExcuter from "./Excuter/CreateExcuter";
-import FindExcuter from "./Excuter/FindExcuter";
-import UpdateExcuter from "./Excuter/UpdateExcuter";
+import CreateExcuter from "./Excuter/Create";
+import FindExcuter from "./Excuter/Find";
+import UpdateExcuter from "./Excuter/Update";
 import AggregateResult from "./Result/AggregateResult";
 import CreateResult from "./Result/CreateResult";
 import DeleteResult from "./Result/DeleteResult";

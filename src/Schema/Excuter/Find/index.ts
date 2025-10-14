@@ -1,11 +1,11 @@
-import Schema from "..";
-import DistinctArgs from "../Args/DistinctArgs";
-import LimitArgs from "../Args/LimitArgs";
-import OrderByArgs from "../Args/OrderByArgs";
-import SelectArgs, { SelectArgsRelationInfo } from "../Args/SelectArgs";
-import WhereArgs from "../Args/WhereArgs";
-import Foreign from "../include/Foreign";
-import { FindArgsType } from "../type";
+import Schema from "../..";
+import WhereArgs from "../../Args/WhereArgs";
+import Foreign from "../../include/Foreign";
+import { FindArgsType } from "../../type";
+import DistinctArgs from "./DistinctArgs";
+import LimitArgs from "./LimitArgs";
+import OrderByArgs from "./OrderByArgs";
+import SelectArgs, { SelectArgsRelationInfo } from "./SelectArgs";
 
 class FindExcuter {
    model: Schema

@@ -1,11 +1,11 @@
-import Schema from "..";
-import { isObject } from "../../utils";
-import Foreign, { ForeignInfoType } from "../include/Foreign";
-import { SelectArgsType } from "../type";
+import Schema from "../..";
+import { isObject } from "../../../utils";
+import Foreign, { ForeignInfoType } from "../../include/Foreign";
+import { SelectArgsType } from "../../type";
 import DistinctArgs from "./DistinctArgs";
 import LimitArgs from "./LimitArgs";
 import OrderByArgs from "./OrderByArgs";
-import WhereArgs from "./WhereArgs";
+import WhereArgs from "../../Args/WhereArgs";
 
 export type SelectArgsRelationInfo = {
    args: {

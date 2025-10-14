@@ -1,9 +1,9 @@
-import Schema from ".."
-import XqlDate from "../../Types/fields/Date"
-import { isArray, isNumber, isObject } from "../../utils"
-import Foreign, { ForeignInfoType } from "../include/Foreign"
-import ValueFormatter from "../include/ValueFormatter"
-import { DataArgsType } from "../type"
+import Schema from "../.."
+import XqlDate from "../../../Types/fields/Date"
+import { isArray, isNumber, isObject } from "../../../utils"
+import Foreign, { ForeignInfoType } from "../../include/Foreign"
+import ValueFormatter from "../../include/ValueFormatter"
+import { DataArgsType } from "../../type"
 
 
 type DataObject = { [column: string]: any }

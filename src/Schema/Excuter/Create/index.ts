@@ -1,7 +1,7 @@
-import Schema from ".."
-import DataArgs from "../Args/DataArgs"
-import SelectArgs from "../Args/SelectArgs"
-import { CreateArgsType } from "../type"
+import Schema from "../.."
+import DataArgs from "./DataArgs"
+import { CreateArgsType } from "../../type"
+import SelectArgs from "../Find/SelectArgs"
 
 
 class CreateExcuter {

@@ -1,5 +1,5 @@
-import Schema from "..";
-import { LimitArgsType } from "../type";
+import Schema from "../..";
+import { LimitArgsType } from "../../type";
 
 class LimitArgs {
    readonly take?: number;

@@ -4,8 +4,7 @@ import fakeData from './faker'
 import express from 'express';
 import { db, ProductModel, UserModel, UserModelMeta } from './example'
 import WhereArgsQuery from './src/Schema/Args/WhereArgs';
-import SelectArgs from './src/Schema/Args/SelectArgs';
-import DataArgs from './src/Schema/Args/DataArgs';
+import SelectArgs from './src/Schema/Excuter/Find/SelectArgs';
 
 const server = async (app) => {
    app.use('/static', express.static('public'));
@@ -24,58 +23,6 @@ const server = async (app) => {
       res.status(response.status).end(response.content);
    })
 
-
-   app.get('/datas', async (req, res) => {
-      const user = new DataArgs(UserModel, [
-         {
-            name: "John 'Doe",
-            email: `john${Math.floor(Math.random() * 10000)}@doe.com`,
-            password: "password",
-            metas: [
-               {
-                  meta_key: "role",
-                  meta_value: "admin",
-               }
-            ],
-            products: [
-               {
-                  name: "Hello World",
-                  description: "This is my first post",
-                  price: "19.99",
-                  categories: [
-                     {
-                        name: "Tech",
-                     },
-                     { name: "News" },
-                  ],
-               },
-            ]
-         },
-         {
-            name: "John 'Doe",
-            email: `john${Math.floor(Math.random() * 10000)}@doe.com`,
-            password: "password",
-            metas: {
-               meta_key: "role",
-               meta_value: "admin",
-            },
-            products: {
-               name: "Hello World",
-               description: "This is my first post",
-               price: "19.99",
-               categories: [
-                  {
-                     name: "Tech",
-                  },
-                  { name: "News" },
-               ],
-            }
-         }
-      ], 'update')
-
-
-      res.json(user.values)
-   });
 
    app.get('/select', async (req, res) => {
       let select;
