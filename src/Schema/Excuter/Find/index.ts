@@ -150,10 +150,9 @@ class FindExcuter {
                   if (!row.aggregate) {
                      row.aggregate = {}
                   }
-                  console.log(aggres.foreign);
 
                   row.aggregate[col] = aggres.result.find((ar: any) => {
-                     let is = ar[aggres.foreign.relation.main] === row[aggres.foreign.relation.target]
+                     let is = ar[aggres.foreign.relation.target] === row[aggres.foreign.relation.main]
                      if (is) delete ar[aggres.foreign.relation.main]
                      return is
                   })
@@ -168,7 +167,7 @@ class FindExcuter {
                   if (Foreign.isArray(FModel.schema[col])) {
                      row[col] = nested_fres.filter((fr: any) => {
                         let is = fr[rel.foreign.relation.main] === row[rel.foreign.relation.target]
-                        // if (is) delete fr[rel.foreign.relation.main]
+                        if (is) delete fr[rel.foreign.relation.main]
                         return is
                      })
                   } else {
