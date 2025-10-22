@@ -53,35 +53,36 @@ export type DataArgsType = {
 }
 
 export type AggregateFunctions = "count" | "sum" | "avg" | "min" | "max"
-
-export type AggregateArgsAggregate = {
-   [column: string]: {
-      [func in AggregateFunctions]?: boolean | {
-         alias?: string;
-         orderBy?: "asc" | "desc";
-         round?: number
-      }
+export type AggregateSelectArgsColumnType = {
+   [func in AggregateFunctions]?: boolean | {
+      alias?: string;
+      orderBy?: "asc" | "desc";
+      round?: number;
+      distinct?: boolean;
    }
 }
+export type AggregateSelectArgsType = {
+   [column: string]: AggregateSelectArgsColumnType | AggregateArgsType
+}
 
-export type AggregateArgs = {
+export type AggregateArgsType = {
    groupBy?: string[];
    orderBy?: OrderByArgsType;
    limit?: LimitArgsType;
    where?: WhereArgsType;
-   aggregate: AggregateArgsAggregate;
+   select: AggregateSelectArgsType;
 }
 
 
-export type AggregatePartialArgs = {
-   column?: string
-   round?: number
-   groupBy?: string[];
-   where?: WhereArgsType;
-}
+// export type AggregatePartialArgs = {
+//    column?: string
+//    round?: number
+//    groupBy?: string[];
+//    where?: WhereArgsType;
+// }
 
 export type FindArgsAggregate = {
-   [foreign: string]: AggregateArgsAggregate
+   [foreign: string]: AggregateSelectArgsType
 }
 
 export type DistinctArgsType = string[]
@@ -149,7 +150,7 @@ export type XansqlSchemaOptions = {
       afterUpdate?: (result: any, data: UpdateDataArgsType, where: WhereArgsType) => Promise<any> | any;
       beforeDelete?: (where: WhereArgsType) => Promise<WhereArgsType> | WhereArgsType;
       afterDelete?: (result: any, where: WhereArgsType) => Promise<any> | any;
-      beforeAggregate?: (args: AggregateArgs) => Promise<AggregateArgs> | AggregateArgs;
-      afterAggregate?: (result: any, args: AggregateArgs) => Promise<any> | any;
+      beforeAggregate?: (args: AggregateArgsType) => Promise<AggregateArgsType> | AggregateArgsType;
+      afterAggregate?: (result: any, args: AggregateArgsType) => Promise<any> | any;
    }
 }

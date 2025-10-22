@@ -150,6 +150,7 @@ class Xansql {
 
    async excute(sql: string, model: Schema, args?: ArgsInfo): Promise<ExcuterResult> {
       sql = sql.trim().replaceAll(/\s+/g, ' ');
+
       let type = sql.split(' ')[0].toUpperCase();
       const cachePlugins = await this.cachePlugins();
       if (model.options?.log && type === "SELECT") {

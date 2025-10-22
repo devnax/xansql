@@ -1,5 +1,6 @@
 import { XansqlSchemaObject } from "../Types/types";
 import SchemaBase from "./Base";
+import AggregateExcuter from "./Excuter/Aggregate";
 import CreateExcuter from "./Excuter/Create";
 import DeleteExcuter from "./Excuter/Delete";
 import FindExcuter from "./Excuter/Find";
@@ -15,6 +16,7 @@ class Schema extends SchemaBase {
    private CreateExcuter;
    private UpdateExcuter;
    private DeleteExcuter;
+   private AggregateExcuter;
    options: XansqlSchemaOptions
 
    constructor(table: string, schema: XansqlSchemaObject, options?: XansqlSchemaOptions) {
@@ -24,6 +26,7 @@ class Schema extends SchemaBase {
       this.CreateExcuter = new CreateExcuter(this)
       this.UpdateExcuter = new UpdateExcuter(this)
       this.DeleteExcuter = new DeleteExcuter(this)
+      this.AggregateExcuter = new AggregateExcuter(this)
 
 
       this.options = options || {
@@ -51,8 +54,7 @@ class Schema extends SchemaBase {
    }
 
    async aggregate(args: any) {
-      const res = new AggregateResult(this)
-      return await res.result(args)
+      return await this.AggregateExcuter.excute(args);
    }
 
 

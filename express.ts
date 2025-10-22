@@ -76,11 +76,39 @@ const server = async (app) => {
       const start = Date.now()
 
       const result = await UserModel.find({
+         limit: {
+            take: 20,
+         },
+         aggregate: {
+            products: {
+               price: {
+                  sum: {
+                     alias: "total_price"
+                  },
+                  avg: {
+                     alias: "avg_price",
+                     round: 2
+                  },
+               }
+            },
+            metas: {
+               meta_value: {
+                  count: true
+               }
+            }
+         },
          select: {
             name: true,
             products: {
+               aggregate: {
+                  categories: {
+                     pcid: {
+                        count: true
+                     }
+                  }
+               },
                select: {
-                  // categories: true
+                  categories: true
                }
             }
          }
@@ -111,25 +139,20 @@ const server = async (app) => {
       const start = Date.now()
       const result = await ProductModel.aggregate({
          orderBy: {
-            // name: "asc",
+            name: "asc",
          },
-         groupBy: ["user"],
-         // where: {
-         //    name: {
-         //       contains: "Hello"
-         //    }
-         // },
+         // groupBy: ["user", "price"],
          where: {
-            // user: {
-            //    in: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-            // }
+            user: {
+               in: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+            }
          },
-         aggregate: {
+         select: {
+            pid: {
+               sum: true
+            },
             price: {
-               sum: {
-                  distinct: true,
-                  orderBy: "asc",
-               },
+               sum: true,
                avg: {
                   alias: "avg_price",
                   round: 2

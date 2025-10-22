@@ -1,7 +1,6 @@
 import Schema from "../..";
-import { isObject } from "../../../utils";
 import Foreign, { ForeignInfoType } from "../../include/Foreign";
-import { FindArgsType, SelectArgsType } from "../../type";
+import { FindArgsAggregate, FindArgsType, SelectArgsType } from "../../type";
 import DistinctArgs from "./DistinctArgs";
 import LimitArgs from "./LimitArgs";
 import OrderByArgs from "./OrderByArgs";
@@ -20,11 +19,12 @@ export type SelectArgsRelationInfo = {
          sql: string,
          columns: string[],
          formatable_columns: string[],
-         relations?: SelectArgsRelations
+         relations?: SelectArgsRelations,
       },
       where: string,
       limit: Required<LimitArgs>,
       orderBy: string
+      aggregate: FindArgsAggregate,
    },
    foreign: ForeignInfoType
 }
@@ -140,6 +140,11 @@ class SelectArgs {
                if (distinct.sql) {
                   fargs.where += fargs.where ? ` AND ${distinct.sql}` : `WHERE ${distinct.sql}`
                }
+            }
+
+            // ===== Aggregate =====
+            if (relArgs.aggregate && Object.keys(relArgs.aggregate).length) {
+               fargs.aggregate = relArgs.aggregate
             }
 
             this.relations[column] = {

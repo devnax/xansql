@@ -9,7 +9,7 @@ class LimitArgs {
     * SQL representation of the limit clause
     * format: LIMIT take OFFSET skip
     */
-   readonly sql?: string;
+   readonly sql: string;
 
    constructor(model: Schema, args: LimitArgsType) {
       const xansql = model.xansql

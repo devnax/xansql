@@ -1,7 +1,8 @@
 import Schema from "../..";
 import WhereArgs from "../../Args/WhereArgs";
-import Foreign from "../../include/Foreign";
-import { FindArgsType } from "../../type";
+import Foreign, { ForeignInfoType } from "../../include/Foreign";
+import { FindArgsAggregate, FindArgsType } from "../../type";
+import AggregateExcuter from "../Aggregate";
 import DistinctArgs from "./DistinctArgs";
 import LimitArgs from "./LimitArgs";
 import OrderByArgs from "./OrderByArgs";
@@ -29,10 +30,57 @@ class FindExcuter {
       const sql = `SELECT ${Select.sql} FROM ${model.table} ${where_sql}${OrderBy.sql}${Limit.sql}`.trim()
       const { result } = await model.excute(sql)
 
-      if (result.length && Select.relations && Object.keys(Select.relations).length) {
+      if (result.length) {
+         const freses: { [col: string]: any[] } = {}
          for (let column in Select.relations) {
             const relation = Select.relations[column]
-            await this.excuteRelation(model, relation, column, result)
+            const fres = await this.excuteRelation(model, relation, column, result)
+            freses[column] = fres
+         }
+
+         const agg_reses: any = {}
+         if (Object.keys(args.aggregate || {}).length) {
+            const agg_results = await this.aggregate(model, args.aggregate || {}, result)
+            for (let col in agg_results) {
+               agg_reses[col] = agg_results[col]
+            }
+         }
+
+         for (let row of result) {
+            // handle formattable columns
+            this.formatFormadableColumns(row, Select.formatable_columns)
+
+            // handle aggregate
+            if (Object.keys(agg_reses).length) {
+               for (let col in agg_reses) {
+                  const aggres = agg_reses[col]
+                  if (!row.aggregate) {
+                     row.aggregate = {}
+                  }
+                  row.aggregate[col] = aggres.result.find((ar: any) => {
+                     let is = ar[aggres.foreign.relation.main] === row[aggres.foreign.relation.target]
+                     if (is) delete ar[aggres.foreign.relation.main]
+                     return is
+                  })
+               }
+            }
+
+            // handle relations
+            if (Object.keys(freses).length) {
+               for (let col in freses) {
+                  const fres = freses[col]
+                  const relation = Select.relations[col]
+                  if (Foreign.isArray(model.schema[col])) {
+                     row[col] = fres.filter((fr: any) => {
+                        let is = fr[relation.foreign.relation.main] === row[relation.foreign.relation.target]
+                        if (is) delete fr[relation.foreign.relation.main]
+                        return is
+                     })
+                  } else {
+                     row[col] = fres.find((fr: any) => fr[relation.foreign.relation.main] === row[relation.foreign.relation.target]) || null
+                  }
+               }
+            }
          }
       }
       return result;
@@ -71,35 +119,126 @@ class FindExcuter {
       `
       const fres = (await FModel.excute(sql)).result
 
-      for (let row of result) {
-         for (let col of args.select.formatable_columns) {
-            try {
-               row[col] = JSON.parse(row[col])
-            } catch (error) {
-               row[col] = row[col]
+      // excute nested relations
+      if (fres.length) {
+
+         const nested_freses: { [col: string]: any[] } = {}
+         // handle nested relations
+         for (let col in args.select.relations) {
+            const rel = args.select.relations[col]
+            const nested_fres = await this.excuteRelation(FModel, rel, col, fres)
+            nested_freses[col] = nested_fres
+         }
+         // handle aggregate
+         const agg_reses: any = {}
+         if (Object.keys(args.aggregate || {}).length) {
+            const agg_results = await this.aggregate(FModel, args.aggregate || {}, fres)
+            for (let col in agg_results) {
+               agg_reses[col] = agg_results[col]
             }
          }
 
-         if (Foreign.isArray(model.schema[column])) {
-            row[column] = fres.filter((fr: any) => {
-               let is = fr[foreign.relation.main] === row[foreign.relation.target]
-               if (is) delete fr[foreign.relation.main]
-               return is
-            })
-         } else {
-            row[column] = fres.find((fr: any) => fr[foreign.relation.main] === row[foreign.relation.target]) || null
+
+         for (let row of fres) {
+            // handle formattable columns
+            this.formatFormadableColumns(row, args.select.formatable_columns)
+
+            // handle aggregate
+            if (Object.keys(agg_reses).length) {
+               for (let col in agg_reses) {
+                  const aggres = agg_reses[col]
+                  if (!row.aggregate) {
+                     row.aggregate = {}
+                  }
+                  console.log(aggres.foreign);
+
+                  row.aggregate[col] = aggres.result.find((ar: any) => {
+                     let is = ar[aggres.foreign.relation.main] === row[aggres.foreign.relation.target]
+                     if (is) delete ar[aggres.foreign.relation.main]
+                     return is
+                  })
+               }
+            }
+
+            // handle nested relations
+            if (Object.keys(nested_freses).length) {
+               for (let col in nested_freses) {
+                  const nested_fres = nested_freses[col]
+                  const rel: any = args.select.relations?.[col]
+                  if (Foreign.isArray(FModel.schema[col])) {
+                     row[col] = nested_fres.filter((fr: any) => {
+                        let is = fr[rel.foreign.relation.main] === row[rel.foreign.relation.target]
+                        // if (is) delete fr[rel.foreign.relation.main]
+                        return is
+                     })
+                  } else {
+                     row[col] = nested_fres.find((fr: any) => fr[rel.foreign.relation.main] === row[rel.foreign.relation.target]) || null
+                  }
+               }
+            }
+
          }
       }
 
-      // excute nested relations
-      if (args.select.relations && Object.keys(args.select.relations).length) {
-         for (let rel_column in args.select.relations) {
-            const rel_relation = args.select.relations[rel_column]
-            await this.excuteRelation(FModel, rel_relation, rel_column, fres)
+      return fres
+   }
+
+   private formatFormadableColumns(row: any, columns: string[]) {
+      for (let col of columns) {
+         try {
+            row[col] = JSON.parse(row[col])
+         } catch (error) {
+            row[col] = row[col]
          }
       }
+   }
 
-      return result
+   private async aggregate(model: Schema, aggregate: FindArgsAggregate, result: any[]) {
+      const xansql = model.xansql
+      const agg_results: {
+         [column: string]: {
+            result: any[],
+            foreign: ForeignInfoType
+         }
+      } = {}
+      for (let col in aggregate) {
+         if (!(col in model.schema)) {
+            throw new Error(`Invalid column in aggregate clause: ${col} in model ${model.table}`)
+         }
+         const foreign = Foreign.info(model, col)
+         if (!foreign) {
+            throw new Error(`Column ${col} is not a foreign column in ${model.table}, cannot aggregate on it.`)
+         }
+         if (!Foreign.isArray(model.schema[col])) {
+            throw new Error(`Column ${col} is not a foreign array column in ${model.table}, cannot aggregate on it.`)
+         }
+
+         const FModel = xansql.getModel(foreign.table)
+         let ids: number[] = []
+         for (let r of result) {
+            let id = r[foreign.relation.target]
+            if (typeof id === "number" && !ids.includes(id)) {
+               ids.push(id)
+            }
+         }
+         if (ids.length === 0) continue;
+         const aggregateResult = new AggregateExcuter(FModel, false)
+         const aggRes = await aggregateResult.excute({
+            where: {
+               [foreign.relation.main]: {
+                  in: ids
+               }
+            },
+            groupBy: [foreign.relation.main],
+            select: aggregate[col]
+         })
+
+         agg_results[col] = {
+            result: aggRes,
+            foreign
+         }
+      }
+      return agg_results;
    }
 
 }
