@@ -45,7 +45,7 @@ class CreateResult {
          throw new Error(`No data to create in ${model.table} model.`);
       }
 
-      let ids = await this.excute(args, meta)
+      let ids = await this.execute(args, meta)
       if (meta) return ids
       if (ids.length) {
          let results: any[] = []
@@ -78,7 +78,7 @@ class CreateResult {
       throw new Error(`Create failed, no records created in table: ${model.table}`);
    }
 
-   async excute(args: CreateArgs, meta?: MetaInfo) {
+   async execute(args: CreateArgs, meta?: MetaInfo) {
       const model = this.model
       const xansql = model.xansql
       const data = args.data
@@ -89,7 +89,7 @@ class CreateResult {
          for (let { chunk } of chunkArray(data)) {
             let relation: any = {}
             for (let item of chunk) {
-               const ids = await this.excute({ data: item }, meta)
+               const ids = await this.execute({ data: item }, meta)
                if (Object.keys(relation).length) relations[ids[0]] = relation
                allids = allids.concat(ids as number[])
             }
@@ -97,9 +97,9 @@ class CreateResult {
          return allids
       } else {
          const { columns, values, hasManyRelations, hasOneRelations } = this.formatData(data, meta)
-         await this.excuteSchema(hasOneRelations, columns, values)
+         await this.executeSchema(hasOneRelations, columns, values)
          let sql = `INSERT INTO ${model.table} (${columns.join(",")}) VALUES (${values.join(",")})`
-         const result: any = await model.excute(sql)
+         const result: any = await model.execute(sql)
 
          if (!result.insertId) {
             for (let col in hasOneRelations) {
@@ -117,7 +117,7 @@ class CreateResult {
          }
 
          try {
-            await this.excuteArraySchema(hasManyRelations, result.insertId)
+            await this.executeArraySchema(hasManyRelations, result.insertId)
          } catch (error) {
             const d = new DeleteResult(model)
             await d.result({
@@ -135,7 +135,7 @@ class CreateResult {
       }
    }
 
-   private async excuteSchema(items: RelationItems, columns: string[], values: any[]) {
+   private async executeSchema(items: RelationItems, columns: string[], values: any[]) {
       const xansql = this.model.xansql
       const insertedItems: RelationItems = {}
       for (let rel_col in items) {
@@ -154,7 +154,7 @@ class CreateResult {
       }
    }
 
-   private async excuteArraySchema(items: RelationItems, insertId: number) {
+   private async executeArraySchema(items: RelationItems, insertId: number) {
       const xansql = this.model.xansql
       const insertedItems: RelationItems = {}
       for (let rel_col in items) {

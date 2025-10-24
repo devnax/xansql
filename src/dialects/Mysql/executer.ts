@@ -2,7 +2,7 @@ import mysql from 'mysql2/promise';
 import { XansqlConfigOptions } from '../../type';
 import { isArray } from '../../utils';
 
-class Excuter {
+class Executer {
    private config: XansqlConfigOptions;
    db: any;
    timer: any;
@@ -31,7 +31,7 @@ class Excuter {
       }
    }
 
-   async excute(query: string) {
+   async execute(query: string) {
       const connection = await this.connect();
       if (!connection) {
          throw new Error("Mysql database connection failed");
@@ -45,4 +45,4 @@ class Excuter {
    }
 }
 
-export default Excuter;
+export default Executer;

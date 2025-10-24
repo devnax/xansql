@@ -89,7 +89,15 @@ export const db = new Xansql({
 })
 
 // export const UserOptionModel = db.model(UserOptionSchema)
-export const UserModel = db.model(UserSchema)
+export const UserModel = db.model(UserSchema, {
+   hooks: {
+      beforeCreate: async (args) => {
+         return args;
+      },
+      afterCreate: async (data, args) => {
+      }
+   }
+})
 export const UserModelMeta = db.model(UserMetaSchema)
 export const ProductModel = db.model(ProductSchema)
 export const ProductCategory = db.model(ProductCategorySchema)

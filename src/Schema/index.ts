@@ -1,65 +1,47 @@
+import { XansqlModelOptions } from "../type";
 import { XansqlSchemaObject } from "../Types/types";
 import SchemaBase from "./Base";
-import AggregateExcuter from "./Excuter/Aggregate";
-import CreateExcuter from "./Excuter/Create";
-import DeleteExcuter from "./Excuter/Delete";
-import FindExcuter from "./Excuter/Find";
-import UpdateExcuter from "./Excuter/Update";
-import AggregateResult from "./Result/AggregateResult";
-import DeleteResult from "./Result/DeleteResult";
-import UpdateResult from "./Result/UpdateResult";
-import { AggregatePartialArgs, CreateArgsType, DeleteArgsType, FindArgsType, UpdateArgsType, XansqlSchemaOptions } from "./type";
+import AggregateExecuter from "./Executer/Aggregate";
+import CreateExecuter from "./Executer/Create";
+import DeleteExecuter from "./Executer/Delete";
+import FindExecuter from "./Executer/Find";
+import UpdateExecuter from "./Executer/Update";
+import { AggregateArgsType, AggregatePartialArgs, CreateArgsType, DeleteArgsType, FindArgsType, UpdateArgsType } from "./type";
 
 class Schema extends SchemaBase {
 
-   private FindExcuter;
-   private CreateExcuter;
-   private UpdateExcuter;
-   private DeleteExcuter;
-   private AggregateExcuter;
-   options: XansqlSchemaOptions
-
-   constructor(table: string, schema: XansqlSchemaObject, options?: XansqlSchemaOptions) {
+   options: XansqlModelOptions = {}
+   constructor(table: string, schema: XansqlSchemaObject) {
       super(table, schema)
-
-      this.FindExcuter = new FindExcuter(this)
-      this.CreateExcuter = new CreateExcuter(this)
-      this.UpdateExcuter = new UpdateExcuter(this)
-      this.DeleteExcuter = new DeleteExcuter(this)
-      this.AggregateExcuter = new AggregateExcuter(this)
-
-
-      this.options = options || {
-         log: true,
-         hooks: {}
-      };
    }
 
    async create(args: CreateArgsType) {
-      return await this.CreateExcuter.excute(args);
+      const executer = new CreateExecuter(this);
+      return await executer.execute(args);
    }
 
    async update(args: UpdateArgsType) {
-      return await this.UpdateExcuter.excute(args);
+      const executer = new UpdateExecuter(this);
+      return await executer.execute(args);
    }
 
    async delete(args: DeleteArgsType) {
-      return await this.DeleteExcuter.excute(args);
+      const executer = new DeleteExecuter(this);
+      return await executer.execute(args);
    }
 
    async find(args: FindArgsType) {
-      const result = await this.FindExcuter.excute(args);
-      return result
-      // return await this.FindResult.result(args);
+      const executer = new FindExecuter(this);
+      return await executer.execute(args);
    }
 
-   async aggregate(args: any) {
-      return await this.AggregateExcuter.excute(args);
+   async aggregate(args: AggregateArgsType) {
+      const executer = new AggregateExecuter(this);
+      return await executer.execute(args);
    }
 
 
    // Helpers Methods
-
    async findOne(args: FindArgsType) {
       const res = await this.find({
          ...args,
@@ -73,13 +55,12 @@ class Schema extends SchemaBase {
 
 
    // Aggregate Helpers
-
    private async _aggregate(args: AggregatePartialArgs, func: string) {
       let column = args.column || this.IDColumn
       const res = await this.aggregate({
          where: args.where,
          groupBy: args.groupBy,
-         aggregate: {
+         select: {
             [column]: {
                [func]: {
                   round: args.round

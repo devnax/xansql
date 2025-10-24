@@ -52,7 +52,7 @@ class DeleteResult {
          const ids = chunk.map((i: any) => i[model.IDColumn])
          allids = allids.concat(ids)
          let sql = `DELETE FROM ${model.table} ${where.sql}`
-         const r = await model.excute(sql)
+         const r = await model.execute(sql)
          if (r.affectedRows) {
             await this.deleteRelations(ids)
          }

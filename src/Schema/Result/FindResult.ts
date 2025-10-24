@@ -42,7 +42,7 @@ class FindResult {
       let result: any[] = []
       for (let { take, skip } of chunk) {
          args.limit = { take, skip }
-         const res = await this.excute(args, meta)
+         const res = await this.execute(args, meta)
          result = result.concat(res)
          if (res.length < take) break; // no more rows
       }
@@ -54,7 +54,7 @@ class FindResult {
       return result
    }
 
-   private async excute(args: FindArgs, meta?: Meta) {
+   private async execute(args: FindArgs, meta?: Meta) {
 
       const model = this.model
       const xansql = model.xansql
@@ -174,11 +174,11 @@ class FindResult {
       }
 
 
-      const { result: main_result } = await model.excute(sql)
+      const { result: main_result } = await model.execute(sql)
       if (main_result.length) {
          for (let { chunk: result } of chunkArray(main_result)) {
             const aggResults = await this.aggregate(aggregate || {}, result)
-            const freses = await this.excuteRelation(relationArgs, result, meta)
+            const freses = await this.executeRelation(relationArgs, result, meta)
 
             for (let row of result) {
 
@@ -222,7 +222,7 @@ class FindResult {
       return main_result
    }
 
-   private async excuteRelation(relationArgs: RelationInfo, result: any[], meta?: Meta) {
+   private async executeRelation(relationArgs: RelationInfo, result: any[], meta?: Meta) {
       const model = this.model
       let freses = []
       for (let rel_args in relationArgs) {

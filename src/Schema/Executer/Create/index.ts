@@ -4,14 +4,17 @@ import { CreateArgsType } from "../../type"
 import SelectArgs from "../Find/SelectArgs"
 
 
-class CreateExcuter {
+class CreateExecuter {
    model: Schema
    constructor(model: Schema) {
       this.model = model
    }
-   async excute(args: CreateArgsType) {
+   async execute(args: CreateArgsType) {
       const xansql = this.model.xansql
       const model = this.model
+      if (model.options?.hooks && model.options.hooks.beforeCreate) {
+         args = await model.options.hooks.beforeCreate(args) || args
+      }
       const dataArgs = (new CreateDataArgs(model, args.data)).values
 
       // only for validation
@@ -24,12 +27,12 @@ class CreateExcuter {
 
       for (let arg of dataArgs) {
          const sql = `INSERT INTO ${model.table} ${arg.sql}`
-         const { insertId } = await model.excute(sql)
+         const { insertId } = await model.execute(sql)
          if (insertId) {
             insertIds.push(insertId)
             results.push({ [model.IDColumn]: insertId })
 
-            // excute relations
+            // execute relations
             for (let rel_column in arg.relations) {
                const relInfo = arg.relations[rel_column]
                const foreign = relInfo.foreign
@@ -57,9 +60,12 @@ class CreateExcuter {
          results = await model.find(findArgs)
       }
 
+      if (model.options?.hooks && model.options.hooks.afterCreate) {
+         results = await model.options.hooks.afterCreate(results, args) || results
+      }
       return results
    }
 
 }
 
-export default CreateExcuter
+export default CreateExecuter

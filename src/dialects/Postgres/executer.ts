@@ -2,7 +2,7 @@ import { Pool, PoolClient, QueryResult } from 'pg';
 import { XansqlConfigOptions } from '../../type';
 import { isArray } from '../../utils';
 
-class Excuter {
+class Executer {
    private config: XansqlConfigOptions;
    private pool: Pool | null = null;
    private client: PoolClient | null = null;
@@ -41,7 +41,7 @@ class Excuter {
       }
    }
 
-   async excute(query: string) {
+   async execute(query: string) {
       const client = await this.connect();
       if (!client) {
          throw new Error("PostgreSQL database connection failed");
@@ -63,4 +63,4 @@ class Excuter {
    }
 }
 
-export default Excuter;
+export default Executer;

@@ -78,17 +78,17 @@ const buildColumn = (column: string, field: XqlFields): string => {
 let mod: any = null;
 const postgresDialect = (xansql: Xansql): DialectOptions => {
    const config = xansql.config
-   let excuter: any = null;
+   let executer: any = null;
 
-   const excute = async (sql: any, schema: Schema): Promise<any> => {
+   const execute = async (sql: any, schema: Schema): Promise<any> => {
       if (typeof window === "undefined") {
          if (!mod) {
-            mod = (await import("./excuter")).default;
-            excuter = new mod(config);
+            mod = (await import("./executer")).default;
+            executer = new mod(config);
          }
-         return await excuter.excute(sql);
+         return await executer.execute(sql);
       } else {
-         return await xansql.excuteClient(sql, schema);
+         return await xansql.executeClient(sql, schema);
       }
    }
 
@@ -115,12 +115,12 @@ const postgresDialect = (xansql: Xansql): DialectOptions => {
       sql = sql.slice(0, -2);
       sql += `);`;
 
-      await excute(sql, schema);
+      await execute(sql, schema);
       // create indexes
       for (let [column, field] of Object.entries(schema.schema)) {
          if (field.meta?.index) {
             sql = `CREATE INDEX IF NOT EXISTS ${makeIndexKey(schema.table, column)} ON "${schema.table}"("${column}");`;
-            await excute(sql, schema);
+            await execute(sql, schema);
          }
       }
    }
@@ -128,25 +128,25 @@ const postgresDialect = (xansql: Xansql): DialectOptions => {
 
    const opt = {
       migrate,
-      excute,
+      execute,
       addColumn: async (schema: Schema, columnName: string) => {
          const column = schema.schema[columnName];
          if (!column) throw new Error(`Column ${columnName} does not exist in model ${schema.table}`);
          if (column instanceof XqlSchema || column instanceof XqlIDField)
             throw new Error(`Cannot add relation or IDField as a column: ${columnName}`);
-         return await opt.excute(`ALTER TABLE "${schema.table}" ADD COLUMN ${buildColumn(columnName, column).slice(0, -2)};`, schema);
+         return await opt.execute(`ALTER TABLE "${schema.table}" ADD COLUMN ${buildColumn(columnName, column).slice(0, -2)};`, schema);
       },
       dropColumn: async (schema: Schema, columnName: string) => {
-         return await opt.excute(`ALTER TABLE "${schema.table}" DROP COLUMN "${columnName}";`, schema);
+         return await opt.execute(`ALTER TABLE "${schema.table}" DROP COLUMN "${columnName}";`, schema);
       },
       renameColumn: async (schema: Schema, oldName: string, newName: string) => {
-         return await opt.excute(`ALTER TABLE "${schema.table}" RENAME COLUMN "${oldName}" TO "${newName}";`, schema);
+         return await opt.execute(`ALTER TABLE "${schema.table}" RENAME COLUMN "${oldName}" TO "${newName}";`, schema);
       },
       addIndex: async (schema: Schema, columnName: string) => {
-         return await opt.excute(`CREATE INDEX ${makeIndexKey(schema.table, columnName)} ON "${schema.table}"("${columnName}");`, schema);
+         return await opt.execute(`CREATE INDEX ${makeIndexKey(schema.table, columnName)} ON "${schema.table}"("${columnName}");`, schema);
       },
       dropIndex: async (schema: Schema, columnName: string) => {
-         return await opt.excute(`DROP INDEX ${makeIndexKey(schema.table, columnName)};`, schema);
+         return await opt.execute(`DROP INDEX ${makeIndexKey(schema.table, columnName)};`, schema);
       }
    }
 

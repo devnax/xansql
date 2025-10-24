@@ -1,6 +1,6 @@
 import Schema from "../..";
 import Foreign, { ForeignInfoType } from "../../include/Foreign";
-import { FindArgsAggregate, FindArgsType, SelectArgsType } from "../../type";
+import { FindArgsAggregate, FindArgsType, LimitArgsType, SelectArgsType } from "../../type";
 import DistinctArgs from "./DistinctArgs";
 import LimitArgs from "./LimitArgs";
 import OrderByArgs from "./OrderByArgs";
@@ -22,7 +22,7 @@ export type SelectArgsRelationInfo = {
          relations?: SelectArgsRelations,
       },
       where: string,
-      limit: Required<LimitArgs>,
+      limit: Required<LimitArgsType>,
       orderBy: string
       aggregate: FindArgsAggregate,
    },
@@ -132,6 +132,7 @@ class SelectArgs {
             fargs.limit = {
                take: limit.take,
                skip: limit.skip,
+               sql: limit.sql
             }
 
             // ===== Distinct =====

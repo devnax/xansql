@@ -31,6 +31,7 @@ export interface WhereArgsType {
 export type LimitArgsType = {
    take?: number;
    skip?: number;
+   sql?: string;
 }
 
 export type OrderByArgsType = {
@@ -74,12 +75,12 @@ export type AggregateArgsType = {
 }
 
 
-// export type AggregatePartialArgs = {
-//    column?: string
-//    round?: number
-//    groupBy?: string[];
-//    where?: WhereArgsType;
-// }
+export type AggregatePartialArgs = {
+   column?: string
+   round?: number
+   groupBy?: string[];
+   where?: WhereArgsType;
+}
 
 export type FindArgsAggregate = {
    [foreign: string]: AggregateSelectArgsType
@@ -136,21 +137,4 @@ export type UpdateArgsType = {
 export type DeleteArgsType = {
    where: WhereArgsType;
    select?: SelectArgsType;
-}
-
-
-export type XansqlSchemaOptions = {
-   log?: boolean;
-   hooks?: {
-      beforeFind?: (args: FindArgsType) => Promise<FindArgsType> | FindArgsType;
-      afterFind?: (result: any, args: FindArgsType) => Promise<any> | any;
-      beforeCreate?: (data: DataArgsType | DataArgsType[]) => Promise<DataArgsType | DataArgsType[]> | (DataArgsType | DataArgsType[]);
-      afterCreate?: (result: any, data: DataArgsType | DataArgsType[]) => Promise<any> | any;
-      beforeUpdate?: (data: UpdateDataArgsType, where: WhereArgsType) => Promise<UpdateDataArgsType> | UpdateDataArgsType;
-      afterUpdate?: (result: any, data: UpdateDataArgsType, where: WhereArgsType) => Promise<any> | any;
-      beforeDelete?: (where: WhereArgsType) => Promise<WhereArgsType> | WhereArgsType;
-      afterDelete?: (result: any, where: WhereArgsType) => Promise<any> | any;
-      beforeAggregate?: (args: AggregateArgsType) => Promise<AggregateArgsType> | AggregateArgsType;
-      afterAggregate?: (result: any, args: AggregateArgsType) => Promise<any> | any;
-   }
 }

@@ -1,20 +1,21 @@
 import { SecurequClientConfig, SecurequServerConfig } from "securequ";
 import Schema from "./Schema";
 import Xansql from "./Xansql";
+import { AggregateArgsType, CreateArgsType, DataArgsType, DeleteArgsType, FindArgsType, UpdateArgsType, UpdateDataArgsType, WhereArgsType } from "./Schema/type";
 
 
 export type Result = {
    [key: string]: any
 } | null
 
-export type ExcuterResult = {
+export type ExecuterResult = {
    result: Result[];
    affectedRows: number;
    insertId: number | null;
 }
 
 export type DialectOptions = {
-   excute: (query: string, schema: Schema) => Promise<ExcuterResult>;
+   execute: (query: string, schema: Schema) => Promise<ExecuterResult>;
    migrate: (schema: Schema) => Promise<void>;
    addColumn: (schema: Schema, columnName: string) => Promise<any>;
    dropColumn: (schema: Schema, columnName: string) => Promise<any>;
@@ -78,5 +79,22 @@ export type RelationInfo = {
    foregin: {
       table: string,
       column: string,
+   }
+}
+
+
+
+export type XansqlModelOptions = {
+   hooks?: {
+      beforeFind?: (args: FindArgsType) => Promise<FindArgsType> | FindArgsType;
+      afterFind?: (result: any, args: FindArgsType) => Promise<any> | any;
+      beforeCreate?: (args: CreateArgsType) => Promise<CreateArgsType> | (CreateArgsType);
+      afterCreate?: (result: any, args: CreateArgsType) => Promise<any> | any;
+      beforeUpdate?: (args: UpdateArgsType) => Promise<UpdateArgsType> | UpdateArgsType;
+      afterUpdate?: (result: any, args: UpdateArgsType) => Promise<any> | any;
+      beforeDelete?: (args: DeleteArgsType) => Promise<DeleteArgsType> | DeleteArgsType;
+      afterDelete?: (result: any, args: DeleteArgsType) => Promise<any> | any;
+      beforeAggregate?: (args: AggregateArgsType) => Promise<AggregateArgsType> | AggregateArgsType;
+      afterAggregate?: (result: any, args: AggregateArgsType) => Promise<any> | any;
    }
 }

@@ -3,17 +3,21 @@ import WhereArgs from "../../Args/WhereArgs"
 import Foreign from "../../include/Foreign"
 import { DeleteArgsType } from "../../type"
 
-class DeleteExcuter {
+class DeleteExecuter {
    model: Schema
    constructor(model: Schema) {
       this.model = model
    }
 
-   async excute(args: DeleteArgsType) {
+   async execute(args: DeleteArgsType) {
       const model = this.model
 
       if (!args.where || Object.keys(args.where).length === 0) {
          throw new Error(`Where args is required for delete operation in model ${model.table}`)
+      }
+
+      if (model.options?.hooks && model.options.hooks.beforeDelete) {
+         args = await model.options.hooks.beforeDelete(args) || args
       }
 
       const results = args.select ? await model.find({
@@ -48,10 +52,14 @@ class DeleteExcuter {
 
       const Where = new WhereArgs(model, args.where)
       const sql = `DELETE FROM ${model.table} ${Where.sql}`.trim()
-      const { affectedRows } = await model.excute(sql)
+      const { affectedRows } = await model.execute(sql)
 
-      return args.select ? results : !!affectedRows
+      const r = args.select ? results : !!affectedRows
+      if (model.options?.hooks && model.options.hooks.afterDelete) {
+         return await model.options.hooks.afterDelete(r, args) || r
+      }
+      return r
    }
 }
 
-export default DeleteExcuter
+export default DeleteExecuter

@@ -2,7 +2,7 @@ import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
 import { XansqlConfigOptions } from '../../type';
 
-class Excuter {
+class Executer {
    private config: XansqlConfigOptions;
    db: any;
    timer: any;
@@ -31,7 +31,7 @@ class Excuter {
       return db
    }
 
-   async excute(query: string) {
+   async execute(query: string) {
       query = query.trim()
       let res;
       const db = await this.connect();
@@ -54,4 +54,4 @@ class Excuter {
    }
 }
 
-export default Excuter;
+export default Executer;

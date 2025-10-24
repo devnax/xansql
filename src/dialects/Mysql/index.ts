@@ -80,17 +80,17 @@ let mod: any = null;
 
 const mysqldialect = (xansql: Xansql): DialectOptions => {
    const config = xansql.config
-   let excuter: any = null;
+   let executer: any = null;
 
-   const excute = async (sql: any, schema: Schema): Promise<any> => {
+   const execute = async (sql: any, schema: Schema): Promise<any> => {
       if (typeof window !== "undefined") {
          if (!mod) {
-            mod = (await import("./excuter")).default;
-            excuter = new mod(config);
+            mod = (await import("./executer")).default;
+            executer = new mod(config);
          }
-         return await excuter.excute(sql);
+         return await executer.execute(sql);
       } else {
-         return await xansql.excuteClient(sql, schema);
+         return await xansql.executeClient(sql, schema);
       }
    }
 
@@ -110,15 +110,15 @@ const mysqldialect = (xansql: Xansql): DialectOptions => {
       sql = sql.slice(0, -2);
       sql += `);`;
 
-      await excute(sql, schema);
+      await execute(sql, schema);
 
       for (let column in indexable) {
          const idxname = makeIndexKey(schema.table, column)
          let idxExists = `SELECT COUNT(1) AS count FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema = DATABASE() AND table_name = '${schema.table}' AND index_name = '${idxname}';`
-         let res = await excute(idxExists, schema)
+         let res = await execute(idxExists, schema)
          if (res[0].count === 0) {
             sql = `CREATE INDEX ${idxname} ON ${schema.table}(${column});`;
-            await excute(sql, schema);
+            await execute(sql, schema);
          }
       }
    }
@@ -126,7 +126,7 @@ const mysqldialect = (xansql: Xansql): DialectOptions => {
 
    return {
       migrate,
-      excute,
+      execute,
       addColumn: async (schema: Schema, columnName: string) => {
          const column = schema.schema[columnName];
          if (!column) {
@@ -136,7 +136,7 @@ const mysqldialect = (xansql: Xansql): DialectOptions => {
             throw new Error(`Cannot add relation or IDField as a column: ${columnName}`);
          };
          const buildColumnSql = buildColumn(columnName, column);
-         return await excute(`ALTER TABLE \`${schema.table}\` ADD COLUMN \`${columnName}\` ${buildColumnSql}`, schema);
+         return await execute(`ALTER TABLE \`${schema.table}\` ADD COLUMN \`${columnName}\` ${buildColumnSql}`, schema);
       },
 
       dropColumn: async (schema: Schema, columnName: string) => {
@@ -147,7 +147,7 @@ const mysqldialect = (xansql: Xansql): DialectOptions => {
          if (column instanceof XqlSchema || column instanceof XqlIDField) {
             throw new Error(`Cannot drop relation or IDField as a column: ${columnName}`);
          };
-         return await excute(`ALTER TABLE \`${schema.table}\` DROP COLUMN \`${columnName}\`;`, schema);
+         return await execute(`ALTER TABLE \`${schema.table}\` DROP COLUMN \`${columnName}\`;`, schema);
       },
 
       renameColumn: async (schema: Schema, oldName: string, newName: string) => {
@@ -158,7 +158,7 @@ const mysqldialect = (xansql: Xansql): DialectOptions => {
          if (column instanceof XqlSchema || column instanceof XqlIDField) {
             throw new Error(`Cannot rename relation or IDField as a column: ${oldName}`);
          };
-         return await excute(`ALTER TABLE \`${schema.table}\` CHANGE \`${oldName}\` \`${newName}\` ${buildColumn(newName, column)}`, schema);
+         return await execute(`ALTER TABLE \`${schema.table}\` CHANGE \`${oldName}\` \`${newName}\` ${buildColumn(newName, column)}`, schema);
       },
 
       addIndex: async (schema: Schema, columnName: string) => {
@@ -172,7 +172,7 @@ const mysqldialect = (xansql: Xansql): DialectOptions => {
          if (!column.meta || !column.meta.index) {
             throw new Error(`Column ${columnName} is not indexed in model ${schema.table}`);
          }
-         return await excute(`CREATE INDEX \`${makeIndexKey(schema.table, columnName)}\` ON \`${schema.table}\` (\`${columnName}\`);`, schema);
+         return await execute(`CREATE INDEX \`${makeIndexKey(schema.table, columnName)}\` ON \`${schema.table}\` (\`${columnName}\`);`, schema);
       },
 
       dropIndex: async (schema: Schema, columnName: string) => {
@@ -184,7 +184,7 @@ const mysqldialect = (xansql: Xansql): DialectOptions => {
             throw new Error(`Cannot drop index from relation or IDField as a column: ${columnName}`);
          };
 
-         return await excute(`DROP INDEX \`${makeIndexKey(schema.table, columnName)}\` ON \`${schema.table}\`;`, schema);
+         return await execute(`DROP INDEX \`${makeIndexKey(schema.table, columnName)}\` ON \`${schema.table}\`;`, schema);
       }
    }
 

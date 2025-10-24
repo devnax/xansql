@@ -52,7 +52,7 @@ class UpdateResult {
 
       let sql = `UPDATE ${model.table} SET ${data.sql} ${where_sql}`
 
-      const result = await model.excute(sql)
+      const result = await model.execute(sql)
 
       if (result.affectedRows) {
          if (data.relations.length) {

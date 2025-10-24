@@ -2,20 +2,23 @@ import Schema from "../..";
 import WhereArgs from "../../Args/WhereArgs";
 import Foreign, { ForeignInfoType } from "../../include/Foreign";
 import { FindArgsAggregate, FindArgsType } from "../../type";
-import AggregateExcuter from "../Aggregate";
+import AggregateExecuter from "../Aggregate";
 import DistinctArgs from "./DistinctArgs";
 import LimitArgs from "./LimitArgs";
 import OrderByArgs from "./OrderByArgs";
 import SelectArgs, { SelectArgsRelationInfo } from "./SelectArgs";
 
-class FindExcuter {
+class FindExecuter {
    model: Schema
    constructor(model: Schema) {
       this.model = model
    }
 
-   async excute(args: FindArgsType) {
+   async execute(args: FindArgsType) {
       const model = this.model
+      if (model.options?.hooks && model.options.hooks.beforeFind) {
+         args = await model.options.hooks.beforeFind(args) || args
+      }
       const Select = new SelectArgs(model, args.select || {})
       const Where = new WhereArgs(model, args.where || {})
       const Limit = new LimitArgs(model, args.limit || {})
@@ -28,14 +31,36 @@ class FindExcuter {
       }
 
       const sql = `SELECT ${Select.sql} FROM ${model.table} ${where_sql}${OrderBy.sql}${Limit.sql}`.trim()
-      const { result } = await model.excute(sql)
+      const { result } = await model.execute(sql)
 
       if (result.length) {
+         const is = Select.formatable_columns.length
+            || Object.keys(Select.relations).length
+            || Object.keys(args.aggregate || {}).length
+
+         if (!is) {
+            return result
+         }
+
          const freses: { [col: string]: any[] } = {}
+         let idsList: { [col: string]: number[] } = {}
          for (let column in Select.relations) {
             const relation = Select.relations[column]
-            const fres = await this.excuteRelation(model, relation, column, result)
+            const ids: number[] = idsList[column] || []
+            const foreign = relation.foreign
+            if (!idsList[column]) {
+               for (let r of result) {
+                  let id = r[foreign.relation.target]
+                  if (typeof id === "number" && !ids.includes(id)) {
+                     ids.push(id)
+                  }
+               }
+               idsList[column] = ids
+            }
+
+            const fres = await this.executeRelation(relation, ids, column)
             freses[column] = fres
+
          }
 
          const agg_reses: any = {}
@@ -83,23 +108,20 @@ class FindExcuter {
             }
          }
       }
+      if (model.options?.hooks && model.options.hooks.afterFind) {
+         return await model.options.hooks.afterFind(result, args) || result
+      }
       return result;
    }
 
 
-   private async excuteRelation(model: Schema, relation: SelectArgsRelationInfo, column: string, result: any[]) {
+   private async executeRelation(relation: SelectArgsRelationInfo, ids: number[], column: string) {
       let xansql = this.model.xansql
       let foreign = relation.foreign
+
       const table = foreign.table
       let FModel = xansql.getModel(table)
-
-      let ids: number[] = []
-      for (let r of result) {
-         let id = r[foreign.relation.target]
-         if (typeof id === "number" && !ids.includes(id)) {
-            ids.push(id)
-         }
-      }
+      const field = FModel.schema[foreign.column]
 
       let args = relation.args
       const limit = args.limit
@@ -107,7 +129,11 @@ class FindExcuter {
       let insql = `${foreign.relation.main} IN (${ids.join(",")})`
       where_sql += where_sql ? ` AND ${insql}` : `WHERE ${insql}`
 
-      let sql = `
+      let sql = ''
+      if (!Foreign.isSchema(field)) {
+         sql = `SELECT ${args.select.sql} FROM ${table} ${where_sql} ${args.orderBy} ${limit.sql}`.trim()
+      } else {
+         sql = `
          SELECT ${args.select.sql} FROM (
            SELECT
                ${args.select.sql},
@@ -117,16 +143,38 @@ class FindExcuter {
          ) AS ${table}
          WHERE ${table}_rank > ${limit.skip} AND ${table}_rank <= ${limit.take + limit.skip};
       `
-      const fres = (await FModel.excute(sql)).result
+      }
 
-      // excute nested relations
+      const fres = (await FModel.execute(sql)).result
+
+      // execute nested relations
       if (fres.length) {
 
+         const is = args.select.formatable_columns.length
+            || Object.keys(args.select.relations || {}).length
+            || Object.keys(args.aggregate || {}).length
+
+         if (!is) {
+            return fres
+         }
+
          const nested_freses: { [col: string]: any[] } = {}
+         const idsList: { [col: string]: number[] } = {}
          // handle nested relations
          for (let col in args.select.relations) {
             const rel = args.select.relations[col]
-            const nested_fres = await this.excuteRelation(FModel, rel, col, fres)
+            const ids: number[] = idsList[col] || []
+            const foreign = rel.foreign
+            if (!idsList[col]) {
+               for (let r of fres) {
+                  let id = r[foreign.relation.target]
+                  if (typeof id === "number" && !ids.includes(id)) {
+                     ids.push(id)
+                  }
+               }
+               idsList[col] = ids
+            }
+            const nested_fres = await this.executeRelation(rel, ids, col)
             nested_freses[col] = nested_fres
          }
          // handle aggregate
@@ -221,8 +269,8 @@ class FindExcuter {
             }
          }
          if (ids.length === 0) continue;
-         const aggregateResult = new AggregateExcuter(FModel, false)
-         const aggRes = await aggregateResult.excute({
+         const AggExecuter = new AggregateExecuter(FModel, false)
+         const aggRes = await AggExecuter.execute({
             where: {
                [foreign.relation.main]: {
                   in: ids
@@ -242,4 +290,4 @@ class FindExcuter {
 
 }
 
-export default FindExcuter;
+export default FindExecuter;

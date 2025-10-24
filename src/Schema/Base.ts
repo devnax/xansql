@@ -24,13 +24,13 @@ abstract class SchemaBase {
       ErrorWhene(!this.IDColumn, `Schema ${this.table} must have an id column`);
    }
 
-   async excute(sql: string): Promise<any> {
-      return await this.xansql.excute(sql, this as any)
+   async execute(sql: string): Promise<any> {
+      return await this.xansql.execute(sql, this as any)
    }
 
    async drop() {
       ErrorWhene(typeof window !== "undefined", "This method can only be used on the server side.");
-      await this.excute(`DROP TABLE IF EXISTS ${this.table}`);
+      await this.execute(`DROP TABLE IF EXISTS ${this.table}`);
    }
 
 

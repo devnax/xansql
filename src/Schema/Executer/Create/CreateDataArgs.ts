@@ -35,7 +35,7 @@ class CreateDataArgs {
    private relations: RelationObject = {}
 
    /**
-    * Get relations object. the object is not processed yet. it will be processed later in excuter
+    * Get relations object. the object is not processed yet. it will be processed later in executer
     * format: { relation1: data1, relation2: data2 }
     */
    private sql: string = ''

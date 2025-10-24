@@ -6,13 +6,13 @@ import SelectArgs from "../Find/SelectArgs"
 import UpdateDataArgs from "./UpdateDataArgs"
 
 
-class UpdateExcuter {
+class UpdateExecuter {
    model: Schema
    constructor(model: Schema) {
       this.model = model
    }
 
-   async excute(args: UpdateArgsType) {
+   async execute(args: UpdateArgsType) {
       const xansql = this.model.xansql
       const model = this.model
       const UpdateArgs = new UpdateDataArgs(model, args.data)
@@ -23,7 +23,7 @@ class UpdateExcuter {
 
       const Where = new WhereArgs(model, args.where)
       let sql = `UPDATE ${model.table} SET ${UpdateArgs.sql} ${Where.sql}`.trim()
-      const update = await model.excute(sql)
+      const update = await model.execute(sql)
       if (!update.affectedRows) {
          return []
       }
@@ -142,4 +142,4 @@ class UpdateExcuter {
 
 }
 
-export default UpdateExcuter
+export default UpdateExecuter

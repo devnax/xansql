@@ -5,7 +5,7 @@ import LimitArgs from "../Find/LimitArgs";
 import OrderByArgs from "../Find/OrderByArgs";
 import SelectArgs from "./SelectArgs";
 
-class AggregateExcuter {
+class AggregateExecuter {
 
    private model: Schema
    private removeGroupByColumns: boolean
@@ -14,8 +14,12 @@ class AggregateExcuter {
       this.removeGroupByColumns = removeGroupByColumns
    }
 
-   async excute(args: AggregateArgsType) {
+   async execute(args: AggregateArgsType) {
       const model = this.model
+      if (model.options?.hooks && model.options.hooks.beforeAggregate) {
+         args = await model.options.hooks.beforeAggregate(args)
+      }
+
       const select = new SelectArgs(model, args.select || {})
       const Where = new WhereArgs(model, args.where || {})
       const OrderBy = new OrderByArgs(model, args.orderBy || {})
@@ -42,7 +46,7 @@ class AggregateExcuter {
          groupBySql = ` GROUP BY ${args.groupBy.join(", ")} `
       }
       sql += `${select.sql} FROM ${model.table} ${Where.sql}${groupBySql}${OrderBy.sql}${LimitSql}`.trim()
-      const { result } = await model.excute(sql)
+      const { result } = await model.execute(sql)
 
       // remove groupBy columns from result
       if (this.removeGroupByColumns && result.length && args.groupBy && args.groupBy.length) {
@@ -54,8 +58,12 @@ class AggregateExcuter {
          }
       }
 
+      if (model.options?.hooks && model.options.hooks.afterAggregate) {
+         return await model.options.hooks.afterAggregate(result, args)
+      }
+
       return result
    }
 }
 
-export default AggregateExcuter
+export default AggregateExecuter

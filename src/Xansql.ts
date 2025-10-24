@@ -1,7 +1,7 @@
 import { ArgsInfo, ListenerInfo } from "securequ";
 import { xt } from ".";
 import Schema from "./Schema";
-import { ExcuterResult, XansqlCacheOptions, XansqlConfig, XansqlConfigOptionsRequired } from "./type";
+import { ExecuterResult, XansqlCacheOptions, XansqlConfig, XansqlConfigOptionsRequired, XansqlModelOptions } from "./type";
 import XansqlServer from "./XansqlServer";
 import youid from "youid";
 import ModelFormatter from "./Schema/include/ModelFormatter";
@@ -114,7 +114,7 @@ class Xansql {
    }
 
    private _timer: any;
-   model<S extends Schema>(model: S) {
+   model<S extends Schema>(model: S, options?: Partial<XansqlModelOptions>): S {
       if (!model.IDColumn) {
          throw new Error("Schema must have an ID column");
       }
@@ -123,6 +123,7 @@ class Xansql {
       }
       model.alias = this.makeAlias(model.table);
       model.xansql = this;
+      model.options = options || {};
       this._models.set(model.table, model);
 
       // this will delay the model formatting to allow multiple models to be added before formatting
@@ -148,12 +149,11 @@ class Xansql {
       }
    }
 
-   async excute(sql: string, model: Schema, args?: ArgsInfo): Promise<ExcuterResult> {
+   async execute(sql: string, model: Schema, args?: ArgsInfo): Promise<ExecuterResult> {
       sql = sql.trim().replaceAll(/\s+/g, ' ');
-
       let type = sql.split(' ')[0].toUpperCase();
       const cachePlugins = await this.cachePlugins();
-      if (model.options?.log && type === "SELECT") {
+      if (type === "SELECT") {
          for (let plugin of cachePlugins) {
             const cache = await plugin.cache(sql, model);
             if (cache) {
@@ -167,15 +167,15 @@ class Xansql {
       }
 
       // execute query
-      let res: ExcuterResult | null = null;
+      let res: ExecuterResult | null = null;
 
       if (typeof window === "undefined") {
-         res = await this.dialect.excute(sql, model);
+         res = await this.dialect.execute(sql, model);
       } else if (this.config.listenerConfig) {
-         res = await this.excuteClient(sql, model);
+         res = await this.executeClient(sql, model);
       }
 
-      if (model.options?.log && res && cachePlugins.length > 0) {
+      if (res && cachePlugins.length > 0) {
          for (let plugin of cachePlugins) {
             if (type === "SELECT") {
                res.result?.length && await plugin.onFind(sql, model, res.result)
@@ -216,7 +216,7 @@ class Xansql {
       return res as any
    }
 
-   async excuteClient(sql: string, model: Schema): Promise<any> {
+   async executeClient(sql: string, model: Schema): Promise<any> {
       if (!this.XansqlClient && this.config.listenerConfig?.client) {
          const mod = await import("securequ/client");
          this.XansqlClient = new mod.default(this.config.listenerConfig.client);
@@ -229,10 +229,8 @@ class Xansql {
       const client = this.XansqlClient;
 
       let info = { table: model.table, sql };
-      if (type === "CREATE" || type === "ALTER" || type === "DROP") {
-         throw new Error(`${type}, This method is not allowed in client side.`);
-      } else if (type == "INSERT") {
-         let res = await client.post(`/${youid('insert')}`, { body: info })
+      if (type == "SELECT") {
+         let res = await client.get(`/${youid('find')}`, { params: info })
          !res.success && console.error(res);
          return res.data || null
       } else if (type == "UPDATE") {
@@ -243,8 +241,12 @@ class Xansql {
          let res = await client.delete(`/${youid('delete')}`, { params: info })
          !res.success && console.error(res);
          return res.data || null
+      } else if (type == "INSERT") {
+         let res = await client.post(`/${youid('insert')}`, { body: info })
+         !res.success && console.error(res);
+         return res.data || null
       } else {
-         let res = await client.get(`/${youid('find')}`, { params: info })
+         let res = await client.post(`/${youid('executer')}`, { body: info })
          !res.success && console.error(res);
          return res.data || null
       }

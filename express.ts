@@ -4,8 +4,8 @@ import fakeData from './faker'
 import express from 'express';
 import { db, ProductModel, UserModel, UserModelMeta } from './example'
 import WhereArgsQuery from './src/Schema/Args/WhereArgs';
-import SelectArgs from './src/Schema/Excuter/Find/SelectArgs';
-import UpdateDataArgs from './src/Schema/Excuter/Update/UpdateDataArgs';
+import SelectArgs from './src/Schema/Executer/Find/SelectArgs';
+import UpdateDataArgs from './src/Schema/Executer/Update/UpdateDataArgs';
 
 const server = async (app) => {
    app.use('/static', express.static('public'));
@@ -103,7 +103,10 @@ const server = async (app) => {
                aggregate: {
                   categories: {
                      pcid: {
-                        count: true
+                        count: true,
+                     },
+                     name: {
+                        count: true,
                      }
                   }
                },
@@ -115,14 +118,20 @@ const server = async (app) => {
       })
 
       // const result = await ProductModel.find({
+      //    orderBy: {
+      //       pid: "desc",
+      //    },
+      //    limit: {
+      //       // take: 1,
+      //    },
       //    select: {
       //       name: true,
       //       user: {
       //          select: {
       //             username: true,
       //             metas: {
-      //                select: {
-      //                   meta_key: true,
+      //                limit: {
+      //                   take: 2,
       //                }
       //             },
       //          }

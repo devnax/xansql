@@ -48,7 +48,7 @@ class AggregateResult {
          let _limit = limit?.take || maxLimit
          for (let { take, skip } of chunkNumbers(_limit, limit?.skip || 0)) {
             sql += ` LIMIT ${take} ${skip ? `OFFSET ${skip}` : ""}`
-            const { result } = await model.excute(sql)
+            const { result } = await model.execute(sql)
             results = results.concat(result)
             if (result.length < take) break;
          }
@@ -56,7 +56,7 @@ class AggregateResult {
       } else {
          sql += ` ${limitSql}`
       }
-      const { result } = await model.excute(sql)
+      const { result } = await model.execute(sql)
       // hooks afterAggregate
       if (this.model.options.hooks?.afterAggregate) {
          const res = await this.model.options.hooks.afterAggregate(result, args)

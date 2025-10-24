@@ -106,7 +106,7 @@ class WhereArgs {
          if (isObject(value)) {
             throw new Error(`Invalid value ${value} for ${model.table}.${column}`);
          }
-         let val: any = value;
+         let val: string = value;
          if (Array.isArray(val)) {
             if (['in', 'notIn'].includes(subKey)) {
                val = val.map((item) => ValueFormatter.toSql(model, column, item)).join(", ");
@@ -137,8 +137,20 @@ class WhereArgs {
             case 'gte':
                return `${col} >= ${val}`;
             case 'in':
+               // handle empty array and val is a single value
+               if (val.length === 0) {
+                  return `1 = 0`;
+               } else if (!val.includes(",")) {
+                  return `${col} = ${val}`;
+               }
                return `${col} IN (${val})`;
             case 'notIn':
+               // handle empty array and val is a single value
+               if (val.length === 0) {
+                  return `1 = 1`;
+               } else if (!val.includes(",")) {
+                  return `${col} != ${val}`;
+               }
                return `${col} NOT IN (${val})`;
             case 'between':
                return `${col} BETWEEN (${val})`;
