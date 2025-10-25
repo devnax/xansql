@@ -2,11 +2,14 @@ import XqlIDField from "../Types/fields/IDField";
 import { XansqlSchemaObject } from "../Types/types";
 import { ErrorWhene } from "../utils";
 import Xansql from "../Xansql";
+import Foreign from "./include/Foreign";
 
 abstract class SchemaBase {
    readonly schema: XansqlSchemaObject;
    readonly table: string;
    readonly IDColumn: string = '';
+   readonly columns: string[] = [];
+   readonly relations: string[] = [];
 
    xansql: Xansql = null as any;
    alias: string = '';
@@ -20,8 +23,21 @@ abstract class SchemaBase {
             ErrorWhene(this.IDColumn, `Schema ${this.table} can only have one ID column`);
             this.IDColumn = column;
          }
+
+         if (Foreign.isArray(field)) {
+            this.relations.push(column);
+         } else {
+            if (Foreign.isSchema(field)) {
+               this.relations.push(column)
+            }
+            this.columns.push(column);
+         }
       }
       ErrorWhene(!this.IDColumn, `Schema ${this.table} must have an id column`);
+   }
+
+   isIDColumn(column: string): boolean {
+      return column === this.IDColumn;
    }
 
    async execute(sql: string): Promise<any> {

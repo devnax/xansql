@@ -16,10 +16,6 @@ class AggregateExecuter {
 
    async execute(args: AggregateArgsType) {
       const model = this.model
-      if (model.options?.hooks && model.options.hooks.beforeAggregate) {
-         args = await model.options.hooks.beforeAggregate(args)
-      }
-
       const select = new SelectArgs(model, args.select || {})
       const Where = new WhereArgs(model, args.where || {})
       const OrderBy = new OrderByArgs(model, args.orderBy || {})
@@ -56,10 +52,6 @@ class AggregateExecuter {
                delete row[column]
             }
          }
-      }
-
-      if (model.options?.hooks && model.options.hooks.afterAggregate) {
-         return await model.options.hooks.afterAggregate(result, args)
       }
 
       return result

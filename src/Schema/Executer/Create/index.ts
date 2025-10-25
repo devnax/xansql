@@ -12,9 +12,6 @@ class CreateExecuter {
    async execute(args: CreateArgsType) {
       const xansql = this.model.xansql
       const model = this.model
-      if (model.options?.hooks && model.options.hooks.beforeCreate) {
-         args = await model.options.hooks.beforeCreate(args) || args
-      }
       const dataArgs = (new CreateDataArgs(model, args.data)).values
 
       // only for validation
@@ -60,9 +57,6 @@ class CreateExecuter {
          results = await model.find(findArgs)
       }
 
-      if (model.options?.hooks && model.options.hooks.afterCreate) {
-         results = await model.options.hooks.afterCreate(results, args) || results
-      }
       return results
    }
 

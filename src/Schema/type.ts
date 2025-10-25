@@ -74,14 +74,6 @@ export type AggregateArgsType = {
    select: AggregateSelectArgsType;
 }
 
-
-export type AggregatePartialArgs = {
-   column?: string
-   round?: number
-   groupBy?: string[];
-   where?: WhereArgsType;
-}
-
 export type FindArgsAggregate = {
    [foreign: string]: AggregateSelectArgsType
 }

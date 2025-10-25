@@ -16,9 +16,6 @@ class FindExecuter {
 
    async execute(args: FindArgsType) {
       const model = this.model
-      if (model.options?.hooks && model.options.hooks.beforeFind) {
-         args = await model.options.hooks.beforeFind(args) || args
-      }
       const Select = new SelectArgs(model, args.select || {})
       const Where = new WhereArgs(model, args.where || {})
       const Limit = new LimitArgs(model, args.limit || {})
@@ -107,9 +104,6 @@ class FindExecuter {
                }
             }
          }
-      }
-      if (model.options?.hooks && model.options.hooks.afterFind) {
-         return await model.options.hooks.afterFind(result, args) || result
       }
       return result;
    }

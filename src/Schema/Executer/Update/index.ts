@@ -2,7 +2,6 @@ import Schema from "../.."
 import { isArray } from "../../../utils"
 import WhereArgs from "../../Args/WhereArgs"
 import { UpdateArgsType } from "../../type"
-import SelectArgs from "../Find/SelectArgs"
 import UpdateDataArgs from "./UpdateDataArgs"
 
 

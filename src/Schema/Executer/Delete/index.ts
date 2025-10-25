@@ -16,10 +16,6 @@ class DeleteExecuter {
          throw new Error(`Where args is required for delete operation in model ${model.table}`)
       }
 
-      if (model.options?.hooks && model.options.hooks.beforeDelete) {
-         args = await model.options.hooks.beforeDelete(args) || args
-      }
-
       const results = args.select ? await model.find({
          where: args.where,
          select: {
@@ -27,6 +23,10 @@ class DeleteExecuter {
             ...(args.select || {})
          }
       }) : null
+
+      if (!results?.length) {
+         return null
+      }
 
       for (let column in model.schema) {
          const field = model.schema[column]
@@ -53,12 +53,7 @@ class DeleteExecuter {
       const Where = new WhereArgs(model, args.where)
       const sql = `DELETE FROM ${model.table} ${Where.sql}`.trim()
       const { affectedRows } = await model.execute(sql)
-
-      const r = args.select ? results : !!affectedRows
-      if (model.options?.hooks && model.options.hooks.afterDelete) {
-         return await model.options.hooks.afterDelete(r, args) || r
-      }
-      return r
+      return args.select ? results : !!affectedRows
    }
 }
 
