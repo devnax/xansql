@@ -4,7 +4,7 @@ import XqlIDField from "../../Types/fields/IDField";
 import { isArray, isObject } from "../../utils";
 import { chunkArray } from "../../utils/chunker";
 import Foreign, { ForeignInfoType } from "../include/Foreign";
-import { CreateArgs } from "../type";
+import { CreateArgsType } from "../type";
 import DeleteResult from "./DeleteResult";
 import FindResult from "./FindResult";
 
@@ -14,7 +14,7 @@ type MetaInfo = {
    column?: string
 }
 
-type RelationItems = { [column: string]: { foreign: ForeignInfoType, data: CreateArgs } }
+type RelationItems = { [column: string]: { foreign: ForeignInfoType, data: CreateArgsType } }
 
 class CreateResult {
    finder: FindResult
@@ -24,11 +24,11 @@ class CreateResult {
       this.finder = new FindResult(schema)
    }
 
-   async result(args: CreateArgs, meta?: MetaInfo) {
+   async result(args: CreateArgsType, meta?: MetaInfo) {
 
       // hooks beforeCreate
       if (this.model.options.hooks?.beforeCreate) {
-         const res = await this.model.options.hooks.beforeCreate(args.data)
+         const res = await this.model.options.hooks.beforeCreate(args)
          args.data = res
       }
 

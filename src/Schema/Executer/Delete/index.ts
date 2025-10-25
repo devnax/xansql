@@ -2,6 +2,7 @@ import Schema from "../.."
 import WhereArgs from "../../Args/WhereArgs"
 import Foreign from "../../include/Foreign"
 import { DeleteArgsType } from "../../type"
+import RelationExecuteArgs from "../RelationExcuteArgs"
 
 class DeleteExecuter {
    model: Schema
@@ -11,10 +12,19 @@ class DeleteExecuter {
 
    async execute(args: DeleteArgsType) {
       const model = this.model
+      const isRelArgs = (args as any) instanceof RelationExecuteArgs
+      if (isRelArgs) {
+         args = (args as any).args
+      }
 
       if (!args.where || Object.keys(args.where).length === 0) {
          throw new Error(`Where args is required for delete operation in model ${model.table}`)
       }
+
+      if (!isRelArgs) {
+         model.execute("BEGIN")
+      }
+
 
       const results = args.select ? await model.find({
          where: args.where,
@@ -37,15 +47,15 @@ class DeleteExecuter {
             const FModel = model.xansql.getModel(foreign.table)
             if (meta.optional || meta.nullable) {
                // update foreign column to null
-               await FModel.update({
+               await FModel.update(new RelationExecuteArgs({
                   data: { [foreign.column]: null },
                   where: { [foreign.column]: args.where }
-               })
+               }) as any)
             } else {
                // delete all foreign rows
-               await FModel.delete({
+               await FModel.delete(new RelationExecuteArgs({
                   where: { [foreign.column]: args.where }
-               })
+               }) as any)
             }
          }
       }
@@ -53,6 +63,9 @@ class DeleteExecuter {
       const Where = new WhereArgs(model, args.where)
       const sql = `DELETE FROM ${model.table} ${Where.sql}`.trim()
       const { affectedRows } = await model.execute(sql)
+      if (!isRelArgs) {
+         model.execute("COMMIT")
+      }
       return args.select ? results : !!affectedRows
    }
 }

@@ -406,7 +406,7 @@ const server = async (app) => {
    });
 
    app.get('/faker', async (req, res) => {
-      const d = await fakeData(100)
+      const d = await fakeData(1000)
       const start = Date.now()
       const users = await UserModel.create({
          data: d,
@@ -417,7 +417,7 @@ const server = async (app) => {
          }
       })
       const end = Date.now()
-      console.log(`Created ${users.length} users in ${end - start}ms`)
+      console.log(`Created ${users?.length} users in ${end - start}ms`)
 
       res.json(users)
    });

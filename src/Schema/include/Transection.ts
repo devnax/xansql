@@ -1,19 +1,19 @@
-import { Xansql } from "../..";
+import { Schema, Xansql } from "../..";
 
+export type XansqlTransactionKey = string
+export type XansqlTransactionValue = boolean
+
+const state = new Map<XansqlTransactionKey, XansqlTransactionValue>();
 
 class Transection {
-   private begined: boolean = false;
-   private committed: boolean = false;
-   private rolledback: boolean = false;
    private xansql: Xansql
 
    constructor(xansql: Xansql) {
       this.xansql = xansql
    }
 
-   async begin() {
-      this.begined = true;
-      await this.xansql.execute('BEGIN TRANSACTION;');
+   async begin(model: Schema, args: any) {
+      await model.execute('BEGIN;');
    }
 
    async commit() {

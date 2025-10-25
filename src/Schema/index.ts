@@ -5,6 +5,7 @@ import AggregateExecuter from "./Executer/Aggregate";
 import CreateExecuter from "./Executer/Create";
 import DeleteExecuter from "./Executer/Delete";
 import FindExecuter from "./Executer/Find";
+import RelationExecuteArgs from "./Executer/RelationExcuteArgs";
 import UpdateExecuter from "./Executer/Update";
 import { AggregateArgsType, CreateArgsType, DeleteArgsType, FindArgsType, UpdateArgsType, WhereArgsType } from "./type";
 

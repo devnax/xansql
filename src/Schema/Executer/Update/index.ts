@@ -2,6 +2,7 @@ import Schema from "../.."
 import { isArray } from "../../../utils"
 import WhereArgs from "../../Args/WhereArgs"
 import { UpdateArgsType } from "../../type"
+import RelationExecuteArgs from "../RelationExcuteArgs"
 import UpdateDataArgs from "./UpdateDataArgs"
 
 
@@ -12,12 +13,20 @@ class UpdateExecuter {
    }
 
    async execute(args: UpdateArgsType) {
+      const isRelArgs = (args as any) instanceof RelationExecuteArgs
+      if (isRelArgs) {
+         args = (args as any).args
+      }
       const xansql = this.model.xansql
       const model = this.model
       const UpdateArgs = new UpdateDataArgs(model, args.data)
 
       if (Object.keys(args.where).length === 0) {
          throw new Error(`Where args is required for update operation in model ${model.table}`)
+      }
+
+      if (!isRelArgs) {
+         model.execute("BEGIN")
       }
 
       const Where = new WhereArgs(model, args.where)
@@ -47,19 +56,19 @@ class UpdateExecuter {
 
          // handle delete
          if (relArgs.delete) {
-            await FModel.delete({
+            await FModel.delete(new RelationExecuteArgs({
                where: {
                   ...relArgs.delete.where,
                   [foreign.column]: {
                      in: ids
                   }
                }
-            })
+            }) as any)
          }
 
          // handle update
          if (relArgs.update) {
-            await FModel.update({
+            await FModel.update(new RelationExecuteArgs({
                data: relArgs.update.data,
                where: {
                   ...relArgs.update.where,
@@ -67,27 +76,27 @@ class UpdateExecuter {
                      in: ids
                   }
                }
-            })
+            }) as any)
          }
          // handle create
          if (relArgs.create) {
             for (let id of ids) {
                if (isArray(relArgs.create.data)) {
                   for (let item of relArgs.create.data) {
-                     await FModel.create({
+                     await FModel.create(new RelationExecuteArgs({
                         data: {
                            ...item,
                            [foreign.column]: id
                         }
-                     })
+                     }) as any)
                   }
                } else {
-                  await FModel.create({
+                  await FModel.create(new RelationExecuteArgs({
                      data: {
                         ...relArgs.create.data,
                         [foreign.column]: id
                      }
-                  })
+                  }) as any)
                }
             }
          }
@@ -103,7 +112,7 @@ class UpdateExecuter {
                },
             })
             if (has) {
-               await FModel.update({
+               await FModel.update(new RelationExecuteArgs({
                   data: relArgs.upsert.update,
                   where: {
                      ...relArgs.upsert.where,
@@ -111,15 +120,15 @@ class UpdateExecuter {
                         in: ids
                      }
                   }
-               })
+               }) as any)
             } else {
                for (let id of ids) {
-                  await FModel.create({
+                  await FModel.create(new RelationExecuteArgs({
                      data: {
                         ...relArgs.upsert.create,
                         [foreign.column]: id
                      }
-                  })
+                  }) as any)
                }
             }
          }
@@ -134,6 +143,9 @@ class UpdateExecuter {
             },
             select: args.select
          })
+      }
+      if (!isRelArgs) {
+         model.execute("COMMIT")
       }
 
       return updated_rows
