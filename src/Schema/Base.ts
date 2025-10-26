@@ -49,7 +49,6 @@ abstract class SchemaBase {
       await this.execute(`DROP TABLE IF EXISTS ${this.table}`);
    }
 
-
    async migrate(force = false) {
       if (typeof window !== "undefined") return;
       if (force) await this.drop();

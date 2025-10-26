@@ -5,7 +5,6 @@ import AggregateExecuter from "./Executer/Aggregate";
 import CreateExecuter from "./Executer/Create";
 import DeleteExecuter from "./Executer/Delete";
 import FindExecuter from "./Executer/Find";
-import RelationExecuteArgs from "./Executer/RelationExcuteArgs";
 import UpdateExecuter from "./Executer/Update";
 import { AggregateArgsType, CreateArgsType, DeleteArgsType, FindArgsType, UpdateArgsType, WhereArgsType } from "./type";
 
@@ -22,9 +21,11 @@ class Schema extends SchemaBase {
       }
       const executer = new CreateExecuter(this);
       const result = await executer.execute(args);
+
       if (this.options?.hooks && this.options.hooks.afterCreate) {
-         return this.options.hooks.afterCreate(result, args) || result
+         return await this.options.hooks.afterCreate(result, args) || result
       }
+
       return result
    }
 
@@ -76,23 +77,10 @@ class Schema extends SchemaBase {
       return result;
    }
 
-   async transection(callback: () => Promise<any>) {
-      try {
-         await this.execute("BEGIN");
-         const result = await callback();
-         await this.execute("COMMIT");
-         return result;
-      } catch (err) {
-         await this.execute("ROLLBACK");
-         throw err;
-      }
-   }
-
    async truncate() {
       await this.execute(`TRUNCATE TABLE ${this.table}`);
       await this.clearCache();
    }
-
 
    // Helpers Methods
 

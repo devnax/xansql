@@ -25,7 +25,7 @@ class UpdateExecuter {
          throw new Error(`Where args is required for update operation in model ${model.table}`)
       }
 
-      if (!isRelArgs) {
+      if (!isRelArgs && !xansql.isBeginTransaction()) {
          model.execute("BEGIN")
       }
 
@@ -144,7 +144,7 @@ class UpdateExecuter {
             select: args.select
          })
       }
-      if (!isRelArgs) {
+      if (!isRelArgs && !xansql.isBeginTransaction()) {
          model.execute("COMMIT")
       }
 

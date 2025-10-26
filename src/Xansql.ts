@@ -141,6 +141,33 @@ class Xansql {
       return this.models.get(table) as Schema;
    }
 
+   private beign_transaction: boolean = false;
+
+   isBeginTransaction() {
+      return this.beign_transaction;
+   }
+
+   async transaction(callback: () => Promise<any>) {
+      try {
+         if (!this.isBeginTransaction()) {
+            this.beign_transaction = true;
+            await this.dialect.execute("BEGIN");
+         }
+         const result = await callback();
+         if (this.isBeginTransaction()) {
+            await this.dialect.execute("COMMIT");
+            this.beign_transaction = false;
+         }
+         return result;
+      } catch (err) {
+         if (this.isBeginTransaction()) {
+            await this.dialect.execute("ROLLBACK");
+            this.beign_transaction = false;
+         }
+         throw err;
+      }
+   }
+
    async migrate(force?: boolean) {
       const tables = Array.from(this.models.keys())
       for (let table of tables) {
@@ -170,7 +197,7 @@ class Xansql {
       let res: ExecuterResult | null = null;
 
       if (typeof window === "undefined") {
-         res = await this.dialect.execute(sql, model);
+         res = await this.dialect.execute(sql);
       } else if (this.config.listenerConfig) {
          res = await this.executeClient(sql, model);
       }

@@ -12,8 +12,9 @@ class DeleteExecuter {
 
    async execute(args: DeleteArgsType) {
       const model = this.model
+      const xansql = this.model.xansql
       const isRelArgs = (args as any) instanceof RelationExecuteArgs
-      if (isRelArgs) {
+      if (isRelArgs && !xansql.isBeginTransaction()) {
          args = (args as any).args
       }
 
@@ -63,7 +64,7 @@ class DeleteExecuter {
       const Where = new WhereArgs(model, args.where)
       const sql = `DELETE FROM ${model.table} ${Where.sql}`.trim()
       const { affectedRows } = await model.execute(sql)
-      if (!isRelArgs) {
+      if (!isRelArgs && !xansql.isBeginTransaction()) {
          model.execute("COMMIT")
       }
       return args.select ? results : !!affectedRows

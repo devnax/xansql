@@ -71,15 +71,13 @@ const sqlitedialect = (xansql: Xansql): DialectOptions => {
    const config = xansql.config
    let executer: any = null;
 
-   const execute = async (sql: any, schema: Schema): Promise<any> => {
+   const execute = async (sql: any): Promise<any> => {
       if (typeof window === "undefined") {
          if (!executer) {
             let mod = (await import("./executer")).default;
             executer = new mod(config);
          }
          return await executer.execute(sql);
-      } else {
-         return await xansql.executeClient(sql, schema);
       }
    }
 
@@ -100,13 +98,13 @@ const sqlitedialect = (xansql: Xansql): DialectOptions => {
       sql += `);`;
 
 
-      await execute(sql, schema);
-      await execute(`PRAGMA journal_mode = WAL;`, schema);
-      await execute(`PRAGMA wal_autocheckpoint = 1000;`, schema);
+      await execute(sql);
+      await execute(`PRAGMA journal_mode = WAL;`);
+      await execute(`PRAGMA wal_autocheckpoint = 1000;`);
 
       for (let column in indexable) {
          sql = `CREATE INDEX IF NOT EXISTS ${makeIndexKey(schema.table, column)} ON "${schema.table}"("${column}");`;
-         await execute(sql, schema);
+         await execute(sql);
       }
    }
 
@@ -122,19 +120,19 @@ const sqlitedialect = (xansql: Xansql): DialectOptions => {
             throw new Error(`Cannot add relation or IDField as a column: ${columnName}`);
          };
          const buildColumnSql = buildColumn(columnName, column);
-         return await execute(`ALTER TABLE "${schema.table}" ADD COLUMN ${buildColumnSql.slice(0, -2)};`, schema);
+         return await execute(`ALTER TABLE "${schema.table}" ADD COLUMN ${buildColumnSql.slice(0, -2)};`);
       },
       dropColumn: async () => {
          throw new Error("SQLite does not support DROP COLUMN directly. You need to recreate the table.");
       },
       renameColumn: async (schema: Schema, oldName: string, newName: string) => {
-         return await execute(`ALTER TABLE "${schema.table}" RENAME COLUMN "${oldName}" TO "${newName}";`, schema);
+         return await execute(`ALTER TABLE "${schema.table}" RENAME COLUMN "${oldName}" TO "${newName}";`);
       },
       addIndex: async (schema: Schema, columnName: string) => {
-         return await execute(`CREATE INDEX ${makeIndexKey(schema.table, columnName)} ON "${schema.table}"("${columnName}");`, schema);
+         return await execute(`CREATE INDEX ${makeIndexKey(schema.table, columnName)} ON "${schema.table}"("${columnName}");`);
       },
       dropIndex: async (schema: Schema, columnName: string) => {
-         return await execute(`DROP INDEX ${makeIndexKey(schema.table, columnName)};`, schema);
+         return await execute(`DROP INDEX ${makeIndexKey(schema.table, columnName)};`);
       }
    }
 }

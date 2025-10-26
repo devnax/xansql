@@ -15,7 +15,7 @@ export type ExecuterResult = {
 }
 
 export type DialectOptions = {
-   execute: (query: string, schema: Schema) => Promise<ExecuterResult>;
+   execute: (query: string) => Promise<ExecuterResult>;
    migrate: (schema: Schema) => Promise<void>;
    addColumn: (schema: Schema, columnName: string) => Promise<any>;
    dropColumn: (schema: Schema, columnName: string) => Promise<any>;

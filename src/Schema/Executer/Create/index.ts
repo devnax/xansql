@@ -28,7 +28,7 @@ class CreateExecuter {
       const insertIds = []
       let results = []
 
-      if (!isRelArgs) {
+      if (!isRelArgs && !xansql.isBeginTransaction()) {
          model.execute("BEGIN")
       }
 
@@ -70,7 +70,7 @@ class CreateExecuter {
          results = await model.find(findArgs)
       }
 
-      if (!isRelArgs) {
+      if (!isRelArgs && !xansql.isBeginTransaction()) {
          model.execute("COMMIT")
       }
       return results
