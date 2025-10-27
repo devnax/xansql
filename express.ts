@@ -408,31 +408,18 @@ const server = async (app) => {
    app.get('/faker', async (req, res) => {
       const d = await fakeData(100)
       const start = Date.now()
-      const users = await db.transaction(async () => {
-         await UserModel.create({
-            data: d,
-            select: {
-               username: true,
-               metas: true,
-               products: true,
-            }
-         })
-         return db.transaction(async () => {
-
-            const users = await UserModel.create({
-               data: d,
-               select: {
-                  username: true,
-                  metas: true,
-                  products: true,
-               }
-            })
-
-            const end = Date.now()
-            console.log(`Created ${users?.length} users in ${end - start}ms`)
-            return users
-         })
+      const users = await UserModel.create({
+         data: d,
+         select: {
+            username: true,
+            metas: true,
+            products: true,
+         }
       })
+
+      const end = Date.now()
+      console.log(`Created ${users?.length} users in ${end - start}ms`)
+      return users
 
 
       res.json(users)

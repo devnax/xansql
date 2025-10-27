@@ -1,7 +1,7 @@
 import { SecurequClientConfig, SecurequServerConfig } from "securequ";
-import Schema from "./Schema";
+import Schema from "../Schema";
 import Xansql from "./Xansql";
-import { AggregateArgsType, CreateArgsType, DataArgsType, DeleteArgsType, FindArgsType, UpdateArgsType, UpdateDataArgsType, WhereArgsType } from "./Schema/type";
+import { AggregateArgsType, CreateArgsType, DeleteArgsType, FindArgsType, UpdateArgsType } from "../Schema/type";
 
 
 export type Result = {
@@ -50,7 +50,6 @@ export type XansqlConfigOptions = {
    dialect: Dialect;
    connection: string | XansqlConnectionOptions;
    cachePlugins?: XansqlCachePlugin[];
-   logging?: boolean
    maxLimit?: {
       find?: number;
       create?: number;
@@ -68,7 +67,7 @@ export type XansqlConfigOptionsRequired = Required<XansqlConfigOptions> & {
 }
 
 export type XansqlConfigFunction = () => XansqlConfigOptions;
-export type XansqlConfig = XansqlConfigOptions | XansqlConfigFunction;
+export type XansqlConfigType = XansqlConfigOptions | XansqlConfigFunction;
 
 export type RelationInfo = {
    single: boolean,

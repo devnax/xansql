@@ -1,10 +1,11 @@
-import { XansqlModelOptions } from "../type";
+import { XansqlModelOptions } from "../core/type";
 import { XansqlSchemaObject } from "../Types/types";
 import SchemaBase from "./Base";
 import AggregateExecuter from "./Executer/Aggregate";
 import CreateExecuter from "./Executer/Create";
 import DeleteExecuter from "./Executer/Delete";
 import FindExecuter from "./Executer/Find";
+import RelationExecuteArgs from "./Executer/RelationExcuteArgs";
 import UpdateExecuter from "./Executer/Update";
 import { AggregateArgsType, CreateArgsType, DeleteArgsType, FindArgsType, UpdateArgsType, WhereArgsType } from "./type";
 
@@ -16,17 +17,34 @@ class Schema extends SchemaBase {
    }
 
    async create(args: CreateArgsType) {
-      if (this.options?.hooks && this.options.hooks.beforeCreate) {
-         args = await this.options.hooks.beforeCreate(args) || args
+      const xansql = this.xansql;
+      const isRelArgs = (args as any) instanceof RelationExecuteArgs
+      if (isRelArgs) {
+         args = (args as any).args
       }
-      const executer = new CreateExecuter(this);
-      const result = await executer.execute(args);
+      try {
+         if (!isRelArgs) {
+            // await xansql.XansqlTransection.begin()
+         }
+         if (this.options?.hooks && this.options.hooks.beforeCreate) {
+            args = await this.options.hooks.beforeCreate(args) || args
+         }
+         const executer = new CreateExecuter(this);
+         let result = await executer.execute(args);
 
-      if (this.options?.hooks && this.options.hooks.afterCreate) {
-         return await this.options.hooks.afterCreate(result, args) || result
+         if (this.options?.hooks && this.options.hooks.afterCreate) {
+            result = await this.options.hooks.afterCreate(result, args) || result
+         }
+         if (!isRelArgs) {
+            // await xansql.XansqlTransection.commit()
+         }
+         return result
+      } catch (error) {
+         if (!isRelArgs) {
+            // await xansql.XansqlTransection.rollback()
+         }
+         throw error;
       }
-
-      return result
    }
 
    async update(args: UpdateArgsType) {

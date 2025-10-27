@@ -28,9 +28,9 @@ class CreateExecuter {
       const insertIds = []
       let results = []
 
-      if (!isRelArgs && !xansql.isBeginTransaction()) {
-         model.execute("BEGIN")
-      }
+      // if (!isRelArgs && !xansql.isBeginTransaction()) {
+      //    // model.execute("BEGIN")
+      // }
 
       for (let { chunk } of chunkArray(dataArgs)) {
          for (let arg of chunk) {
@@ -70,9 +70,9 @@ class CreateExecuter {
          results = await model.find(findArgs)
       }
 
-      if (!isRelArgs && !xansql.isBeginTransaction()) {
-         model.execute("COMMIT")
-      }
+      // if (!isRelArgs && !xansql.isBeginTransaction()) {
+      //    // model.execute("COMMIT")
+      // }
       return results
    }
 

@@ -1,11 +1,9 @@
 import Schema from "../.."
 import XqlDate from "../../../Types/fields/Date"
 import { isArray, isNumber, isObject } from "../../../utils"
-import WhereArgs from "../../Args/WhereArgs"
 import Foreign, { ForeignInfoType } from "../../include/Foreign"
 import ValueFormatter from "../../include/ValueFormatter"
 import { DataArgsType, UpdateDataRelationArgs } from "../../type"
-import CreateDataArgs from "../Create/CreateDataArgs"
 
 
 type DataObject = { [column: string]: any }

@@ -1,4 +1,4 @@
-import Xansql from "./Xansql";
+import Xansql from "./core/Xansql";
 import Schema from "./Schema";
 import xt from "./Types";
 
