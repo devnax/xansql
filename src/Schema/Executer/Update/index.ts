@@ -13,20 +13,12 @@ class UpdateExecuter {
    }
 
    async execute(args: UpdateArgsType) {
-      const isRelArgs = (args as any) instanceof RelationExecuteArgs
-      if (isRelArgs) {
-         args = (args as any).args
-      }
       const xansql = this.model.xansql
       const model = this.model
       const UpdateArgs = new UpdateDataArgs(model, args.data)
 
       if (Object.keys(args.where).length === 0) {
          throw new Error(`Where args is required for update operation in model ${model.table}`)
-      }
-
-      if (!isRelArgs && !xansql.isBeginTransaction()) {
-         model.execute("BEGIN")
       }
 
       const Where = new WhereArgs(model, args.where)
@@ -143,9 +135,6 @@ class UpdateExecuter {
             },
             select: args.select
          })
-      }
-      if (!isRelArgs && !xansql.isBeginTransaction()) {
-         model.execute("COMMIT")
       }
 
       return updated_rows

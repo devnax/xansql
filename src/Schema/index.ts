@@ -18,14 +18,11 @@ class Schema extends SchemaBase {
 
    async create(args: CreateArgsType) {
       const xansql = this.xansql;
-      const isRelArgs = (args as any) instanceof RelationExecuteArgs
-      if (isRelArgs) {
-         args = (args as any).args
-      }
+      const isRelArgs = args instanceof RelationExecuteArgs
+      if (isRelArgs) args = (args as any).args
+
       try {
-         if (!isRelArgs) {
-            // await xansql.XansqlTransection.begin()
-         }
+         if (!isRelArgs) await xansql.beginTransaction()
          if (this.options?.hooks && this.options.hooks.beforeCreate) {
             args = await this.options.hooks.beforeCreate(args) || args
          }
@@ -35,40 +32,59 @@ class Schema extends SchemaBase {
          if (this.options?.hooks && this.options.hooks.afterCreate) {
             result = await this.options.hooks.afterCreate(result, args) || result
          }
-         if (!isRelArgs) {
-            // await xansql.XansqlTransection.commit()
-         }
+         if (!isRelArgs) await xansql.commitTransaction()
          return result
       } catch (error) {
-         if (!isRelArgs) {
-            // await xansql.XansqlTransection.rollback()
-         }
+         if (!isRelArgs) await xansql.rollbackTransaction()
          throw error;
       }
    }
 
    async update(args: UpdateArgsType) {
-      if (this.options?.hooks && this.options.hooks.beforeUpdate) {
-         args = await this.options.hooks.beforeUpdate(args) || args
+      const xansql = this.xansql;
+      const isRelArgs = args instanceof RelationExecuteArgs
+      if (isRelArgs) args = (args as any).args
+
+      try {
+         if (!isRelArgs) await xansql.beginTransaction()
+         if (this.options?.hooks && this.options.hooks.beforeUpdate) {
+            args = await this.options.hooks.beforeUpdate(args) || args
+         }
+         const executer = new UpdateExecuter(this);
+         const result = await executer.execute(args);
+         if (this.options?.hooks && this.options.hooks.afterUpdate) {
+            return await this.options.hooks.afterUpdate(result, args) || result
+         }
+         if (!isRelArgs) await xansql.commitTransaction()
+         return result
+      } catch (error) {
+         if (!isRelArgs) await xansql.rollbackTransaction()
+         throw error;
       }
-      const executer = new UpdateExecuter(this);
-      const result = await executer.execute(args);
-      if (this.options?.hooks && this.options.hooks.afterUpdate) {
-         return await this.options.hooks.afterUpdate(result, args) || result
-      }
-      return result
+
    }
 
    async delete(args: DeleteArgsType) {
-      if (this.options?.hooks && this.options.hooks.beforeDelete) {
-         args = await this.options.hooks.beforeDelete(args) || args
+      const xansql = this.xansql;
+      const isRelArgs = args instanceof RelationExecuteArgs
+      if (isRelArgs) args = (args as any).args
+
+      try {
+         if (!isRelArgs) await xansql.beginTransaction()
+         if (this.options?.hooks && this.options.hooks.beforeDelete) {
+            args = await this.options.hooks.beforeDelete(args) || args
+         }
+         const executer = new DeleteExecuter(this);
+         const result = await executer.execute(args);
+         if (this.options.hooks && this.options.hooks.afterDelete) {
+            return await this.options.hooks.afterDelete(result, args) || result
+         }
+         if (!isRelArgs) await xansql.commitTransaction()
+         return result
+      } catch (error) {
+         if (!isRelArgs) await xansql.rollbackTransaction()
+         throw error;
       }
-      const executer = new DeleteExecuter(this);
-      const result = await executer.execute(args);
-      if (this.options.hooks && this.options.hooks.afterDelete) {
-         return await this.options.hooks.afterDelete(result, args) || result
-      }
-      return result
    }
 
    async find(args: FindArgsType) {

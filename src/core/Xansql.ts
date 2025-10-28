@@ -1,12 +1,12 @@
 import { ArgsInfo, ListenerInfo } from "securequ";
 import Schema from "../Schema";
 import { ExecuterResult, XansqlCacheOptions, XansqlConfigOptionsRequired, XansqlConfigType, XansqlModelOptions } from "./type";
-import ModelFormatter from "../Schema/include/ModelFormatter";
 import ExecuteClient from "./classes/ExecuteClient";
-import XansqlTransection from "./classes/XansqlTransection";
+import XansqlTransaction from "./classes/XansqlTransaction";
 import ExecuteQuery from "./classes/ExecuteQuery";
 import XansqlConfig from "./classes/XansqlConfig";
 import ExecuteServer from "./classes/ExecuteServer";
+import ModelFormatter from "./classes/ModelFormatter";
 
 class Xansql {
    readonly config: XansqlConfigOptionsRequired;
@@ -17,7 +17,7 @@ class Xansql {
    private ExecuteServer: ExecuteServer
    private ExecuteQuery: ExecuteQuery;
    private XansqlConfig: XansqlConfig;
-   readonly XansqlTransection: XansqlTransection;
+   private XansqlTransaction: XansqlTransaction;
 
    constructor(config: XansqlConfigType) {
 
@@ -26,7 +26,7 @@ class Xansql {
 
       this.ExecuteClient = new ExecuteClient(this);
       this.ExecuteServer = new ExecuteServer(this);
-      this.XansqlTransection = new XansqlTransection(this);
+      this.XansqlTransaction = new XansqlTransaction(this);
       this.ExecuteQuery = new ExecuteQuery(this);
 
    }
@@ -120,8 +120,20 @@ class Xansql {
       return this.models.get(table) as Schema;
    }
 
+   async beginTransaction() {
+      return await this.XansqlTransaction.begin();
+   }
+
+   async commitTransaction() {
+      return await this.XansqlTransaction.commit();
+   }
+
+   async rollbackTransaction() {
+      return await this.XansqlTransaction.rollback();
+   }
+
    async transaction(callback: () => Promise<any>) {
-      return await this.XansqlTransection.transaction(callback);
+      return await this.XansqlTransaction.transaction(callback);
    }
 
    async migrate(force?: boolean) {

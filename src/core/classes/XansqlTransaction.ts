@@ -13,18 +13,21 @@ class XansqlTransection {
 
    async begin() {
       if (!this.isBegin) {
+         this.isBegin = true;
          await this.xansql.dialect.execute('BEGIN');
       }
    }
 
    async commit() {
       if (this.isBegin) {
+         this.isBegin = false;
          await this.xansql.dialect.execute('COMMIT');
       }
    }
 
    async rollback() {
       if (this.isBegin) {
+         this.isBegin = false;
          await this.xansql.dialect.execute('ROLLBACK');
       }
    }

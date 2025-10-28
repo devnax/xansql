@@ -13,19 +13,10 @@ class DeleteExecuter {
    async execute(args: DeleteArgsType) {
       const model = this.model
       const xansql = this.model.xansql
-      const isRelArgs = (args as any) instanceof RelationExecuteArgs
-      if (isRelArgs && !xansql.isBeginTransaction()) {
-         args = (args as any).args
-      }
 
       if (!args.where || Object.keys(args.where).length === 0) {
          throw new Error(`Where args is required for delete operation in model ${model.table}`)
       }
-
-      if (!isRelArgs) {
-         model.execute("BEGIN")
-      }
-
 
       const results = args.select ? await model.find({
          where: args.where,
@@ -64,9 +55,6 @@ class DeleteExecuter {
       const Where = new WhereArgs(model, args.where)
       const sql = `DELETE FROM ${model.table} ${Where.sql}`.trim()
       const { affectedRows } = await model.execute(sql)
-      if (!isRelArgs && !xansql.isBeginTransaction()) {
-         model.execute("COMMIT")
-      }
       return args.select ? results : !!affectedRows
    }
 }

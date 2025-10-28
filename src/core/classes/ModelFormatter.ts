@@ -1,8 +1,7 @@
-import Schema from "..";
-import { xt } from "../..";
+import { Schema, xt } from "../..";
 import restrictedColumn from "../../RestrictedColumn";
+import Foreign from "../../Schema/include/Foreign";
 import XqlSchema from "../../Types/fields/Schema";
-import Foreign from "./Foreign";
 
 /**
  * this class will format the models and assign relationships
@@ -85,8 +84,6 @@ class ModelFormatter {
          this._models.set(FModel.table, FModel);
       }
    }
-
-
 }
 
 export default ModelFormatter

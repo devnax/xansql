@@ -1,19 +1,19 @@
 import dotenv from 'dotenv'
 dotenv.config()
 import fakeData from './faker'
-import express from 'express';
+import express, { Express } from 'express';
 import { db, ProductModel, UserModel, UserModelMeta } from './example'
 import WhereArgsQuery from './src/Schema/Args/WhereArgs';
 import SelectArgs from './src/Schema/Executer/Find/SelectArgs';
 import UpdateDataArgs from './src/Schema/Executer/Update/UpdateDataArgs';
 
-const server = async (app) => {
+const server = async (app: Express) => {
    app.use('/static', express.static('public'));
    app.use(express.json());
    app.use(express.urlencoded({ extended: true }));
    app.disable('etag');
 
-   app.use('/data/*', express.raw({ type: "application/octet-stream", limit: "10mb" }), async (req, res) => {
+   app.use('/data/*', express.raw({ type: "application/octet-stream", limit: "10mb" }), async (req: any, res: any) => {
       const response = await db.listen({
          signeture: req.headers['x-signeture'],
          path: req.originalUrl,
@@ -25,7 +25,7 @@ const server = async (app) => {
    })
 
 
-   app.get('/select', async (req, res) => {
+   app.get('/select', async (req: any, res: any) => {
       let select;
       select = new SelectArgs(UserModel, {
          name: true,
@@ -51,7 +51,7 @@ const server = async (app) => {
       })
    });
 
-   app.get('/where', async (req, res) => {
+   app.get('/where', async (req: any, res: any) => {
       const where = new WhereArgsQuery(UserModel, {
          name: "John Doe",
          metas: {
@@ -62,7 +62,7 @@ const server = async (app) => {
       res.json(where.sql)
    });
 
-   // app.get('/foreign', async (req, res) => {
+   // app.get('/foreign', async (req:any, res:any) => {
    //    const f = db.foreignInfo("posts", "user")
    //    const u = db.foreignInfo("users", "user_posts")
 
@@ -72,7 +72,7 @@ const server = async (app) => {
    // });
 
 
-   app.get('/find', async (req, res) => {
+   app.get('/find', async (req: any, res: any) => {
       const start = Date.now()
 
       const result = await UserModel.find({
@@ -144,7 +144,7 @@ const server = async (app) => {
       res.json(result)
    });
 
-   app.get("/aggregate", async (req, res) => {
+   app.get("/aggregate", async (req: any, res: any) => {
       const start = Date.now()
       const result = await ProductModel.aggregate({
          orderBy: {
@@ -178,18 +178,14 @@ const server = async (app) => {
       console.log(`Aggregate ${result.length} products in ${end - start}ms`)
       res.json(result)
    })
-   app.get("/count", async (req, res) => {
-      const result = await ProductModel.avg({
-         column: "price",
-         round: 2,
-         where: {
+   app.get("/count", async (req: any, res: any) => {
+      const result = await ProductModel.avg('price', {
 
-         }
       })
       res.json(result)
    })
 
-   app.get('/create', async (req, res) => {
+   app.get('/create', async (req: any, res: any) => {
 
       // const result = await UserModel.create({
       //    select: {
@@ -255,7 +251,7 @@ const server = async (app) => {
       res.json(result)
    });
 
-   app.get('/delete', async (req, res) => {
+   app.get('/delete', async (req: any, res: any) => {
 
       const result = await UserModel.delete({
          where: {
@@ -280,7 +276,7 @@ const server = async (app) => {
       res.json(result)
    });
 
-   app.get('/update-data-args', async (req, res) => {
+   app.get('/update-data-args', async (req: any, res: any) => {
 
       const result: any = new UpdateDataArgs(UserModel, {
          name: "John Updated",
@@ -323,7 +319,7 @@ const server = async (app) => {
       })
    });
 
-   app.get('/update', async (req, res) => {
+   app.get('/update', async (req: any, res: any) => {
 
       const result = await UserModel.update({
          select: {
@@ -395,17 +391,17 @@ const server = async (app) => {
       res.json(result)
    });
 
-   app.get('/models', async (req, res) => {
+   app.get('/models', async (req: any, res: any) => {
       db.models
       res.send(`Migrated`);
    });
 
-   app.get('/migrate', async (req, res) => {
+   app.get('/migrate', async (req: any, res: any) => {
       await db.migrate(true)
       res.send(`Migrated`);
    });
 
-   app.get('/faker', async (req, res) => {
+   app.get('/faker', async (req: any, res: any) => {
       const d = await fakeData(100)
       const start = Date.now()
       const users = await UserModel.create({
@@ -419,9 +415,6 @@ const server = async (app) => {
 
       const end = Date.now()
       console.log(`Created ${users?.length} users in ${end - start}ms`)
-      return users
-
-
       res.json(users)
    });
 
