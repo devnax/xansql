@@ -2,7 +2,7 @@ import Schema from "../.."
 import { isArray } from "../../../utils"
 import WhereArgs from "../../Args/WhereArgs"
 import { UpdateArgsType } from "../../type"
-import RelationExecuteArgs from "../RelationExcuteArgs"
+import RelationExecuteArgs from "../../Args/RelationExcuteArgs"
 import UpdateDataArgs from "./UpdateDataArgs"
 
 

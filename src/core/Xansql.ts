@@ -1,6 +1,6 @@
 import { ArgsInfo, ListenerInfo } from "securequ";
 import Schema from "../Schema";
-import { ExecuterResult, XansqlCacheOptions, XansqlConfigOptionsRequired, XansqlConfigType, XansqlModelOptions } from "./type";
+import { ExecuterResult, XansqlCacheOptions, XansqlConfigType, XansqlConfigTypeRequired, XansqlModelOptions } from "./type";
 import ExecuteClient from "./classes/ExecuteClient";
 import XansqlTransaction from "./classes/XansqlTransaction";
 import ExecuteQuery from "./classes/ExecuteQuery";
@@ -9,7 +9,7 @@ import ExecuteServer from "./classes/ExecuteServer";
 import ModelFormatter from "./classes/ModelFormatter";
 
 class Xansql {
-   readonly config: XansqlConfigOptionsRequired;
+   readonly config: XansqlConfigTypeRequired;
    private _models = new Map<string, Schema>();
    private _aliases = new Map<string, string>();
    private ModelFormatter: ModelFormatter | null = null;
@@ -20,26 +20,16 @@ class Xansql {
    private XansqlTransaction: XansqlTransaction;
 
    constructor(config: XansqlConfigType) {
-
-      this.XansqlConfig = new XansqlConfig(this);
-      this.config = this.XansqlConfig.parse(config)
-
+      this.XansqlConfig = new XansqlConfig(this, config);
+      this.config = this.XansqlConfig.parse()
       this.ExecuteClient = new ExecuteClient(this);
       this.ExecuteServer = new ExecuteServer(this);
       this.XansqlTransaction = new XansqlTransaction(this);
       this.ExecuteQuery = new ExecuteQuery(this);
-
    }
 
-   private _dialect: any = null;
    get dialect() {
-      if (this._dialect) return this._dialect;
-      let dialect: any = this.config.dialect;
-      if (typeof dialect === 'function') {
-         dialect = dialect(this);
-      }
-      this._dialect = dialect;
-      return dialect;
+      return this.config.dialect;
    }
 
    get models() {

@@ -76,9 +76,6 @@ const server = async (app: Express) => {
       const start = Date.now()
 
       const result = await UserModel.find({
-         limit: {
-            take: 20,
-         },
          aggregate: {
             products: {
                price: {
@@ -96,6 +93,9 @@ const server = async (app: Express) => {
                   count: true
                }
             }
+         },
+         where: {
+            uid: { gt: 100 }
          },
          select: {
             name: true,

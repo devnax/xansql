@@ -2,7 +2,8 @@ import Schema from "../.."
 import WhereArgs from "../../Args/WhereArgs"
 import Foreign from "../../include/Foreign"
 import { DeleteArgsType } from "../../type"
-import RelationExecuteArgs from "../RelationExcuteArgs"
+import RelationExecuteArgs from "../../Args/RelationExcuteArgs"
+
 
 class DeleteExecuter {
    model: Schema

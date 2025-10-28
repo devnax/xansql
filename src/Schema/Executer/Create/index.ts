@@ -2,8 +2,8 @@ import Schema from "../.."
 import CreateDataArgs from "./CreateDataArgs"
 import { CreateArgsType } from "../../type"
 import SelectArgs from "../Find/SelectArgs"
-import RelationExecuteArgs from "../RelationExcuteArgs"
 import { chunkArray } from "../../../utils/chunker"
+import RelationExecuteArgs from "../../Args/RelationExcuteArgs"
 
 
 class CreateExecuter {

@@ -1,9 +1,5 @@
 import dotenv from 'dotenv'
 import { Xansql, Schema, xt } from '../src'
-import Mysqldialect from '../src/Dialects/Mysql';
-import SqliteDialect from '../src/Dialects/Sqlite';
-import TestCache from './TestCache';
-import XansqlCache from './cache';
 
 if (typeof process !== 'undefined' && process?.env) {
    try {
@@ -50,42 +46,55 @@ const mysqlConn: string = (typeof process !== 'undefined' ? process.env.MYSQL_DB
 const sqliteConn: string = 'db.sqlite'
 
 const conn = {
-   mysql: {
-      connection: mysqlConn,
-      dialect: Mysqldialect
-   },
+
    sqlite: {
-      connection: sqliteConn,
-      dialect: SqliteDialect,
-      server: {}
+      // connection: sqliteConn,
+      dialect: {
+         engine: 'sqlite',
+         execute: () => {
+            return {
+               results: [],
+               insertId: 0,
+               affectedRows: 0,
+            }
+         }
+      },
    }
 }
 
 export const db = new Xansql({
-   ...conn.sqlite,
-   maxLimit: {
-      // create: 10000
-   },
-   cachePlugins: [
-      // XansqlCache
-   ],
-   listenerConfig: {
-      server: {
-         mode: "development",
-         basepath: '/data',
-         clients: [
-            {
-               origin: "http://localhost:3000",
-               secret: "clientsecretclientsecret"
-            }
-         ]
-      },
-      client: {
-         url: "http://localhost:3000/data",
-         secret: "clientsecretclientsecret",
-      },
-
+   dialect: {
+      engine: 'mysql',
+      execute: async (sql: string) => {
+         return {
+            result: [],
+            insertId: 0,
+            affectedRows: 0,
+         }
+      }
    }
+   // maxLimit: {
+   //    // create: 10000
+   // },
+   // cachePlugins: [
+   //    // XansqlCache
+   // ],
+   // listenerConfig: {
+   //    server: {
+   //       mode: "development",
+   //       basepath: '/data',
+   //       clients: [
+   //          {
+   //             origin: "http://localhost:3000",
+   //             secret: "clientsecretclientsecret"
+   //          }
+   //       ]
+   //    },
+   //    client: {
+   //       url: "http://localhost:3000/data",
+   //       secret: "clientsecretclientsecret",
+   //    },
+   // }
 })
 
 // export const UserOptionModel = db.model(UserOptionSchema)

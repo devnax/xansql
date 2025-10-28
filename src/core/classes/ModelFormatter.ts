@@ -1,5 +1,4 @@
 import { Schema, xt } from "../..";
-import restrictedColumn from "../../RestrictedColumn";
 import Foreign from "../../Schema/include/Foreign";
 import XqlSchema from "../../Types/fields/Schema";
 
@@ -11,16 +10,39 @@ type TableName = string
 
 class ModelFormatter {
    private _models: Map<TableName, Schema>
+   private restricted_columns = [
+      "ADD", "ALL", "ALTER", "AND", "ANY", "AS", "ASC", "BETWEEN", "BY",
+      "CASE", "CAST", "CHECK", "COLUMN", "CONSTRAINT", "CREATE", "CROSS",
+      "CURRENT", "CURRENT_DATE", "CURRENT_TIME", "CURRENT_TIMESTAMP",
+      "DEFAULT", "DELETE", "DESC", "DISTINCT", "DROP", "ELSE", "EXISTS",
+      "FALSE", "FETCH", "FOR", "FOREIGN", "FROM", "FULL", "GRANT", "GROUP",
+      "HAVING", "INNER", "INSERT", "INTERSECT", "INTO", "IS", "JOIN",
+      "KEY", "LEFT", "LIKE", "LIMIT", "NOT", "NULL", "ON", "OR", "ORDER",
+      "OUTER", "PRIMARY", "REFERENCES", "RIGHT", "ROLLBACK", "SELECT", "SET",
+      "TABLE", "THEN", "TO", "TRUE", "UNION", "UNIQUE", "UPDATE",
+      "USING", "VALUES", "VIEW", "WHEN", "WHERE", "WITH", "SECTION",
+
+      // custom
+      "INDEX", "OPTIONAL", "NULLABLE", "META", "METAARRAY", "SCHEMA", "ARRAY",
+      "EQUALS", "NOT", "LT", "LTE", "GT", "GTE", "IN", "NOTIN", "BETWEEN", "NOTBETWEEN", "CONTAINS", "NOTCONTAINS", "STARTSWITH", "ENDSWITH", "ISNULL", "ISNOTNULL", "ISEMPTY", "ISNOTEMPTY", "ISTRUE", "ISFALSE",
+      "AGGREGATE",
+   ];
+
+
    constructor(models: Map<TableName, Schema>) {
       this._models = new Map()
       models.forEach(model => this._models.set(model.table, model))
+   }
+
+   private restrictedColumn(column: string): boolean {
+      return this.restricted_columns.includes(column.toUpperCase());
    }
 
    models() {
       const models = new Map(this._models) // create a copy of the models map
       for (let model of models.values()) {
          for (let column in model.schema) {
-            if (restrictedColumn(column)) throw new Error(`Column ${column} in model ${model.table} is restricted and cannot be used as a foreign key`);
+            if (this.restrictedColumn(column)) throw new Error(`Column ${column} in model ${model.table} is restricted and cannot be used as a foreign key`);
 
             let field: any = model.schema[column]
             if (Foreign.isSchema(field)) {

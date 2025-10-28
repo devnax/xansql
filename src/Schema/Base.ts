@@ -1,7 +1,7 @@
+import Xansql from "../core/Xansql";
 import XqlIDField from "../Types/fields/IDField";
 import { XansqlSchemaObject } from "../Types/types";
 import { ErrorWhene } from "../utils";
-import Xansql from "../Xansql";
 import Foreign from "./include/Foreign";
 
 abstract class SchemaBase {
@@ -52,7 +52,7 @@ abstract class SchemaBase {
    async migrate(force = false) {
       if (typeof window !== "undefined") return;
       if (force) await this.drop();
-      await this.xansql.dialect.migrate(this as any);
+      // await this.xansql.dialect.migrate(this as any);
    }
 }
 

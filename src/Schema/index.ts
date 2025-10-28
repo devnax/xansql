@@ -1,11 +1,11 @@
 import { XansqlModelOptions } from "../core/type";
 import { XansqlSchemaObject } from "../Types/types";
+import RelationExecuteArgs from "./Args/RelationExcuteArgs";
 import SchemaBase from "./Base";
 import AggregateExecuter from "./Executer/Aggregate";
 import CreateExecuter from "./Executer/Create";
 import DeleteExecuter from "./Executer/Delete";
 import FindExecuter from "./Executer/Find";
-import RelationExecuteArgs from "./Executer/RelationExcuteArgs";
 import UpdateExecuter from "./Executer/Update";
 import { AggregateArgsType, CreateArgsType, DeleteArgsType, FindArgsType, UpdateArgsType, WhereArgsType } from "./type";
 
@@ -136,6 +136,26 @@ class Schema extends SchemaBase {
             [this.IDColumn]: id
          }
       })
+   }
+
+   async paginate(page: number, args?: Omit<FindArgsType, "limit"> & { perpage?: number }) {
+      const perpage = args?.perpage || 20;
+      const skip = (page - 1) * perpage;
+      const results = await this.find({
+         ...args,
+         limit: {
+            take: perpage,
+            skip
+         }
+      })
+      const total = await this.count(args?.where || {})
+      return {
+         page,
+         perpage,
+         pagecount: Math.ceil(total / perpage),
+         rowcount: total,
+         results
+      }
    }
 
    async count(where: WhereArgsType): Promise<number> {

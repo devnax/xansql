@@ -45,10 +45,25 @@ export type XansqlCacheOptions = {
 }
 
 export type XansqlCachePlugin = (xansql: Xansql) => Promise<XansqlCacheOptions>;
+export type XansqlDialectEngine = 'mysql' | 'postgresql' | 'sqlite' | 'mssql'
+export type _XansqlDialectExecuterModes =
+   | "SELECT"
+   | "INSERT"
+   | "UPDATE"
+   | "DELETE"
+   | "CREATE_TABLE"
+   | "ALTER_TABLE"
+   | "DROP_TABLE"
+   | "TRUNCATE_TABLE"
+   | "CREATE_INDEX"
+   | "DROP_INDEX"
+export type XansqlDialectExecuter = (sql: string) => Promise<ExecuterResult>;
 
-export type XansqlConfigOptions = {
-   dialect: Dialect;
-   connection: string | XansqlConnectionOptions;
+export type XansqlConfigType = {
+   dialect: {
+      engine: XansqlDialectEngine;
+      execute: XansqlDialectExecuter;
+   };
    cachePlugins?: XansqlCachePlugin[];
    maxLimit?: {
       find?: number;
@@ -62,12 +77,9 @@ export type XansqlConfigOptions = {
    } | null;
 }
 
-export type XansqlConfigOptionsRequired = Required<XansqlConfigOptions> & {
-   maxLimit: Required<XansqlConfigOptions['maxLimit']>;
+export type XansqlConfigTypeRequired = Required<XansqlConfigType> & {
+   maxLimit: Required<XansqlConfigType['maxLimit']>;
 }
-
-export type XansqlConfigFunction = () => XansqlConfigOptions;
-export type XansqlConfigType = XansqlConfigOptions | XansqlConfigFunction;
 
 export type RelationInfo = {
    single: boolean,
