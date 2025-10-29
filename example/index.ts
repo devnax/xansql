@@ -17,7 +17,7 @@ const UserMetaSchema = new Schema("user_metas", {
 
 const UserSchema = new Schema("users", {
    uid: xt.id(),
-   name: xt.string().index(),
+   name: xt.string().index().text(),
    username: xt.string().optional().index(),
    email: xt.string().index(),
    password: xt.string(),

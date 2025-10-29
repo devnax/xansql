@@ -6,6 +6,12 @@ class XqlString extends XVString {
       this.meta.index = true
       return this
    }
+
+   text() {
+      this.meta.text = true
+      return this
+   }
+
    unique() {
       this.meta.unique = true
       return this

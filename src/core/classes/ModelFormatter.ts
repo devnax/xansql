@@ -1,4 +1,4 @@
-import { Schema, xt } from "../..";
+import { Schema, Xansql, xt } from "../..";
 import Foreign from "../../Schema/include/Foreign";
 import XqlSchema from "../../Types/fields/Schema";
 
@@ -9,7 +9,8 @@ import XqlSchema from "../../Types/fields/Schema";
 type TableName = string
 
 class ModelFormatter {
-   private _models: Map<TableName, Schema>
+   private xansql: Xansql
+   private isFormated: boolean = false;
    private restricted_columns = [
       "ADD", "ALL", "ALTER", "AND", "ANY", "AS", "ASC", "BETWEEN", "BY",
       "CASE", "CAST", "CHECK", "COLUMN", "CONSTRAINT", "CREATE", "CROSS",
@@ -29,21 +30,21 @@ class ModelFormatter {
    ];
 
 
-   constructor(models: Map<TableName, Schema>) {
-      this._models = new Map()
-      models.forEach(model => this._models.set(model.table, model))
+   constructor(xansql: Xansql) {
+      this.xansql = xansql
    }
 
    private restrictedColumn(column: string): boolean {
       return this.restricted_columns.includes(column.toUpperCase());
    }
 
-   models() {
-      const models = new Map(this._models) // create a copy of the models map
+   format() {
+      if (this.isFormated) return this.xansql.ModelFactory;
+      this.isFormated = true;
+      const models = this.xansql.ModelFactory;
       for (let model of models.values()) {
          for (let column in model.schema) {
             if (this.restrictedColumn(column)) throw new Error(`Column ${column} in model ${model.table} is restricted and cannot be used as a foreign key`);
-
             let field: any = model.schema[column]
             if (Foreign.isSchema(field)) {
                this.formatIsSchema(model, column)
@@ -52,12 +53,13 @@ class ModelFormatter {
             }
          }
       }
-      return this._models
+      return models
    }
 
    private formatIsSchema(model: Schema, column: string) {
+      const models = this.xansql.ModelFactory;
       let field: any = model.schema[column]
-      const FModel = this._models.get(field.table);
+      const FModel = models.get(field.table);
       if (!FModel) {
          throw new Error(`Foreign model ${field.table} not found for ${model.table}.${column}`);
       }
@@ -76,14 +78,15 @@ class ModelFormatter {
          const n = xt.schema(model.table, column).nullable()
          n.dynamic = true // to identify that this is a dynamically added field
          FModel.schema[field.column] = xt.array(n)
-         this._models.set(FModel.table, FModel);
+         models.set(FModel.table, FModel);
       }
    }
 
    private formatIsArray(model: Schema, column: string) {
+      const models = this.xansql.ModelFactory;
       let field: any = model.schema[column];
       const FSchemaField = (field as any).type as XqlSchema;
-      const FModel = this._models.get(FSchemaField.table);
+      const FModel = models.get(FSchemaField.table);
       if (!FModel) {
          throw new Error(`Foreign model ${FSchemaField.table} not found for ${model.table}.${column}`);
       }
@@ -94,7 +97,6 @@ class ModelFormatter {
             throw new Error(`Foreign column ${FSchemaField.table}.${FSchemaField.column} does not reference back to ${model.table}.${column}`);
          }
       } else {
-
          const n = xt.schema(model.table, column)
          if (FSchemaField.meta.nullable) n.nullable()
          if (FSchemaField.meta.optional) n.optional()
@@ -103,7 +105,7 @@ class ModelFormatter {
 
          n.dynamic = true // to identify that this is a dynamically added field
          FModel.schema[FSchemaField.column] = n
-         this._models.set(FModel.table, FModel);
+         models.set(FModel.table, FModel);
       }
    }
 }

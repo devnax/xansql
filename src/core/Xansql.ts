@@ -7,17 +7,21 @@ import ExecuteQuery from "./classes/ExecuteQuery";
 import XansqlConfig from "./classes/XansqlConfig";
 import ExecuteServer from "./classes/ExecuteServer";
 import ModelFormatter from "./classes/ModelFormatter";
+import CreateTableGenerator from "./generator/createTable";
 
 class Xansql {
    readonly config: XansqlConfigTypeRequired;
-   private _models = new Map<string, Schema>();
+   readonly ModelFactory = new Map<string, Schema>()
    private _aliases = new Map<string, string>();
-   private ModelFormatter: ModelFormatter | null = null;
+   private ModelFormatter: ModelFormatter;
    private ExecuteClient: ExecuteClient;
    private ExecuteServer: ExecuteServer
    private ExecuteQuery: ExecuteQuery;
    private XansqlConfig: XansqlConfig;
    private XansqlTransaction: XansqlTransaction;
+
+   // SQL Generator Instances can be added here
+   private CreateTableGenerator: CreateTableGenerator;
 
    constructor(config: XansqlConfigType) {
       this.XansqlConfig = new XansqlConfig(this, config);
@@ -26,6 +30,9 @@ class Xansql {
       this.ExecuteServer = new ExecuteServer(this);
       this.XansqlTransaction = new XansqlTransaction(this);
       this.ExecuteQuery = new ExecuteQuery(this);
+      this.ModelFormatter = new ModelFormatter(this);
+
+      this.CreateTableGenerator = new CreateTableGenerator(this);
    }
 
    get dialect() {
@@ -33,15 +40,12 @@ class Xansql {
    }
 
    get models() {
-      if (!this.ModelFormatter) {
-         this.ModelFormatter = new ModelFormatter(this._models);
-      }
-      return this.ModelFormatter.models()
+      return this.ModelFormatter.format()
    }
 
    clone(config?: Partial<XansqlConfigType>) {
       const self = new XansqlClone({ ...this.config, ...(config || {}) });
-      for (let [table, model] of this._models) {
+      for (let [table, model] of this.ModelFactory) {
          self.model(new Schema(table, model.schema));
       }
       return self;
@@ -87,13 +91,13 @@ class Xansql {
       if (!model.IDColumn) {
          throw new Error("Schema must have an ID column");
       }
-      if (this._models.has(model.table)) {
+      if (this.ModelFactory.has(model.table)) {
          throw new Error(`Model already exists for this table ${model.table}`);
       }
       model.alias = this.makeAlias(model.table);
       model.xansql = this;
       model.options = options || {};
-      this._models.set(model.table, model);
+      this.ModelFactory.set(model.table, model);
 
       // this will delay the model formatting to allow multiple models to be added before formatting
       clearTimeout(this._timer);
@@ -104,10 +108,10 @@ class Xansql {
    }
 
    getModel(table: string): Schema {
-      if (!this.models.has(table)) {
+      if (!this.ModelFactory.has(table)) {
          throw new Error(`Model for table ${table} does not exist`);
       }
-      return this.models.get(table) as Schema;
+      return this.ModelFactory.get(table) as Schema;
    }
 
    async beginTransaction() {
@@ -127,11 +131,13 @@ class Xansql {
    }
 
    async migrate(force?: boolean) {
-      const tables = Array.from(this.models.keys())
-      for (let table of tables) {
-         const model = this.models.get(table) as Schema
-         await model.migrate(force)
-      }
+      const createTableSQL = this.CreateTableGenerator.generate();
+      return createTableSQL
+      // const tables = Array.from(this.ModelFactory.keys())
+      // for (let table of tables) {
+      //    const model = this.ModelFactory.get(table) as Schema
+      //    await model.migrate(force)
+      // }
    }
 
    async execute(sql: string, model: Schema, args?: ArgsInfo): Promise<ExecuterResult> {
