@@ -1,11 +1,11 @@
 import Schema from "..";
+import Foreign from "../../core/classes/ForeignInfo";
 import XqlArray from "../../Types/fields/Array";
 import XqlFile from "../../Types/fields/File";
 import XqlObject from "../../Types/fields/Object";
 import XqlRecord from "../../Types/fields/Record";
 import XqlTuple from "../../Types/fields/Tuple";
 import { escapeSqlValue, isArray, isObject } from "../../utils";
-import Foreign from "../include/Foreign";
 import ValueFormatter from "../include/ValueFormatter";
 import { WhereArgsType, WhereSubCondition } from "../type";
 
@@ -46,7 +46,7 @@ class WhereArgs {
                continue
             }
 
-            let foreign = Foreign.info(model, column)
+            let foreign = Foreign.get(model, column)
             let FModel = model.xansql.getModel(foreign.table)
             if (meta && meta.parentTable === foreign.table) {
                throw new Error(`Circular reference detected in where clause for ${model.table}.${column}`);

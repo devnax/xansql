@@ -1,8 +1,8 @@
 import Schema from "../.."
 import WhereArgs from "../../Args/WhereArgs"
-import Foreign from "../../include/Foreign"
 import { DeleteArgsType } from "../../type"
 import RelationExecuteArgs from "../../Args/RelationExcuteArgs"
+import Foreign from "../../../core/classes/ForeignInfo"
 
 
 class DeleteExecuter {
@@ -36,7 +36,7 @@ class DeleteExecuter {
          const meta = field.meta || {}
 
          if (Foreign.isArray(field)) {
-            const foreign = Foreign.info(model, column)
+            const foreign = Foreign.get(model, column)
             const FModel = model.xansql.getModel(foreign.table)
             if (meta.optional || meta.nullable) {
                // update foreign column to null

@@ -12,6 +12,7 @@ import XqlString from "../../Types/fields/String";
 import XqlTuple from "../../Types/fields/Tuple";
 import XqlUnion from "../../Types/fields/Union";
 import { XqlFields } from "../../Types/types";
+import { quote } from "../../utils";
 import Xansql from "../Xansql";
 
 class CreateTableGenerator {
@@ -36,13 +37,12 @@ class CreateTableGenerator {
             const sql = this.buildColumn(column, field);
             sql && sqls.push(sql);
          }
-         let sql = `CREATE TABLE IF NOT EXISTS ${engine === 'mysql' ? '`' + table + '`' : '"' + table + '"'} (\n`;
+         let sql = `CREATE TABLE IF NOT EXISTS ${quote(engine, table)} (\n`;
          sql += sqls.join(',\n');
-         sql = sql.replace(/,\s*$/, '');
          sql += `\n);`;
          sqlStatements.push(sql);
       }
-      return sqlStatements.join('\n\n');
+      return sqlStatements
    }
 
    buildColumn(column: string, field: XqlFields) {
@@ -51,7 +51,7 @@ class CreateTableGenerator {
       const nullable = meta.nullable || meta.optional ? 'NULL' : 'NOT NULL';
       const unique = meta.unique ? 'UNIQUE' : '';
       const col = (column: string, sqlType: string) => {
-         return `  ${engine === 'mysql' ? '`' + column + '`' : '"' + column + '"'} ${sqlType} ${nullable} ${unique}`.trim()
+         return `  ${quote(engine, column)} ${sqlType} ${nullable} ${unique}`.trim()
       };
       let sql = ''
       if (field instanceof XqlIDField) {
@@ -117,16 +117,16 @@ class CreateTableGenerator {
          }
       } else if (field instanceof XqlEnum) {
          if (engine === "mysql") {
-            sql += col(column, `ENUM(${(field as any).values.map((v: any) => `'${v}'`).join(', ')})`)
+            sql += col(column, `ENUM(${(field as any).values.map((v: any) => quote(engine, v)).join(', ')})`)
          } else if (engine === "postgresql") {
             const enumName = `${column}_enum`;
-            sql += `CREATE TYPE ${enumName} AS ENUM (${(field as any).values.map((v: any) => `'${v}'`).join(', ')}); `
+            sql += `CREATE TYPE ${enumName} AS ENUM (${(field as any).values.map((v: any) => quote(engine, v)).join(', ')}); `
             sql += col(column, enumName)
          } else if (engine === "sqlite") {
-            const values = (field as any).values.map((v: any) => `'${v}'`).join(", ");
+            const values = (field as any).values.map((v: any) => quote(engine, v)).join(", ");
             sql += `"${column}" TEXT CHECK("${column}" IN (${values})) ${nullable} ${unique}, `
          } else if (engine === "mssql") {
-            const values = (field as any).values.map((v: any) => `'${v}'`).join(", ");
+            const values = (field as any).values.map((v: any) => quote(engine, v)).join(", ");
             sql += `"${column}" NVARCHAR(255) CHECK("${column}" IN (${values})) ${nullable} ${unique}, `
          }
       } else if (field instanceof XqlObject || field instanceof XqlRecord || field instanceof XqlTuple || field instanceof XqlUnion) {

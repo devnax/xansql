@@ -1,12 +1,10 @@
 import { Schema, Xansql, xt } from "../..";
-import Foreign from "../../Schema/include/Foreign";
 import XqlSchema from "../../Types/fields/Schema";
+import Foreign from "./ForeignInfo";
 
 /**
  * this class will format the models and assign relationships
  */
-
-type TableName = string
 
 class ModelFormatter {
    private xansql: Xansql
@@ -42,6 +40,48 @@ class ModelFormatter {
       if (this.isFormated) return this.xansql.ModelFactory;
       this.isFormated = true;
       const models = this.xansql.ModelFactory;
+
+      // sort models by foreign key dependencies
+      const sortedTables: string[] = [];
+      for (let table of models.keys()) {
+         const model = models.get(table) as Schema
+         const schema = model.schema
+         for (let column in schema) {
+            let field: any = schema[column]
+            if (Foreign.isSchema(field)) {
+               const foreignInfo = Foreign.get(model, column);
+               const foreignTable = foreignInfo.table;
+               const indexOfMainTable = sortedTables.indexOf(table);
+               const indexOfForeignTable = sortedTables.indexOf(foreignTable);
+
+               if (indexOfForeignTable === -1) {
+                  // foreign table not in sorted list, add it before main table
+                  sortedTables.splice(indexOfMainTable, 0, foreignTable);
+               } else if (indexOfForeignTable > indexOfMainTable) {
+                  // foreign table is after main table, move it before
+                  sortedTables.splice(indexOfForeignTable, 1);
+                  sortedTables.splice(indexOfMainTable, 0, foreignTable);
+               }
+            }
+         }
+         if (!sortedTables.includes(table)) {
+            sortedTables.push(table);
+         }
+      }
+
+      // update models based with sorted tables
+      const sortedModels: Map<string, Schema> = new Map();
+      for (let table of sortedTables) {
+         const model = models.get(table) as Schema
+         sortedModels.set(table, model);
+      }
+
+      // assign relationships
+      models.clear();
+      for (let [table, model] of sortedModels) {
+         models.set(table, model);
+      }
+
       for (let model of models.values()) {
          for (let column in model.schema) {
             if (this.restrictedColumn(column)) throw new Error(`Column ${column} in model ${model.table} is restricted and cannot be used as a foreign key`);
@@ -53,6 +93,7 @@ class ModelFormatter {
             }
          }
       }
+
       return models
    }
 

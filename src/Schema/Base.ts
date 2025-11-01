@@ -1,15 +1,20 @@
+import Foreign from "../core/classes/ForeignInfo";
 import Xansql from "../core/Xansql";
 import XqlIDField from "../Types/fields/IDField";
 import { XansqlSchemaObject } from "../Types/types";
 import { ErrorWhene } from "../utils";
-import Foreign from "./include/Foreign";
+
+type Relation = {
+   type: "array" | "schema",
+   column: string,
+}
 
 abstract class SchemaBase {
    readonly schema: XansqlSchemaObject;
    readonly table: string;
    readonly IDColumn: string = '';
    readonly columns: string[] = [];
-   readonly relations: string[] = [];
+   readonly relations: Relation[] = [];
 
    xansql: Xansql = null as any;
    alias: string = '';
@@ -25,10 +30,10 @@ abstract class SchemaBase {
          }
 
          if (Foreign.isArray(field)) {
-            this.relations.push(column);
+            this.relations.push({ type: "array", column });
          } else {
             if (Foreign.isSchema(field)) {
-               this.relations.push(column)
+               this.relations.push({ type: "schema", column });
             }
             this.columns.push(column);
          }

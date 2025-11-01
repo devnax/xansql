@@ -1,7 +1,7 @@
 import Schema from "../.."
+import Foreign, { ForeignInfoType } from "../../../core/classes/ForeignInfo"
 import XqlDate from "../../../Types/fields/Date"
 import { isArray, isNumber, isObject } from "../../../utils"
-import Foreign, { ForeignInfoType } from "../../include/Foreign"
 import ValueFormatter from "../../include/ValueFormatter"
 import { DataArgsType, UpdateDataRelationArgs } from "../../type"
 
@@ -89,7 +89,7 @@ class UpdateDataArgs {
                      throw new Error(`Invalid value for relation upsert operation 'update' field in column ${model.table}.${column}. Expected object, got ${typeof value.upsert.update}`);
                   }
                }
-               const foreign = Foreign.info(model, column)
+               const foreign = Foreign.get(model, column)
                this.relations[column] = {
                   args: value,
                   foreign

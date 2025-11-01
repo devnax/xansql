@@ -1,6 +1,6 @@
 import Schema from "../..";
+import Foreign, { ForeignInfoType } from "../../../core/classes/ForeignInfo";
 import WhereArgs from "../../Args/WhereArgs";
-import Foreign, { ForeignInfoType } from "../../include/Foreign";
 import { FindArgsAggregate, FindArgsType } from "../../type";
 import AggregateExecuter from "../Aggregate";
 import DistinctArgs from "./DistinctArgs";
@@ -246,7 +246,7 @@ class FindExecuter {
          if (!(col in model.schema)) {
             throw new Error(`Invalid column in aggregate clause: ${col} in model ${model.table}`)
          }
-         const foreign = Foreign.info(model, col)
+         const foreign = Foreign.get(model, col)
          if (!foreign) {
             throw new Error(`Column ${col} is not a foreign column in ${model.table}, cannot aggregate on it.`)
          }

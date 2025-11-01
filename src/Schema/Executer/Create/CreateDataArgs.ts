@@ -1,7 +1,7 @@
 import Schema from "../.."
+import Foreign, { ForeignInfoType } from "../../../core/classes/ForeignInfo"
 import XqlDate from "../../../Types/fields/Date"
 import { isArray, isNumber, isObject } from "../../../utils"
-import Foreign, { ForeignInfoType } from "../../include/Foreign"
 import ValueFormatter from "../../include/ValueFormatter"
 import { DataArgsType } from "../../type"
 
@@ -72,7 +72,7 @@ class CreateDataArgs {
                } else {
                   // array of foreign keys
                   if (isObject(value) || isArray(value)) {
-                     const foreign = Foreign.info(model, column)
+                     const foreign = Foreign.get(model, column)
                      const FModel = model.xansql.getModel(foreign.table)
 
                      // validiting relation data

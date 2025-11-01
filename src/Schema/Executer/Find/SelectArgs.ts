@@ -1,5 +1,4 @@
 import Schema from "../..";
-import Foreign, { ForeignInfoType } from "../../include/Foreign";
 import { FindArgsAggregate, FindArgsType, LimitArgsType, SelectArgsType } from "../../type";
 import DistinctArgs from "./DistinctArgs";
 import LimitArgs from "./LimitArgs";
@@ -12,6 +11,7 @@ import XqlObject from "../../../Types/fields/Object";
 import XqlRecord from "../../../Types/fields/Record";
 import XqlTuple from "../../../Types/fields/Tuple";
 import XqlUnion from "../../../Types/fields/Union";
+import Foreign, { ForeignInfoType } from "../../../core/classes/ForeignInfo";
 
 export type SelectArgsRelationInfo = {
    args: {
@@ -88,7 +88,7 @@ class SelectArgs {
                this.columns.push(column)
             }
 
-            const foreign = Foreign.info(model, column)
+            const foreign = Foreign.get(model, column)
             const FModel = model.xansql.getModel(foreign.table)
 
 

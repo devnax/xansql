@@ -8,6 +8,7 @@ import XansqlConfig from "./classes/XansqlConfig";
 import ExecuteServer from "./classes/ExecuteServer";
 import ModelFormatter from "./classes/ModelFormatter";
 import CreateTableGenerator from "./generator/createTable";
+import ForeignKeyGenerator from "./generator/foreign";
 
 class Xansql {
    readonly config: XansqlConfigTypeRequired;
@@ -22,6 +23,7 @@ class Xansql {
 
    // SQL Generator Instances can be added here
    private CreateTableGenerator: CreateTableGenerator;
+   private ForeignKeyGenerator: ForeignKeyGenerator;
 
    constructor(config: XansqlConfigType) {
       this.XansqlConfig = new XansqlConfig(this, config);
@@ -33,6 +35,7 @@ class Xansql {
       this.ModelFormatter = new ModelFormatter(this);
 
       this.CreateTableGenerator = new CreateTableGenerator(this);
+      this.ForeignKeyGenerator = new ForeignKeyGenerator(this);
    }
 
    get dialect() {
@@ -132,7 +135,8 @@ class Xansql {
 
    async migrate(force?: boolean) {
       const createTableSQL = this.CreateTableGenerator.generate();
-      return createTableSQL
+      const foreignSql = this.ForeignKeyGenerator.generate();
+      return this.ModelFormatter.format()
       // const tables = Array.from(this.ModelFactory.keys())
       // for (let table of tables) {
       //    const model = this.ModelFactory.get(table) as Schema

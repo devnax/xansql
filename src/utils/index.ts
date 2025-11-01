@@ -1,4 +1,5 @@
 import XanvType from "xanv/XanvType"
+import { XansqlDialectEngine } from "../core/type";
 
 
 export const isServer = () => typeof window === 'undefined'
@@ -50,4 +51,17 @@ export const ErrorWhene = (_if: any, message: string) => {
    if (_if) {
       throw new Error(message);
    }
+}
+
+export const quote = (engine: XansqlDialectEngine, str?: string) => {
+   let q = ''
+   if (engine === 'mysql' || engine === 'sqlite') {
+      q = '`';
+   } else if (engine === 'postgresql' || engine === 'mssql') {
+      q = '"';
+   } else {
+      throw new Error(`Unsupported dialect engine: ${engine}`);
+   }
+
+   return str ? `${q}${str}${q}` : q;
 }

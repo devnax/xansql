@@ -1,7 +1,7 @@
 import Schema from "../..";
+import Foreign from "../../../core/classes/ForeignInfo";
 import XqlIDField from "../../../Types/fields/IDField";
 import XqlNumber from "../../../Types/fields/Number";
-import Foreign from "../../include/Foreign";
 import { AggregateSelectArgsColumnType, AggregateSelectArgsType } from "../../type";
 
 class SelectArgs {
