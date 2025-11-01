@@ -1,5 +1,4 @@
 import { XanvType } from "xanv";
-import XqlNumber from "./Number";
 import { isObject } from "../../utils";
 
 class XqlSchema extends XanvType<any, any> {

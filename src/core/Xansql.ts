@@ -136,7 +136,7 @@ class Xansql {
    async migrate(force?: boolean) {
       const createTableSQL = this.CreateTableGenerator.generate();
       const foreignSql = this.ForeignKeyGenerator.generate();
-      return this.ModelFormatter.format()
+      return createTableSQL
       // const tables = Array.from(this.ModelFactory.keys())
       // for (let table of tables) {
       //    const model = this.ModelFactory.get(table) as Schema

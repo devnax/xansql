@@ -8,6 +8,7 @@ class XqlNumber extends XVNumber {
    }
    unique() {
       this.meta.unique = true
+      this.index()
       return this
    }
 }

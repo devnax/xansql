@@ -17,7 +17,7 @@ const UserMetaSchema = new Schema("user_metas", {
 
 const UserSchema = new Schema("users", {
    uid: xt.id(),
-   name: xt.string().index().text(),
+   name: xt.string().unique(),
    username: xt.string().optional().index(),
    email: xt.string().index(),
    password: xt.string(),
@@ -39,7 +39,7 @@ const ProductSchema = new Schema("products", {
    description: xt.string(),
    price: xt.string(),
    categories: xt.array(xt.schema("categories", "post")),
-   user: xt.schema("users", "products"),
+   user: xt.schema("users", "products").optional(),
 });
 
 const mysqlConn: string = (typeof process !== 'undefined' ? process.env.MYSQL_DB : 'mysql://root:password@localhost:3306/xansql') as string
@@ -64,7 +64,7 @@ const conn = {
 
 export const db = new Xansql({
    dialect: {
-      engine: 'mysql',
+      engine: 'sqlite',
       execute: async (sql: string) => {
          return {
             result: [],

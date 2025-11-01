@@ -13,6 +13,7 @@ import XqlTuple from "../../Types/fields/Tuple";
 import XqlUnion from "../../Types/fields/Union";
 import { XqlFields } from "../../Types/types";
 import { quote } from "../../utils";
+import Foreign from "../classes/ForeignInfo";
 import Xansql from "../Xansql";
 
 class CreateTableGenerator {
@@ -27,21 +28,75 @@ class CreateTableGenerator {
       const tables = models.keys();
       const sqlStatements: string[] = [];
 
+      if (engine === 'mssql') {
+         sqlStatements.push(`SET ANSI_NULLS ON;`);
+         sqlStatements.push(`SET QUOTED_IDENTIFIER ON;`);
+      } else if (engine === 'sqlite') {
+         sqlStatements.push(`PRAGMA foreign_keys = ON;`);
+         sqlStatements.push(`PRAGMA journal_mode = WAL;`);
+         sqlStatements.push(`PRAGMA wal_autocheckpoint = 1000;`);
+         sqlStatements.push(`PRAGMA synchronous = NORMAL;`);
+      } else if (engine === 'postgresql') {
+         sqlStatements.push(`SET client_min_messages TO WARNING;`);
+         sqlStatements.push(`SET standard_conforming_strings = ON;`);
+      } else if (engine === 'mysql') {
+         sqlStatements.push(`SET sql_mode = 'STRICT_ALL_TABLES';`);
+         sqlStatements.push(`SET FOREIGN_KEY_CHECKS = 1;`);
+         sqlStatements.push(`SET sql_safe_updates = 1;`);
+      }
+
+      let indexes: string[] = [];
+
       for (const table of tables) {
          const model = models.get(table);
          const schema = model?.schema || {};
          let sqls: string[] = [];
+         let foreignKeys: string[] = [];
 
          for (const column in schema) {
             const field = schema[column];
+            const meta = field.meta || {};
             const sql = this.buildColumn(column, field);
             sql && sqls.push(sql);
+
+            // Handle foreign keys for XqlSchema fields
+            if (Foreign.isSchema(field)) {
+               const isOptional = meta.nullable || meta.optional;
+               const info = Foreign.get(model!, column)
+               let foreign = `FOREIGN KEY (${quote(engine, column)}) REFERENCES ${quote(engine, info.table)}(${quote(engine, info.relation.main)})`;
+               if (isOptional) {
+                  foreign += ` ON DELETE SET NULL ON UPDATE CASCADE`;
+               } else {
+                  foreign += ` ON DELETE CASCADE ON UPDATE CASCADE`;
+               }
+               foreignKeys.push(foreign);
+            }
+
+            // Handle indexes for other fields
+            if (meta.index) {
+               const indexName = `${table}_${column}${meta.unique ? '_unique_index' : '_index'}`;
+               if (engine === 'mssql') {
+                  indexes.push(`IF NOT EXISTS (
+                    SELECT name FROM sys.indexes
+                    WHERE name = '${indexName}' AND object_id = OBJECT_ID('${table}')
+                  )
+                  CREATE ${meta.unique ? 'UNIQUE ' : ''}INDEX ${indexName} ON ${quote(engine, table)}(${quote(engine, column)});
+                  `);
+               } else {
+                  indexes.push(`CREATE ${meta.unique ? 'UNIQUE ' : ''}INDEX IF NOT EXISTS ${indexName} ON ${quote(engine, table)}(${quote(engine, column)});`);
+               }
+            }
          }
          let sql = `CREATE TABLE IF NOT EXISTS ${quote(engine, table)} (\n`;
          sql += sqls.join(',\n');
+         if (foreignKeys.length) {
+            sql += ',\n' + foreignKeys.join(',\n');
+         }
          sql += `\n);`;
          sqlStatements.push(sql);
       }
+
+      sqlStatements.push(...indexes);
       return sqlStatements
    }
 

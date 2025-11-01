@@ -6,6 +6,12 @@ class XqlDate extends XVDate {
       return this
    }
 
+   unique() {
+      this.meta.unique = true
+      this.index()
+      return this
+   }
+
    update() {
       this.meta.update = true
       this.default(() => new Date())

@@ -53,15 +53,9 @@ export const ErrorWhene = (_if: any, message: string) => {
    }
 }
 
-export const quote = (engine: XansqlDialectEngine, str?: string) => {
-   let q = ''
-   if (engine === 'mysql' || engine === 'sqlite') {
-      q = '`';
-   } else if (engine === 'postgresql' || engine === 'mssql') {
-      q = '"';
-   } else {
-      throw new Error(`Unsupported dialect engine: ${engine}`);
-   }
-
-   return str ? `${q}${str}${q}` : q;
+export const quote = (engine: XansqlDialectEngine, identifier: string) => {
+   if (engine === 'mysql') return `\`${identifier}\``;
+   if (engine === 'postgresql' || engine === 'sqlite') return `"${identifier}"`;
+   if (engine === 'mssql') return `[${identifier}]`;
+   return identifier;
 }
