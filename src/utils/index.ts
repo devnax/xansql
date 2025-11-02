@@ -56,6 +56,5 @@ export const ErrorWhene = (_if: any, message: string) => {
 export const quote = (engine: XansqlDialectEngine, identifier: string) => {
    if (engine === 'mysql') return `\`${identifier}\``;
    if (engine === 'postgresql' || engine === 'sqlite') return `"${identifier}"`;
-   if (engine === 'mssql') return `[${identifier}]`;
    return identifier;
 }

@@ -1,5 +1,6 @@
+import Foreign from "../core/classes/ForeignInfo";
 import { XansqlModelOptions } from "../core/type";
-import { XansqlSchemaObject } from "../Types/types";
+import { XansqlSchemaObject, XqlFields } from "../Types/types";
 import RelationExecuteArgs from "./Args/RelationExcuteArgs";
 import SchemaBase from "./Base";
 import AggregateExecuter from "./Executer/Aggregate";
@@ -227,8 +228,6 @@ class Schema extends SchemaBase {
    }
 
 
-
-
    // cache methods
    async clearCache() {
       const cachePlugins = await this.xansql.cachePlugins();
@@ -239,6 +238,133 @@ class Schema extends SchemaBase {
             }
          }
       }
+   }
+
+
+   // end Helpers Methods
+
+
+   async addIndex(column: string) {
+      const engine = this.xansql.config.dialect.engine;
+      if (!(column in this.schema)) {
+         throw new Error(`Column ${column} does not exist in table ${this.table}`);
+      }
+
+      const field = this.schema[column];
+      const meta = field?.meta || {};
+      if (meta.index) {
+         throw new Error(`Column ${column} is already indexed in table ${this.table}`);
+      }
+
+      const indexName = this.xansql.Migration.indexIdentifier(this.table, column);
+      let sql = ``
+      const unique = meta.unique ? `UNIQUE` : ``;
+      if (engine === 'mssql') {
+         sql += `CREATE ${unique} INDEX ${indexName} ON ${this.table} (${column});`
+      } else {
+         sql += `CREATE ${unique} INDEX ${indexName} ON ${this.table} (${column});`
+      }
+
+      await this.execute(sql);
+   }
+
+   async addColumn(column: string, field: XqlFields) {
+      const engine = this.xansql.config.dialect.engine;
+      let sql = ``;
+      if (column in this.schema) {
+         throw new Error(`Column ${column} already exists in table ${this.table}`);
+      }
+
+      if (engine === 'mssql') {
+         sql += `ALTER TABLE ${this.table} ADD ${this.xansql.Migration.buildColumn(column, field)};`
+      } else {
+         sql += `ALTER TABLE ${this.table} ADD COLUMN ${this.xansql.Migration.buildColumn(column, field)};`
+      }
+
+      this.schema[column] = field;
+      await this.execute(sql);
+   }
+
+   async renameColumn(oldColumn: string, newColumn: string) {
+      const engine = this.xansql.config.dialect.engine;
+      let sql = ``;
+      if (!(oldColumn in this.schema)) {
+         throw new Error(`Column ${oldColumn} does not exist in table ${this.table}`);
+      }
+      if (newColumn in this.schema) {
+         throw new Error(`Column ${newColumn} already exists in table ${this.table}`);
+      }
+
+      if (engine === 'mssql') {
+         sql += `EXEC sp_rename '${this.table}.${oldColumn}', '${newColumn}', 'COLUMN';`
+      } else {
+         sql += `ALTER TABLE ${this.table} RENAME COLUMN ${oldColumn} TO ${newColumn};`
+      }
+
+      const field = this.schema[oldColumn];
+      delete this.schema[oldColumn];
+      this.schema[newColumn] = field;
+      await this.execute(sql);
+
+      // rename foreign key if exists
+      if (Foreign.isSchema(field)) {
+         const fkOld = this.xansql.Migration.foreignKeyIdentifier(this.table, oldColumn);
+         const fkNew = this.xansql.Migration.foreignKeyIdentifier(this.table, newColumn);
+         let fsql = ``;
+         if (engine === 'mssql') {
+            fsql = `EXEC sp_rename '${this.table}.${fkOld}', '${fkNew}', 'OBJECT';`
+         } else {
+            fsql = `ALTER TABLE ${this.table} RENAME CONSTRAINT ${fkOld} TO ${fkNew};`
+         }
+         await this.execute(fsql);
+      }
+
+      // rename index if exists
+      const indexOld = this.xansql.Migration.indexIdentifier(this.table, oldColumn);
+      const indexNew = this.xansql.Migration.indexIdentifier(this.table, newColumn);
+      let isql = ``;
+      if (engine === 'mssql') {
+         isql = `IF EXISTS (SELECT name FROM sys.indexes WHERE name = N'${indexOld}') EXEC sp_rename '${this.table}.${indexOld}', '${indexNew}', 'INDEX';`
+      } else {
+         isql = `ALTER INDEX ${indexOld} RENAME TO ${indexNew};`
+      }
+      await this.execute(isql);
+   }
+
+   async dropColumn(column: string) {
+      const engine = this.xansql.config.dialect.engine;
+      let sql = `ALTER TABLE ${this.table} DROP COLUMN ${column};`
+      if (!(column in this.schema)) {
+         throw new Error(`Column ${column} does not exist in table ${this.table}`);
+      }
+
+      // check the field is foreign key and drop the foreign key constraint first
+      const field = this.schema[column];
+      if (Foreign.isSchema(field)) {
+         const fk = this.xansql.Migration.foreignKeyIdentifier(this.table, column);
+         let asql = `ALTER TABLE ${this.table} DROP FOREIGN KEY ${fk};`;
+         await this.execute(asql);
+         // delete foreign table schema
+         const foreignInfo = Foreign.get(this, column);
+         const FM = this.xansql.getModel(foreignInfo.table);
+         delete FM.schema[foreignInfo.column];
+
+         // drop index if exists
+         const indexName = this.xansql.Migration.indexIdentifier(this.table, column);
+         let isql = ``;
+         if (engine === 'mssql') {
+            isql = `IF EXISTS (SELECT name FROM sys.indexes WHERE name = N'${indexName}') DROP INDEX ${indexName} ON ${this.table};`
+         } else if (engine === 'postgresql' || engine === 'sqlite') {
+            isql = `DROP INDEX IF EXISTS ${indexName};`
+         } else {
+            isql = `DROP INDEX IF EXISTS ${indexName} ON ${this.table};`
+         }
+         await this.execute(isql);
+      } else {
+         throw new Error("Cannot drop column that is an array of schemas");
+      }
+      delete this.schema[column];
+      await this.execute(sql);
    }
 
 }

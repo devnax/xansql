@@ -45,7 +45,7 @@ export type XansqlCacheOptions = {
 }
 
 export type XansqlCachePlugin = (xansql: Xansql) => Promise<XansqlCacheOptions>;
-export type XansqlDialectEngine = 'mysql' | 'postgresql' | 'sqlite' | 'mssql'
+export type XansqlDialectEngine = 'mysql' | 'postgresql' | 'sqlite'
 export type _XansqlDialectExecuterModes =
    | "SELECT"
    | "INSERT"

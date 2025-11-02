@@ -7,8 +7,7 @@ import ExecuteQuery from "./classes/ExecuteQuery";
 import XansqlConfig from "./classes/XansqlConfig";
 import ExecuteServer from "./classes/ExecuteServer";
 import ModelFormatter from "./classes/ModelFormatter";
-import CreateTableGenerator from "./generator/createTable";
-import ForeignKeyGenerator from "./generator/foreign";
+import Migration from "./classes/Migration";
 
 class Xansql {
    readonly config: XansqlConfigTypeRequired;
@@ -22,8 +21,7 @@ class Xansql {
    private XansqlTransaction: XansqlTransaction;
 
    // SQL Generator Instances can be added here
-   private CreateTableGenerator: CreateTableGenerator;
-   private ForeignKeyGenerator: ForeignKeyGenerator;
+   readonly Migration: Migration
 
    constructor(config: XansqlConfigType) {
       this.XansqlConfig = new XansqlConfig(this, config);
@@ -34,8 +32,7 @@ class Xansql {
       this.ExecuteQuery = new ExecuteQuery(this);
       this.ModelFormatter = new ModelFormatter(this);
 
-      this.CreateTableGenerator = new CreateTableGenerator(this);
-      this.ForeignKeyGenerator = new ForeignKeyGenerator(this);
+      this.Migration = new Migration(this);
    }
 
    get dialect() {
@@ -134,14 +131,11 @@ class Xansql {
    }
 
    async migrate(force?: boolean) {
-      const createTableSQL = this.CreateTableGenerator.generate();
-      const foreignSql = this.ForeignKeyGenerator.generate();
-      return createTableSQL
-      // const tables = Array.from(this.ModelFactory.keys())
-      // for (let table of tables) {
-      //    const model = this.ModelFactory.get(table) as Schema
-      //    await model.migrate(force)
-      // }
+      const statements = this.Migration.statements();
+      for (let sql of statements) {
+         await this.config.dialect.execute(sql);
+      }
+      return statements
    }
 
    async execute(sql: string, model: Schema, args?: ArgsInfo): Promise<ExecuterResult> {

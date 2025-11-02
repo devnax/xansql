@@ -11,38 +11,39 @@ import XqlSchema from "../../Types/fields/Schema";
 import XqlString from "../../Types/fields/String";
 import XqlTuple from "../../Types/fields/Tuple";
 import XqlUnion from "../../Types/fields/Union";
-import { XqlFields } from "../../Types/types";
 import { quote } from "../../utils";
-import Foreign from "../classes/ForeignInfo";
 import Xansql from "../Xansql";
+import ForeignKeyMigration from "./ForeingMigration";
+import IndexMigration from "./IndexMigration";
 
-class CreateTableGenerator {
+class Migration {
    xansql: Xansql;
+   readonly ForeignKeyMigration: ForeignKeyMigration
+   readonly IndexMigration: IndexMigration
    constructor(xansql: Xansql) {
       this.xansql = xansql;
+      this.ForeignKeyMigration = new ForeignKeyMigration(xansql);
+      this.IndexMigration = new IndexMigration(xansql);
    }
 
-   generate() {
+   statements() {
       const engine = this.xansql.config.dialect.engine;
       const models = this.xansql.models;
       const tables = models.keys();
-      const sqlStatements: string[] = [];
+      const statements: string[] = [];
 
-      if (engine === 'mssql') {
-         sqlStatements.push(`SET ANSI_NULLS ON;`);
-         sqlStatements.push(`SET QUOTED_IDENTIFIER ON;`);
-      } else if (engine === 'sqlite') {
-         sqlStatements.push(`PRAGMA foreign_keys = ON;`);
-         sqlStatements.push(`PRAGMA journal_mode = WAL;`);
-         sqlStatements.push(`PRAGMA wal_autocheckpoint = 1000;`);
-         sqlStatements.push(`PRAGMA synchronous = NORMAL;`);
+      if (engine === 'sqlite') {
+         statements.push(`PRAGMA foreign_keys = ON;`);
+         statements.push(`PRAGMA journal_mode = WAL;`);
+         statements.push(`PRAGMA wal_autocheckpoint = 1000;`);
+         statements.push(`PRAGMA synchronous = NORMAL;`);
       } else if (engine === 'postgresql') {
-         sqlStatements.push(`SET client_min_messages TO WARNING;`);
-         sqlStatements.push(`SET standard_conforming_strings = ON;`);
+         statements.push(`SET client_min_messages TO WARNING;`);
+         statements.push(`SET standard_conforming_strings = ON;`);
       } else if (engine === 'mysql') {
-         sqlStatements.push(`SET sql_mode = 'STRICT_ALL_TABLES';`);
-         sqlStatements.push(`SET FOREIGN_KEY_CHECKS = 1;`);
-         sqlStatements.push(`SET sql_safe_updates = 1;`);
+         statements.push(`SET sql_mode = 'STRICT_ALL_TABLES';`);
+         statements.push(`SET FOREIGN_KEY_CHECKS = 1;`);
+         statements.push(`SET sql_safe_updates = 1;`);
       }
 
       let indexes: string[] = [];
@@ -51,58 +52,35 @@ class CreateTableGenerator {
          const model = models.get(table);
          const schema = model?.schema || {};
          let sqls: string[] = [];
-         let foreignKeys: string[] = [];
 
          for (const column in schema) {
             const field = schema[column];
             const meta = field.meta || {};
-            const sql = this.buildColumn(column, field);
+            const sql = this.build(table, column);
             sql && sqls.push(sql);
 
-            // Handle foreign keys for XqlSchema fields
-            if (Foreign.isSchema(field)) {
-               const isOptional = meta.nullable || meta.optional;
-               const info = Foreign.get(model!, column)
-               let foreign = `FOREIGN KEY (${quote(engine, column)}) REFERENCES ${quote(engine, info.table)}(${quote(engine, info.relation.main)})`;
-               if (isOptional) {
-                  foreign += ` ON DELETE SET NULL ON UPDATE CASCADE`;
-               } else {
-                  foreign += ` ON DELETE CASCADE ON UPDATE CASCADE`;
-               }
-               foreignKeys.push(foreign);
+            const fk = this.ForeignKeyMigration.create(table, column);
+            if (fk) {
+               sqls.push(fk);
             }
-
-            // Handle indexes for other fields
             if (meta.index) {
-               const indexName = `${table}_${column}${meta.unique ? '_unique_index' : '_index'}`;
-               if (engine === 'mssql') {
-                  indexes.push(`IF NOT EXISTS (
-                    SELECT name FROM sys.indexes
-                    WHERE name = '${indexName}' AND object_id = OBJECT_ID('${table}')
-                  )
-                  CREATE ${meta.unique ? 'UNIQUE ' : ''}INDEX ${indexName} ON ${quote(engine, table)}(${quote(engine, column)});
-                  `);
-               } else {
-                  indexes.push(`CREATE ${meta.unique ? 'UNIQUE ' : ''}INDEX IF NOT EXISTS ${indexName} ON ${quote(engine, table)}(${quote(engine, column)});`);
-               }
+               const indexSql = this.IndexMigration.create(table, column);
+               indexes.push(indexSql);
             }
          }
-         let sql = `CREATE TABLE IF NOT EXISTS ${quote(engine, table)} (\n`;
-         sql += sqls.join(',\n');
-         if (foreignKeys.length) {
-            sql += ',\n' + foreignKeys.join(',\n');
-         }
-         sql += `\n);`;
-         sqlStatements.push(sql);
+         let sql = `CREATE TABLE IF NOT EXISTS ${quote(engine, table)} (${sqls.join(',')});`;
+         statements.push(sql);
       }
 
-      sqlStatements.push(...indexes);
-      return sqlStatements
+      statements.push(...indexes);
+      return statements
    }
 
-   buildColumn(column: string, field: XqlFields) {
+   build(table: string, column: string) {
       const engine = this.xansql.config.dialect.engine;
-      const meta = field.meta || {};
+      const model = this.xansql.models.get(table);
+      const field = model?.schema[column];
+      const meta = field?.meta || {};
       const nullable = meta.nullable || meta.optional ? 'NULL' : 'NOT NULL';
       const unique = meta.unique ? 'UNIQUE' : '';
       const col = (column: string, sqlType: string) => {
@@ -120,7 +98,7 @@ class CreateTableGenerator {
             sql += col(column, "INT IDENTITY(1,1) PRIMARY KEY")
          }
       } else if (field instanceof XqlSchema) {
-         if (engine === 'mysql' || engine === 'mssql') {
+         if (engine === 'mysql') {
             sql += col(column, "INT")
          } else if (engine === 'postgresql' || engine === 'sqlite') {
             sql += col(column, "INTEGER")
@@ -135,7 +113,7 @@ class CreateTableGenerator {
       } else if (field instanceof XqlFile) {
          sql += col(column, "VARCHAR(255)")
       } else if (field instanceof XqlNumber) {
-         if (engine === "mysql" || engine === "mssql") {
+         if (engine === "mysql") {
             if (meta.integer) {
                sql += col(column, "INT")
             } else if (meta.float) {
@@ -199,4 +177,4 @@ class CreateTableGenerator {
    }
 }
 
-export default CreateTableGenerator;
+export default Migration
