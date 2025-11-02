@@ -28,15 +28,15 @@ class FindExecuter {
       }
 
       const sql = `SELECT ${Select.sql} FROM ${model.table} ${where_sql}${OrderBy.sql}${Limit.sql}`.trim()
-      const { result } = await model.execute(sql)
+      const { results } = await model.execute(sql)
 
-      if (result.length) {
+      if (results.length) {
          const is = Select.formatable_columns.length
             || Object.keys(Select.relations).length
             || Object.keys(args.aggregate || {}).length
 
          if (!is) {
-            return result
+            return results
          }
 
          const freses: { [col: string]: any[] } = {}
@@ -46,7 +46,7 @@ class FindExecuter {
             const ids: number[] = idsList[column] || []
             const foreign = relation.foreign
             if (!idsList[column]) {
-               for (let r of result) {
+               for (let r of results) {
                   let id = r[foreign.relation.target]
                   if (typeof id === "number" && !ids.includes(id)) {
                      ids.push(id)
@@ -62,13 +62,13 @@ class FindExecuter {
 
          const agg_reses: any = {}
          if (Object.keys(args.aggregate || {}).length) {
-            const agg_results = await this.aggregate(model, args.aggregate || {}, result)
+            const agg_results = await this.aggregate(model, args.aggregate || {}, results)
             for (let col in agg_results) {
                agg_reses[col] = agg_results[col]
             }
          }
 
-         for (let row of result) {
+         for (let row of results) {
             // handle formattable columns
             this.formatFormadableColumns(row, Select.formatable_columns)
 
@@ -79,7 +79,7 @@ class FindExecuter {
                   if (!row.aggregate) {
                      row.aggregate = {}
                   }
-                  row.aggregate[col] = aggres.result.find((ar: any) => {
+                  row.aggregate[col] = aggres.results.find((ar: any) => {
                      let is = ar[aggres.foreign.relation.main] === row[aggres.foreign.relation.target]
                      if (is) delete ar[aggres.foreign.relation.main]
                      return is
@@ -105,7 +105,7 @@ class FindExecuter {
             }
          }
       }
-      return result;
+      return results;
    }
 
 
@@ -139,7 +139,7 @@ class FindExecuter {
       `
       }
 
-      const fres = (await FModel.execute(sql)).result
+      const fres = (await FModel.execute(sql)).results
 
       // execute nested relations
       if (fres.length) {
@@ -193,7 +193,7 @@ class FindExecuter {
                      row.aggregate = {}
                   }
 
-                  row.aggregate[col] = aggres.result.find((ar: any) => {
+                  row.aggregate[col] = aggres.results.find((ar: any) => {
                      let is = ar[aggres.foreign.relation.target] === row[aggres.foreign.relation.main]
                      if (is) delete ar[aggres.foreign.relation.main]
                      return is
@@ -234,11 +234,11 @@ class FindExecuter {
       }
    }
 
-   private async aggregate(model: Schema, aggregate: FindArgsAggregate, result: any[]) {
+   private async aggregate(model: Schema, aggregate: FindArgsAggregate, results: any[]) {
       const xansql = model.xansql
       const agg_results: {
          [column: string]: {
-            result: any[],
+            results: any[],
             foreign: ForeignInfoType
          }
       } = {}
@@ -256,7 +256,7 @@ class FindExecuter {
 
          const FModel = xansql.getModel(foreign.table)
          let ids: number[] = []
-         for (let r of result) {
+         for (let r of results) {
             let id = r[foreign.relation.target]
             if (typeof id === "number" && !ids.includes(id)) {
                ids.push(id)
@@ -275,7 +275,7 @@ class FindExecuter {
          })
 
          agg_results[col] = {
-            result: aggRes,
+            results: aggRes,
             foreign
          }
       }

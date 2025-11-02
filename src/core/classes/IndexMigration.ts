@@ -25,7 +25,7 @@ class IndexMigration {
             const field = schema[column];
             const meta = field.meta || {};
             if (meta.index) {
-               const indexSql = this.create(model.table, column);
+               const indexSql = this.buildCreate(model.table, column);
                statements.push(indexSql);
             }
          }
@@ -34,7 +34,7 @@ class IndexMigration {
       return statements
    }
 
-   create(table: string, column: string) {
+   buildCreate(table: string, column: string) {
       const engine = this.xansql.config.dialect.engine;
       const model = this.xansql.models.get(table);
       const field = model?.schema[column];
@@ -45,7 +45,7 @@ class IndexMigration {
       return sql;
    }
 
-   drop(table: string, column: string) {
+   buildDrop(table: string, column: string) {
       const engine = this.xansql.config.dialect.engine;
       const indexName = this.identifier(table, column);
       let sql = '';

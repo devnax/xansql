@@ -8,23 +8,6 @@ export type Result = {
    [key: string]: any
 } | null
 
-export type ExecuterResult = {
-   result: Result[];
-   affectedRows: number;
-   insertId: number | null;
-}
-
-export type DialectOptions = {
-   execute: (query: string) => Promise<ExecuterResult>;
-   migrate: (schema: Schema) => Promise<void>;
-   addColumn: (schema: Schema, columnName: string) => Promise<any>;
-   dropColumn: (schema: Schema, columnName: string) => Promise<any>;
-   renameColumn: (schema: Schema, oldName: string, newName: string) => Promise<any>;
-   addIndex: (schema: Schema, columnName: string) => Promise<any>;
-   dropIndex: (schema: Schema, columnName: string) => Promise<any>;
-}
-
-export type Dialect = (xansql: Xansql) => DialectOptions
 
 export type XansqlConnectionOptions = {
    host: string,
@@ -42,6 +25,12 @@ export type XansqlCacheOptions = {
    onCreate: (model: Schema, insertId: number) => Promise<void>;
    onUpdate: (model: Schema, rows: Result[]) => Promise<void>;
    onDelete: (model: Schema, rows: Result[]) => Promise<void>;
+}
+
+export type ExecuterResult = {
+   results: Result[];
+   affectedRows: number;
+   insertId: number | null;
 }
 
 export type XansqlCachePlugin = (xansql: Xansql) => Promise<XansqlCacheOptions>;

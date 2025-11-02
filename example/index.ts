@@ -1,5 +1,6 @@
 import dotenv from 'dotenv'
 import { Xansql, Schema, xt } from '../src'
+import SqliteExecuter from '../src/Executer/Sqlite'
 
 if (typeof process !== 'undefined' && process?.env) {
    try {
@@ -45,33 +46,12 @@ const ProductSchema = new Schema("products", {
 const mysqlConn: string = (typeof process !== 'undefined' ? process.env.MYSQL_DB : 'mysql://root:password@localhost:3306/xansql') as string
 const sqliteConn: string = 'db.sqlite'
 
-const conn = {
-
-   sqlite: {
-      // connection: sqliteConn,
-      dialect: {
-         engine: 'sqlite',
-         execute: () => {
-            return {
-               results: [],
-               insertId: 0,
-               affectedRows: 0,
-            }
-         }
-      },
-   }
-}
+const sqliteExecuter = SqliteExecuter(sqliteConn)
 
 export const db = new Xansql({
    dialect: {
       engine: 'sqlite',
-      execute: async (sql: string) => {
-         return {
-            result: [],
-            insertId: 0,
-            affectedRows: 0,
-         }
-      }
+      execute: sqliteExecuter,
    }
    // maxLimit: {
    //    // create: 10000

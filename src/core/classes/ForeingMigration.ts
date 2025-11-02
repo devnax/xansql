@@ -23,7 +23,7 @@ class ForeignKeyMigration {
          for (const column in schema) {
             const field = schema[column];
             if (Foreign.isSchema(field)) {
-               const fkSql = this.create(model.table, column);
+               const fkSql = this.buildCreate(model.table, column);
                statements.push(fkSql);
             }
          }
@@ -32,31 +32,26 @@ class ForeignKeyMigration {
       return statements;
    }
 
-   create(table: string, column: string) {
+   buildCreate(table: string, column: string, refTable: string = '', refColumn: string = '') {
       const engine = this.xansql.config.dialect.engine;
       const model = this.xansql.models.get(table);
       const schema = model?.schema || {};
       const field = schema[column];
       const meta = field.meta || {};
+      const isOptional = meta.nullable || meta.optional;
+      const fk = this.identifier(table, column);
 
-      let sql = '';
-      if (Foreign.isSchema(field)) {
-         const isOptional = meta.nullable || meta.optional;
-         const info = Foreign.get(model!, column)
-         const fk = this.identifier(info.table, column);
-
-         sql = `CONSTRAINT ${fk} FOREIGN KEY (${quote(engine, column)}) REFERENCES ${quote(engine, info.table)}(${quote(engine, info.relation.main)})`;
-         if (isOptional) {
-            sql += ` ON DELETE SET NULL ON UPDATE CASCADE`;
-         } else {
-            sql += ` ON DELETE CASCADE ON UPDATE CASCADE`;
-         }
+      let sql = `CONSTRAINT ${fk} FOREIGN KEY (${quote(engine, column)}) REFERENCES ${quote(engine, refTable)}(${quote(engine, refColumn)})`;
+      if (isOptional) {
+         sql += ` ON DELETE SET NULL ON UPDATE CASCADE`;
+      } else {
+         sql += ` ON DELETE CASCADE ON UPDATE CASCADE`;
       }
 
       return sql;
    }
 
-   drop(table: string, column: string) {
+   buildDrop(table: string, column: string) {
       const engine = this.xansql.config.dialect.engine;
       const fkName = this.identifier(table, column);
       let sql = '';

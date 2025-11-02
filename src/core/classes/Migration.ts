@@ -1,3 +1,4 @@
+import Schema from "../../Schema";
 import XqlArray from "../../Types/fields/Array";
 import XqlBoolean from "../../Types/fields/Boolean";
 import XqlDate from "../../Types/fields/Date";
@@ -13,6 +14,7 @@ import XqlTuple from "../../Types/fields/Tuple";
 import XqlUnion from "../../Types/fields/Union";
 import { quote } from "../../utils";
 import Xansql from "../Xansql";
+import Foreign from "./ForeignInfo";
 import ForeignKeyMigration from "./ForeingMigration";
 import IndexMigration from "./IndexMigration";
 
@@ -29,54 +31,86 @@ class Migration {
    statements() {
       const engine = this.xansql.config.dialect.engine;
       const models = this.xansql.models;
-      const tables = models.keys();
-      const statements: string[] = [];
+
+      const options: string[] = []
+      const tables: string[] = [];
+      const indexes: string[] = [];
 
       if (engine === 'sqlite') {
-         statements.push(`PRAGMA foreign_keys = ON;`);
-         statements.push(`PRAGMA journal_mode = WAL;`);
-         statements.push(`PRAGMA wal_autocheckpoint = 1000;`);
-         statements.push(`PRAGMA synchronous = NORMAL;`);
+         options.push(`PRAGMA foreign_keys = ON;`);
+         options.push(`PRAGMA journal_mode = WAL;`);
+         options.push(`PRAGMA wal_autocheckpoint = 1000;`);
+         options.push(`PRAGMA synchronous = NORMAL;`);
       } else if (engine === 'postgresql') {
-         statements.push(`SET client_min_messages TO WARNING;`);
-         statements.push(`SET standard_conforming_strings = ON;`);
+         options.push(`SET client_min_messages TO WARNING;`);
+         options.push(`SET standard_conforming_strings = ON;`);
       } else if (engine === 'mysql') {
-         statements.push(`SET sql_mode = 'STRICT_ALL_TABLES';`);
-         statements.push(`SET FOREIGN_KEY_CHECKS = 1;`);
-         statements.push(`SET sql_safe_updates = 1;`);
+         options.push(`SET sql_mode = 'STRICT_ALL_TABLES';`);
+         options.push(`SET FOREIGN_KEY_CHECKS = 1;`);
+         options.push(`SET sql_safe_updates = 1;`);
       }
 
-      let indexes: string[] = [];
-
-      for (const table of tables) {
+      for (const table of models.keys()) {
          const model = models.get(table);
-         const schema = model?.schema || {};
-         let sqls: string[] = [];
+         const { sql, indexes: modelIndexes } = this.buildCreate(model!);
+         indexes.push(...modelIndexes);
+         tables.push(sql);
+      }
 
-         for (const column in schema) {
-            const field = schema[column];
-            const meta = field.meta || {};
-            const sql = this.build(table, column);
-            sql && sqls.push(sql);
+      return {
+         options,
+         tables,
+         indexes
+      }
+   }
 
-            const fk = this.ForeignKeyMigration.create(table, column);
+   buildCreate(model: Schema) {
+      const engine = this.xansql.config.dialect.engine;
+      let indexes: string[] = [];
+      const table = model.table;
+      const schema = model?.schema || {};
+      let sqls: string[] = [];
+
+      for (const column in schema) {
+         const field = schema[column];
+         const meta = field.meta || {};
+         const sql = this.buildColumn(table, column);
+         sql && sqls.push(sql);
+
+         if (Foreign.isSchema(field)) {
+            const info = Foreign.get(model!, column)
+            const fk = this.ForeignKeyMigration.buildCreate(table, column, info.table, info.relation.main);
             if (fk) {
                sqls.push(fk);
             }
-            if (meta.index) {
-               const indexSql = this.IndexMigration.create(table, column);
-               indexes.push(indexSql);
-            }
          }
-         let sql = `CREATE TABLE IF NOT EXISTS ${quote(engine, table)} (${sqls.join(',')});`;
-         statements.push(sql);
+
+         if (meta.index && !meta.unique) {
+            const indexSql = this.IndexMigration.buildCreate(table, column);
+            indexes.push(indexSql);
+         }
       }
 
-      statements.push(...indexes);
-      return statements
+      let sql = `CREATE TABLE IF NOT EXISTS ${quote(engine, table)} (${sqls.join(',')})`;
+      if (engine === 'mysql') {
+         sql += ` ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`;
+      } else {
+         sql += ` ;`;
+      }
+
+      return {
+         sql, indexes
+      }
    }
 
-   build(table: string, column: string) {
+   buildDrop(model: any) {
+      const engine = this.xansql.config.dialect.engine;
+      const table = model.table;
+      let sql = `DROP TABLE IF EXISTS ${quote(engine, table)};`;
+      return sql;
+   }
+
+   buildColumn(table: string, column: string) {
       const engine = this.xansql.config.dialect.engine;
       const model = this.xansql.models.get(table);
       const field = model?.schema[column];

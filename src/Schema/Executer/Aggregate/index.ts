@@ -42,19 +42,19 @@ class AggregateExecuter {
          groupBySql = ` GROUP BY ${args.groupBy.join(", ")} `
       }
       sql += `${select.sql} FROM ${model.table} ${Where.sql}${groupBySql}${OrderBy.sql}${LimitSql}`.trim()
-      const { result } = await model.execute(sql)
+      const { results } = await model.execute(sql)
 
-      // remove groupBy columns from result
-      if (this.removeGroupByColumns && result.length && args.groupBy && args.groupBy.length) {
+      // remove groupBy columns from results
+      if (this.removeGroupByColumns && results.length && args.groupBy && args.groupBy.length) {
          const groupBySet = new Set(args.groupBy)
-         for (let row of result) {
+         for (let row of results) {
             for (let column of groupBySet) {
                delete row[column]
             }
          }
       }
 
-      return result
+      return results
    }
 }
 

@@ -131,11 +131,23 @@ class Xansql {
    }
 
    async migrate(force?: boolean) {
-      const statements = this.Migration.statements();
-      for (let sql of statements) {
-         await this.config.dialect.execute(sql);
+      const { options, tables, indexes } = this.Migration.statements();
+      if (force) {
+         for (let model of this.ModelFactory.values()) {
+            const dsql = this.Migration.buildDrop(model);
+            await this.config.dialect.execute(dsql);
+         }
       }
-      return statements
+
+      for (let table of [...options, ...tables]) {
+         await this.config.dialect.execute(table);
+      }
+
+      for (let index of indexes) {
+         try {
+            await this.config.dialect.execute(index);
+         } catch (error) { }
+      }
    }
 
    async execute(sql: string, model: Schema, args?: ArgsInfo): Promise<ExecuterResult> {
