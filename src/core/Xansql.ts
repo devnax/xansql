@@ -133,7 +133,8 @@ class Xansql {
    async migrate(force?: boolean) {
       const { options, tables, indexes } = this.Migration.statements();
       if (force) {
-         for (let model of this.ModelFactory.values()) {
+         const models = Array.from(this.ModelFactory.values()).reverse();
+         for (let model of models) {
             const dsql = this.Migration.buildDrop(model);
             await this.config.dialect.execute(dsql);
          }

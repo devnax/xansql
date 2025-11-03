@@ -1,6 +1,7 @@
 import dotenv from 'dotenv'
 import { Xansql, Schema, xt } from '../src'
-import SqliteExecuter from '../src/Executer/Sqlite'
+import SqliteDialect from '../src/dialects/Sqlite'
+import MysqlDialect from '../src/dialects/Mysql'
 
 if (typeof process !== 'undefined' && process?.env) {
    try {
@@ -18,7 +19,7 @@ const UserMetaSchema = new Schema("user_metas", {
 
 const UserSchema = new Schema("users", {
    uid: xt.id(),
-   name: xt.string().unique(),
+   name: xt.string(),
    username: xt.string().optional().index(),
    email: xt.string().index(),
    password: xt.string(),
@@ -43,16 +44,12 @@ const ProductSchema = new Schema("products", {
    user: xt.schema("users", "products").optional(),
 });
 
-const mysqlConn: string = (typeof process !== 'undefined' ? process.env.MYSQL_DB : 'mysql://root:password@localhost:3306/xansql') as string
+const mysqlConn: string = (typeof process !== 'undefined' ? process.env.MYSQL_DB : 'mysql://root:root1234@localhost:3306/xansql') as string
 const sqliteConn: string = 'db.sqlite'
 
-const sqliteExecuter = SqliteExecuter(sqliteConn)
 
 export const db = new Xansql({
-   dialect: {
-      engine: 'sqlite',
-      execute: sqliteExecuter,
-   }
+   dialect: MysqlDialect(mysqlConn)
    // maxLimit: {
    //    // create: 10000
    // },

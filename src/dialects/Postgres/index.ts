@@ -1,31 +1,29 @@
-import pkg from 'pg';
-const { Pool } = pkg;
+import { PoolConfig } from 'pg';
+import { ExecuterResult } from '../../core/type';
 
-type ExecuteResult = {
-   results: any;
-   insertId: number;
-   affectedRows: number;
-};
+let postpres: typeof import('pg');
 
-const PostgresExecuter = (config: any) => {
-   const pool = new Pool({
-      host: config.host || 'localhost',
-      user: config.user || 'postgres',
-      password: config.password || '',
-      database: config.database || '',
-      port: config.port || 5432,
-      max: config.connectionLimit || 10,
-   });
+const PostgresDialect = (config: PoolConfig) => {
+   const isServer = typeof window === 'undefined';
+   let pool: import('pg').Pool;
 
-   const execute = async (sql: string): Promise<ExecuteResult> => {
+   const execute = async (sql: string): Promise<ExecuterResult> => {
+      if (isServer) {
+         if (!postpres) {
+            postpres = await import('pg');
+         }
+         if (!pool) {
+            pool = new postpres.Pool(config);
+         }
+      }
+
       const client = await pool.connect();
       try {
-         const trimmed = sql.trim().toUpperCase();
          let results: any;
          let insertId = 0;
          let affectedRows = 0;
 
-         if (trimmed.startsWith('SELECT')) {
+         if (sql.startsWith('SELECT')) {
             const res = await client.query(sql);
             results = res.rows;
             affectedRows = res.rowCount || 0;
@@ -38,13 +36,18 @@ const PostgresExecuter = (config: any) => {
             }
          }
 
+         client.release();
+
          return { results, insertId, affectedRows };
       } finally {
          client.release();
       }
    };
 
-   return execute;
+   return {
+      engine: 'postgres' as const,
+      execute,
+   };
 };
 
-export default PostgresExecuter;
+export default PostgresDialect;

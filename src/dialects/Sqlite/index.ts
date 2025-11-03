@@ -1,16 +1,11 @@
 import sqlite3 from 'sqlite3';
 import { open, Database } from 'sqlite';
+import { ExecuterResult } from '../../core/type';
 
-type ExecuteResult = {
-   results: any;
-   insertId: number;
-   affectedRows: number;
-};
-
-const SqliteExecuter = (filePath: string = ':memory:') => {
+const SqliteDialect = (filePath: string = ':memory:') => {
 
    let db: Database<sqlite3.Database, sqlite3.Statement>;
-   const execute = async (sql: string): Promise<ExecuteResult> => {
+   const execute = async (sql: string): Promise<ExecuterResult> => {
       if (!db) {
          db = await open({
             filename: filePath,
@@ -34,7 +29,10 @@ const SqliteExecuter = (filePath: string = ':memory:') => {
       return { results, insertId, affectedRows };
    };
 
-   return execute;
+   return {
+      engine: 'sqlite' as const,
+      execute,
+   }
 };
 
-export default SqliteExecuter;
+export default SqliteDialect;
