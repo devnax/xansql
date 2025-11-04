@@ -31,7 +31,7 @@ class FindExecuter {
       const sql = `SELECT ${Select.sql} FROM ${model.table} ${where_sql}${OrderBy.sql}${Limit.sql}`.trim()
       const { results } = await model.execute(sql)
 
-      if (results.length) {
+      if (results?.length) {
          const is = Select.formatable_columns.length
             || Object.keys(Select.relations).length
             || Object.keys(args.aggregate || {}).length

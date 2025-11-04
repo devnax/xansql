@@ -35,64 +35,45 @@ const App = () => {
 
 
           const result = await UserModel.find({
-            // distinct: ["email"],
-            orderBy: {
-              // uid: "desc",
-              // email: "desc"
-            },
-            limit: {
-              take: 100,
-              skip: 0
+            aggregate: {
+              products: {
+                price: {
+                  sum: {
+                    alias: "total_price"
+                  },
+                  avg: {
+                    alias: "avg_price",
+                    round: 2
+                  },
+                }
+              },
+              metas: {
+                meta_value: {
+                  count: true
+                }
+              }
             },
             where: {
-              // uid: {
-              //    in: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
-              // },
-              // user_posts: {
-              //    pid: 375,
-              // }
+              uid: { gt: 100 }
             },
-            // aggregate: {
-            //    metas: {
-            //       uoid: {
-            //          count: true
-            //       }
-            //    },
-            //    products: {
-            //       price: {
-            //          sum: {
-            //             alias: "total_price"
-            //          },
-            //          avg: {
-            //             alias: "avg_price"
-            //          }
-            //       }
-            //    }
-            // },
             select: {
               name: true,
-              email: true,
-              username: true,
-              password: true,
-              created_at: true,
-              // metas: {
-              //   select: {
-              //     meta_key: true,
-              //     meta_value: true,
-              //   },
-              //   limit: { take: 2 }
-              // },
-              // products: {
-              //   distinct: ["price"],
-              //   orderBy: { price: "desc" },
-
-              //   select: {
-              //     name: true,
-              //     price: true,
-              //   },
-              //   limit: { take: 3 }
-              // }
-            },
+              products: {
+                aggregate: {
+                  categories: {
+                    pcid: {
+                      count: true,
+                    },
+                    name: {
+                      count: true,
+                    }
+                  }
+                },
+                select: {
+                  categories: true
+                }
+              }
+            }
           })
           console.log(result);
 

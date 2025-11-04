@@ -7,6 +7,7 @@ import WhereArgsQuery from './src/Schema/Args/WhereArgs';
 import SelectArgs from './src/Schema/Executer/Find/SelectArgs';
 import UpdateDataArgs from './src/Schema/Executer/Update/UpdateDataArgs';
 
+
 const server = async (app: Express) => {
    app.use('/static', express.static('public'));
    app.use(express.json());
@@ -14,14 +15,23 @@ const server = async (app: Express) => {
    app.disable('etag');
 
    app.use('/data/*', express.raw({ type: "application/octet-stream", limit: "10mb" }), async (req: any, res: any) => {
-      const response = await db.listen({
-         signeture: req.headers['x-signeture'],
-         path: req.originalUrl,
+      // const response = await db.listen({
+      //    signeture: req.headers['x-signeture'],
+      //    path: req.originalUrl,
+      //    body: req.body,
+      //    method: req.method,
+      //    origin: req.headers['x-origin'],
+      // }, { name: "express" })
+      const response = await db.onFetch({
+         origine: req.origin,
          body: req.body,
          method: req.method,
-         origin: req.headers['x-origin'],
-      }, { name: "express" })
-      res.status(response.status).end(response.content);
+         headers: req.headers,
+         cookies: req.cookies,
+         path: req.originalUrl,
+         query: req.query,
+      })
+      res.status(200).end(response.content);
    })
 
 

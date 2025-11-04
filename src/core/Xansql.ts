@@ -1,7 +1,5 @@
-import { ArgsInfo, ListenerInfo } from "securequ";
 import Schema from "../Schema";
-import { ExecuterResult, XansqlCacheOptions, XansqlConfigType, XansqlConfigTypeRequired, XansqlModelOptions, XansqlOnFetchInfo } from "./type";
-import ExecuteClient from "./classes/ExecuteClient";
+import { ExecuterResult, XansqlConfigType, XansqlConfigTypeRequired, XansqlModelOptions, XansqlOnFetchInfo } from "./type";
 import XansqlTransaction from "./classes/XansqlTransaction";
 import ExecuteQuery from "./classes/ExecuteQuery";
 import XansqlConfig from "./classes/XansqlConfig";
@@ -14,8 +12,6 @@ class Xansql {
    readonly ModelFactory = new Map<string, Schema>()
    private _aliases = new Map<string, string>();
    private ModelFormatter: ModelFormatter;
-   private ExecuteClient: ExecuteClient;
-   private ExecuteServer: ExecuteServer
    private ExecuteQuery: ExecuteQuery;
    private XansqlConfig: XansqlConfig;
    private XansqlTransaction: XansqlTransaction;
@@ -26,8 +22,6 @@ class Xansql {
    constructor(config: XansqlConfigType) {
       this.XansqlConfig = new XansqlConfig(this, config);
       this.config = this.XansqlConfig.parse()
-      this.ExecuteClient = new ExecuteClient(this);
-      this.ExecuteServer = new ExecuteServer(this);
       this.XansqlTransaction = new XansqlTransaction(this);
       this.ExecuteQuery = new ExecuteQuery(this);
       this.ModelFormatter = new ModelFormatter(this);
@@ -134,16 +128,6 @@ class Xansql {
             await this.config.dialect.execute(index);
          } catch (error) { }
       }
-   }
-
-
-
-   async executeClient(sql: string, model: Schema): Promise<any> {
-      return await this.ExecuteClient.fetch(sql, model);
-   }
-
-   async listen(options: ListenerInfo, args?: ArgsInfo) {
-      return await this.ExecuteServer.listen(options, args);
    }
 
    async onFetch(info: XansqlOnFetchInfo) {

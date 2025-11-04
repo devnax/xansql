@@ -27,7 +27,7 @@ export type XansqlDialect = {
 export type XansqlOnFetchInfo = {
    method: string;
    path: string;
-   original: string;
+   origine: string;
    query: any;
    body: any;
    headers: { [key: string]: string };
