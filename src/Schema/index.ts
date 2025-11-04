@@ -114,7 +114,6 @@ class Schema extends SchemaBase {
 
    async truncate() {
       await this.execute(`TRUNCATE TABLE ${this.table}`);
-      await this.clearCache();
    }
 
    // Helpers Methods
@@ -226,20 +225,6 @@ class Schema extends SchemaBase {
    async exists(where: WhereArgsType): Promise<boolean> {
       return !!(await this.count({ where }))
    }
-
-
-   // cache methods
-   async clearCache() {
-      const cachePlugins = await this.xansql.cachePlugins();
-      if (this.xansql && cachePlugins.length) {
-         for (let plugin of cachePlugins) {
-            if (plugin.clear) {
-               await plugin.clear(this)
-            }
-         }
-      }
-   }
-
 
    // end Helpers Methods
    async createIndex(column: string) {

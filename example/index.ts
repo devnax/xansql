@@ -47,9 +47,25 @@ const ProductSchema = new Schema("products", {
 const mysqlConn: string = (typeof process !== 'undefined' ? process.env.MYSQL_DB : 'mysql://root:root1234@localhost:3306/xansql') as string
 const sqliteConn: string = 'db.sqlite'
 
-
 export const db = new Xansql({
-   dialect: MysqlDialect(mysqlConn)
+   dialect: SqliteDialect(sqliteConn),
+   fetch: {
+      execute: async (sql: string) => {
+         const res = await fetch('https://sqlfetch.example.com/execute', {
+            method: 'POST',
+            headers: {
+               'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ sql })
+         });
+         const data = await res.json();
+         return { results: [], affectedRows: 0, insertId: null }
+      },
+      onFetch: async (xansql, info) => {
+         const res = await xansql.execute("asd")
+         return { results: [], affectedRows: 0, insertId: null }
+      }
+   },
    // maxLimit: {
    //    // create: 10000
    // },

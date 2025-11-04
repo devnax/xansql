@@ -62,6 +62,7 @@ export type AggregateSelectArgsColumnType = {
       distinct?: boolean;
    }
 }
+
 export type AggregateSelectArgsType = {
    [column: string]: AggregateSelectArgsColumnType | AggregateArgsType
 }

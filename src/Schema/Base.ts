@@ -46,7 +46,7 @@ abstract class SchemaBase {
    }
 
    async execute(sql: string): Promise<any> {
-      return await this.xansql.execute(sql, this as any)
+      return await this.xansql.execute(sql)
    }
 
    async drop() {

@@ -403,7 +403,16 @@ const server = async (app: Express) => {
 
    app.get('/faker', async (req: any, res: any) => {
       const d = await fakeData(100)
+      const d1 = await fakeData(100)
       const start = Date.now()
+      await UserModel.create({
+         data: d1,
+         select: {
+            username: true,
+            metas: true,
+            products: true,
+         }
+      })
       const users = await UserModel.create({
          data: d,
          select: {

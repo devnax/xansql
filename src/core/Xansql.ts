@@ -1,6 +1,6 @@
 import { ArgsInfo, ListenerInfo } from "securequ";
 import Schema from "../Schema";
-import { ExecuterResult, XansqlCacheOptions, XansqlConfigType, XansqlConfigTypeRequired, XansqlModelOptions } from "./type";
+import { ExecuterResult, XansqlCacheOptions, XansqlConfigType, XansqlConfigTypeRequired, XansqlModelOptions, XansqlOnFetchInfo } from "./type";
 import ExecuteClient from "./classes/ExecuteClient";
 import XansqlTransaction from "./classes/XansqlTransaction";
 import ExecuteQuery from "./classes/ExecuteQuery";
@@ -51,25 +51,6 @@ class Xansql {
       return self;
    }
 
-   private _cachePlugins: XansqlCacheOptions[] = [];
-   async cachePlugins() {
-      if (this._cachePlugins.length) return this._cachePlugins;
-      const config = this.config;
-      if (config.cachePlugins.length > 0) {
-         const self = this.clone({
-            cachePlugins: []
-         });
-         const cachePlugins: XansqlCacheOptions[] = []
-         for (let plugin of config.cachePlugins) {
-            if (typeof plugin === 'function') {
-               cachePlugins.push(await plugin(self));
-            }
-         }
-         this._cachePlugins = cachePlugins;
-      }
-      return this._cachePlugins;
-   }
-
    private makeAlias(table: string) {
       let wordLength = 1;
       table = table.toLowerCase().replaceAll(/[^a-z0-9_]/g, '_')
@@ -114,6 +95,10 @@ class Xansql {
       return this.ModelFactory.get(table) as Schema;
    }
 
+   async execute(sql: string): Promise<ExecuterResult> {
+      return await this.ExecuteQuery.execute(sql);
+   }
+
    async beginTransaction() {
       return await this.XansqlTransaction.begin();
    }
@@ -151,9 +136,7 @@ class Xansql {
       }
    }
 
-   async execute(sql: string, model: Schema, args?: ArgsInfo): Promise<ExecuterResult> {
-      return await this.ExecuteQuery.execute(sql, model, args);
-   }
+
 
    async executeClient(sql: string, model: Schema): Promise<any> {
       return await this.ExecuteClient.fetch(sql, model);
@@ -161,6 +144,16 @@ class Xansql {
 
    async listen(options: ListenerInfo, args?: ArgsInfo) {
       return await this.ExecuteServer.listen(options, args);
+   }
+
+   async onFetch(info: XansqlOnFetchInfo) {
+      if (typeof window !== "undefined") {
+         throw new Error("Xansql onFetch method is not available in client side.");
+      }
+      if (!this.config.fetch?.onFetch) {
+         throw new Error("Xansql fetch onFetch method is not configured.");
+      }
+      return await this.config.fetch.onFetch(this, info);
    }
 
 }

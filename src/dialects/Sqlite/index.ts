@@ -1,38 +1,40 @@
-import sqlite3 from 'sqlite3';
-import { open, Database } from 'sqlite';
+import Database from 'better-sqlite3';
 import { ExecuterResult } from '../../core/type';
 
+let sqlite: typeof import('better-sqlite3');
+
 const SqliteDialect = (filePath: string = ':memory:') => {
+   let db: Database.Database;
 
-   let db: Database<sqlite3.Database, sqlite3.Statement>;
    const execute = async (sql: string): Promise<ExecuterResult> => {
-      if (!db) {
-         db = await open({
-            filename: filePath,
-            driver: sqlite3.Database
-         });
-      }
-      const trimmed = sql.trim().toUpperCase();
-      let results: any;
-      let insertId = 0;
-      let affectedRows = 0;
+      if (typeof window === "undefined") {
+         if (!sqlite) sqlite = (await import('better-sqlite3')).default;
+         if (!db) db = new sqlite(filePath);
 
-      if (trimmed.startsWith('SELECT')) {
-         results = await db.all(sql);
-      } else {
-         const res = await db.run(sql);
-         results = res;
-         insertId = res.lastID || 0;
-         affectedRows = res.changes || 0;
+         let results: any;
+         let insertId = 0;
+         let affectedRows = 0;
+
+         // Detect query type
+         if (sql.startsWith('SELECT')) {
+            results = db.prepare(sql).all();
+         } else {
+            const stmt = db.prepare(sql);
+            const info = stmt.run();
+            results = info;
+            insertId = info.lastInsertRowid ? Number(info.lastInsertRowid) : 0;
+            affectedRows = info.changes || 0;
+         }
+         return { results, insertId, affectedRows };
       }
 
-      return { results, insertId, affectedRows };
+      throw new Error('SqliteDialect can only be used in a Node.js environment.');
    };
 
    return {
       engine: 'sqlite' as const,
       execute,
-   }
+   };
 };
 
 export default SqliteDialect;
