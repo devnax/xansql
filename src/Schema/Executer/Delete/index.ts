@@ -13,8 +13,6 @@ class DeleteExecuter {
 
    async execute(args: DeleteArgsType) {
       const model = this.model
-      const xansql = this.model.xansql
-
       if (!args.where || Object.keys(args.where).length === 0) {
          throw new Error(`Where args is required for delete operation in model ${model.table}`)
       }

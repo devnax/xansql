@@ -1,4 +1,5 @@
 import Schema from "../..";
+import { chunkArray } from "../../../utils/chunker";
 import WhereArgs from "../../Args/WhereArgs";
 import { AggregateArgsType } from "../../type";
 import LimitArgs from "../Find/LimitArgs";
@@ -47,9 +48,11 @@ class AggregateExecuter {
       // remove groupBy columns from results
       if (this.removeGroupByColumns && results.length && args.groupBy && args.groupBy.length) {
          const groupBySet = new Set(args.groupBy)
-         for (let row of results) {
-            for (let column of groupBySet) {
-               delete row[column]
+         for (let { chunk } of chunkArray(results)) {
+            for (let row of chunk) {
+               for (let column of groupBySet) {
+                  delete row[column]
+               }
             }
          }
       }

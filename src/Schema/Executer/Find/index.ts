@@ -1,5 +1,6 @@
 import Schema from "../..";
 import Foreign, { ForeignInfoType } from "../../../core/classes/ForeignInfo";
+import { chunkArray } from "../../../utils/chunker";
 import WhereArgs from "../../Args/WhereArgs";
 import { FindArgsAggregate, FindArgsType } from "../../type";
 import AggregateExecuter from "../Aggregate";
@@ -35,9 +36,7 @@ class FindExecuter {
             || Object.keys(Select.relations).length
             || Object.keys(args.aggregate || {}).length
 
-         if (!is) {
-            return results
-         }
+         if (!is) return results
 
          const freses: { [col: string]: any[] } = {}
          let idsList: { [col: string]: number[] } = {}
@@ -68,38 +67,40 @@ class FindExecuter {
             }
          }
 
-         for (let row of results) {
-            // handle formattable columns
-            this.formatFormadableColumns(row, Select.formatable_columns)
+         for (let { chunk } of chunkArray(results)) {
+            for (let row of chunk) {
+               // handle formattable columns
+               this.formatFormadableColumns(row, Select.formatable_columns)
 
-            // handle aggregate
-            if (Object.keys(agg_reses).length) {
-               for (let col in agg_reses) {
-                  const aggres = agg_reses[col]
-                  if (!row.aggregate) {
-                     row.aggregate = {}
-                  }
-                  row.aggregate[col] = aggres.results.find((ar: any) => {
-                     let is = ar[aggres.foreign.relation.main] === row[aggres.foreign.relation.target]
-                     if (is) delete ar[aggres.foreign.relation.main]
-                     return is
-                  })
-               }
-            }
-
-            // handle relations
-            if (Object.keys(freses).length) {
-               for (let col in freses) {
-                  const fres = freses[col]
-                  const relation = Select.relations[col]
-                  if (Foreign.isArray(model.schema[col])) {
-                     row[col] = fres.filter((fr: any) => {
-                        let is = fr[relation.foreign.relation.main] === row[relation.foreign.relation.target]
-                        if (is) delete fr[relation.foreign.relation.main]
+               // handle aggregate
+               if (Object.keys(agg_reses).length) {
+                  for (let col in agg_reses) {
+                     const aggres = agg_reses[col]
+                     if (!row.aggregate) {
+                        row.aggregate = {}
+                     }
+                     row.aggregate[col] = aggres.results.find((ar: any) => {
+                        let is = ar[aggres.foreign.relation.main] === row[aggres.foreign.relation.target]
+                        if (is) delete ar[aggres.foreign.relation.main]
                         return is
                      })
-                  } else {
-                     row[col] = fres.find((fr: any) => fr[relation.foreign.relation.main] === row[relation.foreign.relation.target]) || null
+                  }
+               }
+
+               // handle relations
+               if (Object.keys(freses).length) {
+                  for (let col in freses) {
+                     const fres = freses[col]
+                     const relation = Select.relations[col]
+                     if (Foreign.isArray(model.schema[col])) {
+                        row[col] = fres.filter((fr: any) => {
+                           let is = fr[relation.foreign.relation.main] === row[relation.foreign.relation.target]
+                           if (is) delete fr[relation.foreign.relation.main]
+                           return is
+                        })
+                     } else {
+                        row[col] = fres.find((fr: any) => fr[relation.foreign.relation.main] === row[relation.foreign.relation.target]) || null
+                     }
                   }
                }
             }
@@ -180,44 +181,44 @@ class FindExecuter {
             }
          }
 
+         for (let { chunk } of chunkArray(fres)) {
+            for (let row of chunk) {
+               // handle formattable columns
+               this.formatFormadableColumns(row, args.select.formatable_columns)
 
-         for (let row of fres) {
-            // handle formattable columns
-            this.formatFormadableColumns(row, args.select.formatable_columns)
+               // handle aggregate
+               if (Object.keys(agg_reses).length) {
+                  for (let col in agg_reses) {
+                     const aggres = agg_reses[col]
+                     if (!row.aggregate) {
+                        row.aggregate = {}
+                     }
 
-            // handle aggregate
-            if (Object.keys(agg_reses).length) {
-               for (let col in agg_reses) {
-                  const aggres = agg_reses[col]
-                  if (!row.aggregate) {
-                     row.aggregate = {}
-                  }
-
-                  row.aggregate[col] = aggres.results.find((ar: any) => {
-                     let is = ar[aggres.foreign.relation.target] === row[aggres.foreign.relation.main]
-                     if (is) delete ar[aggres.foreign.relation.main]
-                     return is
-                  })
-               }
-            }
-
-            // handle nested relations
-            if (Object.keys(nested_freses).length) {
-               for (let col in nested_freses) {
-                  const nested_fres = nested_freses[col]
-                  const rel: any = args.select.relations?.[col]
-                  if (Foreign.isArray(FModel.schema[col])) {
-                     row[col] = nested_fres.filter((fr: any) => {
-                        let is = fr[rel.foreign.relation.main] === row[rel.foreign.relation.target]
-                        if (is) delete fr[rel.foreign.relation.main]
+                     row.aggregate[col] = aggres.results.find((ar: any) => {
+                        let is = ar[aggres.foreign.relation.target] === row[aggres.foreign.relation.main]
+                        if (is) delete ar[aggres.foreign.relation.main]
                         return is
                      })
-                  } else {
-                     row[col] = nested_fres.find((fr: any) => fr[rel.foreign.relation.main] === row[rel.foreign.relation.target]) || null
+                  }
+               }
+
+               // handle nested relations
+               if (Object.keys(nested_freses).length) {
+                  for (let col in nested_freses) {
+                     const nested_fres = nested_freses[col]
+                     const rel: any = args.select.relations?.[col]
+                     if (Foreign.isArray(FModel.schema[col])) {
+                        row[col] = nested_fres.filter((fr: any) => {
+                           let is = fr[rel.foreign.relation.main] === row[rel.foreign.relation.target]
+                           if (is) delete fr[rel.foreign.relation.main]
+                           return is
+                        })
+                     } else {
+                        row[col] = nested_fres.find((fr: any) => fr[rel.foreign.relation.main] === row[rel.foreign.relation.target]) || null
+                     }
                   }
                }
             }
-
          }
       }
 
