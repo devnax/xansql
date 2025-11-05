@@ -34,9 +34,15 @@ export type XansqlOnFetchInfo = {
    cookies: { [key: string]: string };
 }
 
+export type XansqlOnFetchResponse = {
+   status: number;
+   body: any;
+   headers?: { [key: string]: string };
+   cookies?: { [key: string]: string };
+};
 export type XansqlFetch = {
    execute: (sql: string) => Promise<ExecuterResult>;
-   onFetch: (xansql: Xansql, info: XansqlOnFetchInfo) => Promise<any>;
+   onFetch: (xansql: Xansql, info: XansqlOnFetchInfo) => Promise<XansqlOnFetchResponse>;
 }
 
 export type XansqlSocket = {

@@ -15,13 +15,6 @@ const server = async (app: Express) => {
    app.disable('etag');
 
    app.use('/data/*', express.raw({ type: "application/octet-stream", limit: "10mb" }), async (req: any, res: any) => {
-      // const response = await db.listen({
-      //    signeture: req.headers['x-signeture'],
-      //    path: req.originalUrl,
-      //    body: req.body,
-      //    method: req.method,
-      //    origin: req.headers['x-origin'],
-      // }, { name: "express" })
       const response = await db.onFetch({
          origine: req.origin,
          body: req.body,
@@ -31,7 +24,7 @@ const server = async (app: Express) => {
          path: req.originalUrl,
          query: req.query,
       })
-      res.status(200).end(response.content);
+      res.status(response.status).end(response.body);
    })
 
 
