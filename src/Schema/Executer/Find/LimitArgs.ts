@@ -2,8 +2,8 @@ import Schema from "../..";
 import { LimitArgsType } from "../../type";
 
 class LimitArgs {
-   readonly take?: number;
-   readonly skip?: number;
+   readonly take: number;
+   readonly skip: number;
 
    /**
     * SQL representation of the limit clause

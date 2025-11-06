@@ -1,82 +1,82 @@
 import { crypto, SecurequClient, SecurequServer } from "securequ";
 import { XansqlOnFetchInfo, XansqlOnFetchResponse } from "../../core/type";
 import Xansql from "../../core/Xansql";
-import youid from "youid";
 
 let clientModule: any = null;
 let serverModule: any = null;
+let secretCache: string | null = null;
+const makeSecret = async (xansql: Xansql) => {
+   if (secretCache) return secretCache;
+   const models = xansql.models
+   let uid = ''
+   for (let model of models.values()) {
+      uid += model.table
+      for (let column in model.schema) {
+         uid += column
+         const field = model.schema[column]
+         const meta = field.meta || {}
+         uid += JSON.stringify(meta)
+      }
+   }
+
+   secretCache = await crypto.hash(uid)
+   return secretCache;
+}
+
+const pathCache: { [key: string]: string } = {}
+const makePath = async (xansql: Xansql, path: string) => {
+   if (pathCache[path]) return pathCache[path];
+   const secret = await makeSecret(xansql)
+   const gen = `/${await crypto.hash(path + secret)}`
+   pathCache[path] = gen
+   return gen;
+}
 
 const XansqlFetch = () => {
    let client: SecurequClient
    let server: SecurequServer
-   let clientSecret = ''
-   let uid = ''
+
    return {
-      execute: async (sql: string) => {
-         if (!clientSecret) {
-            const fres = await fetch('http://localhost:4000/data/get-client-secret', {
-               method: 'GET'
-            });
-            const fdata = await fres.arrayBuffer();
-            const decrypted = await crypto.decryptBuffer(new Uint8Array(fdata), await crypto.hash(JSON.stringify({})));
-            // const fdataObj = JSON.parse(decrypted);
-            console.log(fdata);
+      execute: async (xansql: Xansql, sql: string) => {
+         const secret = await makeSecret(xansql)
 
-            // clientSecret = fdata.clientSecret;
-         }
-
-         if (!clientModule) {
-            clientModule = (await import("securequ/client")).default
-         }
-         if (!client) {
-            client = new clientModule({
-               url: "http://localhost:4000/data",
-               secret: clientSecret,
-            });
-         }
+         clientModule = clientModule || (await import("securequ/client")).default
+         client = client || new clientModule({
+            url: "http://localhost:4000/data",
+            secret
+         });
 
          let type = sql.split(' ')[0].toUpperCase();
          let info = { sql };
          if (type == "SELECT") {
-            let res = await client.get(`/${youid('find')}`, { params: info })
+            let res = await client.get(`/${await makePath(xansql, 'find')}`, { params: info })
             !res.success && console.error(res);
             return res.data || null
          } else if (type == "UPDATE") {
-            let res = await client.put(`/${youid('update')}`, { body: info })
+            let res = await client.put(`/${await makePath(xansql, 'update')}`, { body: info })
             !res.success && console.error(res);
             return res.data || null
          } else if (type == "DELETE") {
-            let res = await client.delete(`/${youid('delete')}`, { params: info })
+            let res = await client.delete(`/${await makePath(xansql, 'delete')}`, { params: info })
             !res.success && console.error(res);
             return res.data || null
          } else if (type == "INSERT") {
-            let res = await client.post(`/${youid('insert')}`, { body: info })
+            let res = await client.post(`/${await makePath(xansql, 'insert')}`, { body: info })
             !res.success && console.error(res);
             return res.data || null
          } else {
-            let res = await client.post(`/${youid('executer')}`, { body: info })
+            let res = await client.post(`/${await makePath(xansql, 'executer')}`, { body: info })
             !res.success && console.error(res);
             return res.data || null
          }
       },
       onFetch: async (xansql: Xansql, info: XansqlOnFetchInfo): Promise<XansqlOnFetchResponse> => {
-         const config = xansql.config
-         const secret = await crypto.hash(JSON.stringify(config))
-
-         if (info.method === 'GET' && info.path.endsWith('/get-client-secret')) {
-            return {
-               status: 200,
-               body: await crypto.encryptBuffer({ secret }, secret)
-            }
-         }
-
-         if (!serverModule) {
-            serverModule = (await import("securequ/server")).default;
-         }
+         const secret = await makeSecret(xansql)
+         serverModule = serverModule || (await import("securequ/server")).default;
 
          if (!server) {
             server = new serverModule({
-               mode: "development",
+               // mode: "development",
                basepath: '/data',
                clients: [
                   {
@@ -86,45 +86,53 @@ const XansqlFetch = () => {
                ]
             });
 
-            server.get(`/${youid('find')}`, async (info: any) => {
+            server.get(`/${await makePath(xansql, 'find')}`, async (info: any) => {
                const params: any = info.searchParams
                throw await xansql.execute(params.sql);
             })
 
-            server.post(`/${youid('insert')}`, async (info: any) => {
+            server.post(`/${await makePath(xansql, 'insert')}`, async (info: any) => {
                const params: any = info.body
                throw await xansql.execute(params.sql);
             })
 
-            server.put(`/${youid('update')}`, async (info: any) => {
+            server.put(`/${await makePath(xansql, 'update')}`, async (info: any) => {
                const params: any = info.body
                throw await xansql.execute(params.sql);
             })
 
-            server.delete(`/${youid('delete')}`, async (info: any) => {
+            server.delete(`/${await makePath(xansql, 'delete')}`, async (info: any) => {
                const params: any = info.searchParams
                throw await xansql.execute(params.sql);
             })
 
-            server.post(`/${youid('executer')}`, async (info: any) => {
+            server.post(`/${await makePath(xansql, 'executer')}`, async (info: any) => {
                const params: any = info.body
                throw await xansql.execute(params.sql);
             })
          }
 
+         try {
+            const res = await server.listen({
+               signeture: info.headers['x-signeture'],
+               path: info.path,
+               body: info.body,
+               method: info.method as any,
+               origin: info.headers['x-origin'],
+            })
 
-
-         const res = await server.listen({
-            signeture: info.headers['x-signeture'],
-            path: info.path,
-            body: info.body,
-            method: info.method as any,
-            origin: info.headers['x-origin'],
-         })
-
-         return {
-            status: res.status,
-            body: res.content,
+            return {
+               status: res.status,
+               body: res.content,
+            }
+         } catch (error: any) {
+            return {
+               status: 500,
+               body: await crypto.encryptBuffer({
+                  success: false,
+                  message: error.message || 'Internal Server Error'
+               }, secret)
+            }
          }
       }
    }

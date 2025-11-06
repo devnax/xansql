@@ -24,6 +24,7 @@ const server = async (app: Express) => {
          path: req.originalUrl,
          query: req.query,
       })
+
       res.status(response.status).end(response.body);
    })
 
@@ -96,6 +97,9 @@ const server = async (app: Express) => {
                   count: true
                }
             }
+         },
+         limit: {
+            // take: 1000,
          },
          where: {
             uid: { gt: 100 }

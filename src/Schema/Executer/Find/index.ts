@@ -1,6 +1,6 @@
 import Schema from "../..";
 import Foreign, { ForeignInfoType } from "../../../core/classes/ForeignInfo";
-import { chunkArray } from "../../../utils/chunker";
+import { chunkArray, chunkNumbers } from "../../../utils/chunker";
 import WhereArgs from "../../Args/WhereArgs";
 import { FindArgsAggregate, FindArgsType } from "../../type";
 import AggregateExecuter from "../Aggregate";
@@ -28,8 +28,19 @@ class FindExecuter {
          where_sql = where_sql ? `${where_sql} AND ${Distinct.sql}` : `WHERE ${Distinct.sql}`
       }
 
-      const sql = `SELECT ${Select.sql} FROM ${model.table} ${where_sql}${OrderBy.sql}${Limit.sql}`.trim()
-      const { results } = await model.execute(sql)
+      // batch execution with limit and offset
+      const batchLimit = chunkNumbers(Limit.take)
+      let results: any[] = []
+
+      for (let { take, skip } of batchLimit) {
+         const batchLimitArgs = new LimitArgs(model, { take, skip: Limit.skip + skip })
+         const sql = `SELECT ${Select.sql} FROM ${model.table} ${where_sql}${OrderBy.sql}${batchLimitArgs.sql}`.trim()
+         const { results: batchResults } = await model.execute(sql)
+         results = results.concat(batchResults)
+      }
+
+      // const sql = `SELECT ${Select.sql} FROM ${model.table} ${where_sql}${OrderBy.sql}${Limit.sql}`.trim()
+      // const { results } = await model.execute(sql)
 
       if (results?.length) {
          const is = Select.formatable_columns.length
@@ -54,9 +65,8 @@ class FindExecuter {
                idsList[column] = ids
             }
 
-            const fres = await this.executeRelation(relation, ids, column)
+            const fres = await this.executeRelation(relation, ids)
             freses[column] = fres
-
          }
 
          const agg_reses: any = {}
@@ -110,48 +120,71 @@ class FindExecuter {
    }
 
 
-   private async executeRelation(relation: SelectArgsRelationInfo, ids: number[], column: string) {
+   private async executeRelation(relation: SelectArgsRelationInfo, ids: number[]) {
       let xansql = this.model.xansql
       let foreign = relation.foreign
 
       const table = foreign.table
       let FModel = xansql.getModel(table)
       const field = FModel.schema[foreign.column]
-
       let args = relation.args
-      const limit = args.limit
-      let where_sql = args.where
-      let insql = `${foreign.relation.main} IN (${ids.join(",")})`
-      where_sql += where_sql ? ` AND ${insql}` : `WHERE ${insql}`
 
-      let sql = ''
-      if (!Foreign.isSchema(field)) {
-         sql = `SELECT ${args.select.sql} FROM ${table} ${where_sql} ${args.orderBy} ${limit.sql}`.trim()
-      } else {
-         sql = `
-         SELECT ${args.select.sql} FROM (
-           SELECT
-               ${args.select.sql},
-             ROW_NUMBER() OVER (PARTITION BY ${table}.${foreign.relation.main} ${args.orderBy}) AS ${table}_rank
-           FROM ${table}
-            ${where_sql}
-         ) AS ${table}
-         WHERE ${table}_rank > ${limit.skip} AND ${table}_rank <= ${limit.take + limit.skip};
-      `
+      const chunkedIds = chunkArray(ids, 100)
+      let fres: any[] = []
+
+      for (let { chunk } of chunkedIds) {
+         let sql = ''
+         const limit = args.limit
+         let where_sql = args.where
+         let insql = `${foreign.relation.main} IN (${chunk.join(",")})`
+         where_sql += where_sql ? ` AND ${insql}` : `WHERE ${insql}`
+
+         if (!Foreign.isSchema(field)) {
+            sql = `SELECT ${args.select.sql} FROM ${table} ${where_sql} ${args.orderBy} ${limit.sql}`.trim()
+         } else {
+            sql = `
+            SELECT ${args.select.sql} FROM (
+              SELECT
+                  ${args.select.sql},
+                ROW_NUMBER() OVER (PARTITION BY ${table}.${foreign.relation.main} ${args.orderBy}) AS ${table}_rank
+              FROM ${table}
+               ${where_sql}
+            ) AS ${table}
+            WHERE ${table}_rank > ${limit.skip} AND ${table}_rank <= ${limit.take + limit.skip};
+         `
+         }
+
+         const res = (await FModel.execute(sql)).results
+         fres = fres.concat(res)
       }
 
-      const fres = (await FModel.execute(sql)).results
+      // let insql = `${foreign.relation.main} IN (${ids.join(",")})`
+      // where_sql += where_sql ? ` AND ${insql}` : `WHERE ${insql}`
 
-      // execute nested relations
+      // if (!Foreign.isSchema(field)) {
+      //    sql = `SELECT ${args.select.sql} FROM ${table} ${where_sql} ${args.orderBy} ${limit.sql}`.trim()
+      // } else {
+      //    sql = `
+      //    SELECT ${args.select.sql} FROM (
+      //      SELECT
+      //          ${args.select.sql},
+      //        ROW_NUMBER() OVER (PARTITION BY ${table}.${foreign.relation.main} ${args.orderBy}) AS ${table}_rank
+      //      FROM ${table}
+      //       ${where_sql}
+      //    ) AS ${table}
+      //    WHERE ${table}_rank > ${limit.skip} AND ${table}_rank <= ${limit.take + limit.skip};
+      // `
+      // }
+      // const res = (await FModel.execute(sql)).results
+      // fres = fres.concat(res)
+
+
       if (fres.length) {
-
          const is = args.select.formatable_columns.length
             || Object.keys(args.select.relations || {}).length
             || Object.keys(args.aggregate || {}).length
 
-         if (!is) {
-            return fres
-         }
+         if (!is) return fres
 
          const nested_freses: { [col: string]: any[] } = {}
          const idsList: { [col: string]: number[] } = {}
@@ -169,7 +202,7 @@ class FindExecuter {
                }
                idsList[col] = ids
             }
-            const nested_fres = await this.executeRelation(rel, ids, col)
+            const nested_fres = await this.executeRelation(rel, ids)
             nested_freses[col] = nested_fres
          }
          // handle aggregate

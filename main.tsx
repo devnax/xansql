@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { db, ProductModel, UserModel } from './example'
 
 
-const Button = ({ label, onClick }) => {
+const Button = ({ label, onClick }: any) => {
   return (
     <button
       onClick={async () => {

@@ -13,7 +13,7 @@ class ExecuteQuery {
       let res: ExecuterResult | null = null;
 
       if (typeof window !== "undefined" && xansql.config.fetch?.execute) {
-         res = await xansql.config.fetch.execute(sql);
+         res = await xansql.config.fetch.execute(xansql, sql);
       } else {
          res = await xansql.dialect.execute(sql);
       }

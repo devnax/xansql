@@ -7,6 +7,7 @@
  */
 const dynamicPerPage = (length: number, perPage?: number) => {
    if (perPage) return perPage;
+   if (length <= 100) return 50;
    if (length <= 500) return 250;
    if (length <= 1000) return 500;
    if (length <= 3000) return 1000;
@@ -39,7 +40,7 @@ export function* chunkArray<T = any>(array: T[], perPage?: number) {
  * @param batchSize Size of each batch
  * @param skipStart Optional starting skip value (default 0)
  */
-export function* chunkNumbers(total: number, skipStart = 0, perPage?: number,) {
+export function* chunkNumbers(total: number, skipStart = 0, perPage?: number) {
    perPage = dynamicPerPage(total, perPage);
    for (let i = 0; i < total; i += perPage) {
       const take = Math.min(perPage, total - i);
