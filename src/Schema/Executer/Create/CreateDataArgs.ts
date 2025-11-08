@@ -1,6 +1,7 @@
 import Schema from "../.."
 import Foreign, { ForeignInfoType } from "../../../core/classes/ForeignInfo"
 import XqlDate from "../../../Types/fields/Date"
+import XqlFile from "../../../Types/fields/File"
 import { isArray, isNumber, isObject } from "../../../utils"
 import ValueFormatter from "../../include/ValueFormatter"
 import { DataArgsType } from "../../type"

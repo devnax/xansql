@@ -99,7 +99,8 @@ class Migration {
       }
 
       return {
-         sql, indexes
+         sql,
+         indexes
       }
    }
 

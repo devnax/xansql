@@ -17,9 +17,8 @@ class CreateExecuter {
       const dataArgs = (new CreateDataArgs(model, args.data)).values
 
       // only for validation
-      if (args.select) {
-         new SelectArgs(model, args.select || {})
-      }
+      if (args.select) new SelectArgs(model, args.select || {})
+
       const insertIds = []
       let results = []
 

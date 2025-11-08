@@ -3,6 +3,7 @@ import XqlArray from "../../Types/fields/Array";
 import XqlBoolean from "../../Types/fields/Boolean";
 import XqlDate from "../../Types/fields/Date";
 import XqlEnum from "../../Types/fields/Enum";
+import XqlFile from "../../Types/fields/File";
 import XqlIDField from "../../Types/fields/IDField";
 import XqlNumber from "../../Types/fields/Number";
 import XqlObject from "../../Types/fields/Object";
@@ -50,6 +51,8 @@ class ValueFormatter {
             return 'NULL';
          } else if (this.iof(model, column, XqlIDField, XqlNumber, XqlSchema)) {
             return value
+         } else if (this.iof(model, column, XqlFile)) {
+            return `'${this.escape(value.name)}'`;
          } else if (this.iof(model, column, XqlString, XqlEnum)) {
             return `'${this.escape(value)}'`;
          } else if (this.iof(model, column, XqlObject, XqlRecord, XqlArray, XqlTuple, XqlUnion)) {
@@ -88,7 +91,7 @@ class ValueFormatter {
       }
       if (value === null || value === undefined) return null
 
-      if (this.iof(model, column, XqlIDField, XqlNumber, XqlString, XqlEnum)) {
+      if (this.iof(model, column, XqlIDField, XqlNumber, XqlString, XqlFile, XqlEnum)) {
          return value
       } else if (this.iof(model, column, XqlObject, XqlRecord, XqlArray, XqlTuple, XqlUnion)) {
          return JSON.parse(value);

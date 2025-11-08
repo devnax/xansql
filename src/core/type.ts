@@ -38,11 +38,6 @@ export type XansqlOnFetchResponse = {
 };
 
 
-export type XansqlFetch = {
-   execute: (xansql: Xansql, sql: string) => Promise<ExecuterResult>;
-   onFetch: (xansql: Xansql, url: string, info: XansqlOnFetchInfo) => Promise<XansqlOnFetchResponse>;
-}
-
 export type XansqlFetchUrl = string
 
 export type XansqlFetchDefault = {
@@ -70,14 +65,12 @@ export type XansqlCache<Row = object> = {
 
 export type XansqlConfigType = {
    dialect: XansqlDialect;
-   fetch?: XansqlFetchUrl | XansqlFetchDefault | XansqlFetch;
+   fetch?: XansqlFetchUrl | XansqlFetchDefault
    socket?: XansqlSocket;
    cache?: XansqlCache;
 
    file?: {
       upload: {
-         maxFilesize?: number;
-         checkFileType?: boolean;
          chunk: (chunk: Uint8Array, uploadMeta: UploadFileMeta, metadata?: Metadata) => Promise<boolean>;
          complete: (meta: UploadFileMeta, metadata?: Metadata) => Promise<UploadFilePath>;
          failed?: (meta: UploadFileMeta, metadata?: Metadata) => Promise<boolean>;

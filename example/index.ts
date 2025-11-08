@@ -1,7 +1,7 @@
 import dotenv from 'dotenv'
 import { Xansql, Schema, xt } from '../src'
-import SqliteDialect from '../src/libs/dialects/Sqlite'
-import MysqlDialect from '../src/libs/dialects/Mysql'
+import SqliteDialect from '../src/dialects/Sqlite'
+import MysqlDialect from '../src/dialects/Mysql'
 
 if (typeof process !== 'undefined' && process?.env) {
    try {

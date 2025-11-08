@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3';
-import { ExecuterResult } from '../../../core/type';
+import { ExecuterResult } from '../../core/type';
 
 let sqlite: typeof import('better-sqlite3');
 

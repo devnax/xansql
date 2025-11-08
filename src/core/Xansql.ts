@@ -79,7 +79,7 @@ class Xansql {
       clearTimeout(this._timer);
       this._timer = setTimeout(() => {
          this.migrate()
-      }, 1);
+      }, 5);
       return model
    }
 
@@ -93,11 +93,11 @@ class Xansql {
    async execute(sql: string): Promise<ExecuterResult> {
       sql = sql.trim().replaceAll(/\s+/g, ' ');
       if (typeof window !== "undefined") {
-         if (!this.config.fetch) throw new Error("Xansql fetch configuration is not set.")
-         if (typeof this.config.fetch === "string" || typeof (this.config.fetch as XansqlFetchDefault).url === "string") {
+         if (this.config.fetch) {
+            const hasUrl = typeof this.config.fetch === "string" || typeof (this.config.fetch as XansqlFetchDefault).url === "string"
+            if (!hasUrl) throw new Error("Xansql fetch configuration does not have a valid url.")
             return await this.XansqlFetch.execute(sql);
          }
-         return await (this.config.fetch as any).execute(this, sql);
       }
       return await this.dialect.execute(sql) as any
    }
@@ -140,14 +140,12 @@ class Xansql {
    }
 
    async onFetch(url: string, info: XansqlOnFetchInfo) {
-      if (typeof window !== "undefined") {
-         throw new Error("Xansql onFetch method is not available in client side.");
-      }
-      if (!this.config.fetch) throw new Error("Xansql fetch configuration is not set.")
-      if (typeof this.config.fetch === "string" || typeof (this.config.fetch as XansqlFetchDefault).url === "string") {
-         return await this.XansqlFetch.onFetch(url, info);
-      }
-      return await (this.config.fetch as any).onFetch(this, url, info);
+      if (typeof window !== "undefined") throw new Error("Xansql onFetch method is not available in client side.")
+
+      const hasUrl = typeof this.config.fetch === "string" || typeof (this.config.fetch as XansqlFetchDefault).url === "string"
+      if (!this.config.fetch || !hasUrl) throw new Error("Xansql fetch configuration does not have a valid url.")
+
+      return await this.XansqlFetch.onFetch(url, info);
    }
 
 }
