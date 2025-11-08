@@ -129,7 +129,8 @@ class FindExecuter {
       const field = FModel.schema[foreign.column]
       let args = relation.args
 
-      const chunkedIds = chunkArray(ids, 100)
+      const chunkedIds = chunkArray(ids, 150)
+
       let fres: any[] = []
 
       for (let { chunk } of chunkedIds) {

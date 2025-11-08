@@ -1,4 +1,4 @@
-import { ExecuterResult, XansqlDialectEngine } from '../../core/type';
+import { ExecuterResult, XansqlDialectEngine } from '../../../core/type';
 
 let bun: typeof import('bun');
 
@@ -7,7 +7,7 @@ const BunSqlDialect = (config: string, engine: XansqlDialectEngine) => {
 
    const execute = async (sql: string): Promise<ExecuterResult> => {
       if (typeof window !== 'undefined') {
-         throw new Error('BunSqlDialect can only be used in a Bun environment.');
+         throw new Error('Bun SQL dialect cannot be used in the browser environment.');
       }
 
       if (!bun) bun = await import('bun');

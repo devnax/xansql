@@ -2,7 +2,7 @@ import dotenv from 'dotenv'
 dotenv.config()
 import fakeData from './faker'
 import express, { Express } from 'express';
-import { db, ProductModel, UserModel, UserModelMeta } from './example'
+import { db, ProductModel, UserModel } from './example'
 import WhereArgsQuery from './src/Schema/Args/WhereArgs';
 import SelectArgs from './src/Schema/Executer/Find/SelectArgs';
 import UpdateDataArgs from './src/Schema/Executer/Update/UpdateDataArgs';
@@ -14,15 +14,11 @@ const server = async (app: Express) => {
    app.use(express.urlencoded({ extended: true }));
    app.disable('etag');
 
-   app.use('/data/*', express.raw({ type: "application/octet-stream", limit: "10mb" }), async (req: any, res: any) => {
-      const response = await db.onFetch({
-         origine: req.origin,
+   app.use('/data/*', express.raw({ type: db.XANFETCH_CONTENT_TYPE, limit: "10mb" }), async (req: any, res: any) => {
+      const response = await db.onFetch(req.originalUrl, {
          body: req.body,
-         method: req.method,
          headers: req.headers,
          cookies: req.cookies,
-         path: req.originalUrl,
-         query: req.query,
       })
 
       res.status(response.status).end(response.body);

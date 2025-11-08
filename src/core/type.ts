@@ -1,4 +1,4 @@
-import { SecurequClientConfig, SecurequServerConfig } from "securequ";
+import { Metadata, SecurequClientConfig, SecurequServerConfig, UploadFileMeta, UploadFilePath } from "securequ";
 import Schema from "../Schema";
 import Xansql from "./Xansql";
 import { AggregateArgsType, CreateArgsType, DeleteArgsType, FindArgsType, UpdateArgsType } from "../Schema/type";
@@ -25,10 +25,6 @@ export type XansqlDialect = {
 
 // FETCH TYPE
 export type XansqlOnFetchInfo = {
-   method: string;
-   path: string;
-   origine: string;
-   query: any;
    body: any;
    headers: { [key: string]: string };
    cookies: { [key: string]: string };
@@ -40,9 +36,20 @@ export type XansqlOnFetchResponse = {
    headers?: { [key: string]: string };
    cookies?: { [key: string]: string };
 };
+
+
 export type XansqlFetch = {
    execute: (xansql: Xansql, sql: string) => Promise<ExecuterResult>;
-   onFetch: (xansql: Xansql, info: XansqlOnFetchInfo) => Promise<XansqlOnFetchResponse>;
+   onFetch: (xansql: Xansql, url: string, info: XansqlOnFetchInfo) => Promise<XansqlOnFetchResponse>;
+}
+
+export type XansqlFetchUrl = string
+
+export type XansqlFetchDefault = {
+   url: XansqlFetchUrl;
+   mode?: "production" | "development";
+   server?: Omit<SecurequServerConfig, 'clients' | 'accept' | 'mode'>;
+   client?: Omit<SecurequClientConfig, 'url' | 'defaultOptions' | 'secret'>;
 }
 
 export type XansqlSocket = {
@@ -60,11 +67,23 @@ export type XansqlCache<Row = object> = {
    onDelete: (model: Schema, rows: Row[]) => Promise<void>;
 }
 
+
 export type XansqlConfigType = {
    dialect: XansqlDialect;
-   fetch?: XansqlFetch;
+   fetch?: XansqlFetchUrl | XansqlFetchDefault | XansqlFetch;
    socket?: XansqlSocket;
    cache?: XansqlCache;
+
+   file?: {
+      upload: {
+         maxFilesize?: number;
+         checkFileType?: boolean;
+         chunk: (chunk: Uint8Array, uploadMeta: UploadFileMeta, metadata?: Metadata) => Promise<boolean>;
+         complete: (meta: UploadFileMeta, metadata?: Metadata) => Promise<UploadFilePath>;
+         failed?: (meta: UploadFileMeta, metadata?: Metadata) => Promise<boolean>;
+      };
+      delete: (filename: string) => Promise<boolean>
+   };
 
    maxLimit?: {
       find?: number;

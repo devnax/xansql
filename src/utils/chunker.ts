@@ -23,6 +23,7 @@ const dynamicPerPage = (length: number, perPage?: number) => {
 export function* chunkArray<T = any>(array: T[], perPage?: number) {
    const length = array.length;
    perPage = dynamicPerPage(length, perPage);
+
    let chunkIndex = 0;
    for (let i = 0; i < length; i += perPage) {
       yield {

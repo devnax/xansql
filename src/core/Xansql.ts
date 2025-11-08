@@ -1,20 +1,20 @@
 import Schema from "../Schema";
-import { ExecuterResult, XansqlConfigType, XansqlConfigTypeRequired, XansqlModelOptions, XansqlOnFetchInfo } from "./type";
+import { ExecuterResult, XansqlConfigType, XansqlConfigTypeRequired, XansqlFetchDefault, XansqlModelOptions, XansqlOnFetchInfo } from "./type";
 import XansqlTransaction from "./classes/XansqlTransaction";
-import ExecuteQuery from "./classes/ExecuteQuery";
 import XansqlConfig from "./classes/XansqlConfig";
-import ExecuteServer from "./classes/ExecuteServer";
 import ModelFormatter from "./classes/ModelFormatter";
 import Migration from "./classes/Migration";
+import XansqlFetch from "./classes/XansqlFetch";
 
 class Xansql {
    readonly config: XansqlConfigTypeRequired;
    readonly ModelFactory = new Map<string, Schema>()
+   readonly XANFETCH_CONTENT_TYPE = 'application/octet-stream';
    private _aliases = new Map<string, string>();
    private ModelFormatter: ModelFormatter;
-   private ExecuteQuery: ExecuteQuery;
    private XansqlConfig: XansqlConfig;
    private XansqlTransaction: XansqlTransaction;
+   private XansqlFetch: XansqlFetch
 
    // SQL Generator Instances can be added here
    readonly Migration: Migration
@@ -23,10 +23,11 @@ class Xansql {
       this.XansqlConfig = new XansqlConfig(this, config);
       this.config = this.XansqlConfig.parse()
       this.XansqlTransaction = new XansqlTransaction(this);
-      this.ExecuteQuery = new ExecuteQuery(this);
       this.ModelFormatter = new ModelFormatter(this);
 
       this.Migration = new Migration(this);
+
+      this.XansqlFetch = new XansqlFetch(this);
    }
 
    get dialect() {
@@ -90,7 +91,15 @@ class Xansql {
    }
 
    async execute(sql: string): Promise<ExecuterResult> {
-      return await this.ExecuteQuery.execute(sql);
+      sql = sql.trim().replaceAll(/\s+/g, ' ');
+      if (typeof window !== "undefined") {
+         if (!this.config.fetch) throw new Error("Xansql fetch configuration is not set.")
+         if (typeof this.config.fetch === "string" || typeof (this.config.fetch as XansqlFetchDefault).url === "string") {
+            return await this.XansqlFetch.execute(sql);
+         }
+         return await (this.config.fetch as any).execute(this, sql);
+      }
+      return await this.dialect.execute(sql) as any
    }
 
    async beginTransaction() {
@@ -130,14 +139,15 @@ class Xansql {
       }
    }
 
-   async onFetch(info: XansqlOnFetchInfo) {
+   async onFetch(url: string, info: XansqlOnFetchInfo) {
       if (typeof window !== "undefined") {
          throw new Error("Xansql onFetch method is not available in client side.");
       }
-      if (!this.config.fetch?.onFetch) {
-         throw new Error("Xansql fetch onFetch method is not configured.");
+      if (!this.config.fetch) throw new Error("Xansql fetch configuration is not set.")
+      if (typeof this.config.fetch === "string" || typeof (this.config.fetch as XansqlFetchDefault).url === "string") {
+         return await this.XansqlFetch.onFetch(url, info);
       }
-      return await this.config.fetch.onFetch(this, info);
+      return await (this.config.fetch as any).onFetch(this, url, info);
    }
 
 }

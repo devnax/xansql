@@ -2,7 +2,6 @@ import dotenv from 'dotenv'
 import { Xansql, Schema, xt } from '../src'
 import SqliteDialect from '../src/libs/dialects/Sqlite'
 import MysqlDialect from '../src/libs/dialects/Mysql'
-import XansqlFetch from '../src/libs/XansqlFetch'
 
 if (typeof process !== 'undefined' && process?.env) {
    try {
@@ -50,7 +49,7 @@ const sqliteConn: string = 'db.sqlite'
 
 export const db = new Xansql({
    dialect: SqliteDialect(sqliteConn),
-   fetch: XansqlFetch(),
+   fetch: "http://localhost:4000/data",
    // maxLimit: {
    //    // create: 10000
    // },
