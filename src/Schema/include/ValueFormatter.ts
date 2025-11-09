@@ -1,4 +1,5 @@
 import Schema from "..";
+import { XansqlFileMeta } from "../../core/type";
 import XqlArray from "../../Types/fields/Array";
 import XqlBoolean from "../../Types/fields/Boolean";
 import XqlDate from "../../Types/fields/Date";
@@ -12,6 +13,8 @@ import XqlSchema from "../../Types/fields/Schema";
 import XqlString from "../../Types/fields/String";
 import XqlTuple from "../../Types/fields/Tuple";
 import XqlUnion from "../../Types/fields/Union";
+import { uid } from "../../utils";
+import { chunkFile, countFileChunks, makeFileUID } from "../../utils/file";
 
 class ValueFormatter {
    static iof(model: Schema, column: string, ...instances: any[]) {
@@ -41,10 +44,7 @@ class ValueFormatter {
 
    static toSql(model: Schema, column: string, value: any) {
       const field = model.schema[column];
-      if (!field) {
-         throw new Error(`Column ${column} does not exist in schema ${model.table}`);
-      }
-
+      if (!field) throw new Error(`Column ${column} does not exist in schema ${model.table}`);
       try {
          value = field.parse(value);
          if (value === undefined || value === null) {
@@ -52,7 +52,7 @@ class ValueFormatter {
          } else if (this.iof(model, column, XqlIDField, XqlNumber, XqlSchema)) {
             return value
          } else if (this.iof(model, column, XqlFile)) {
-            return `'${this.escape(value.name)}'`;
+            return `'${this.makeFilename(model, column, value as File)}'`;
          } else if (this.iof(model, column, XqlString, XqlEnum)) {
             return `'${this.escape(value)}'`;
          } else if (this.iof(model, column, XqlObject, XqlRecord, XqlArray, XqlTuple, XqlUnion)) {
@@ -86,9 +86,7 @@ class ValueFormatter {
 
    static fromSql(model: Schema, column: string, value: any) {
       const field = model.schema[column];
-      if (!field) {
-         throw new Error(`Column ${column} does not exist in schema ${model.table}`);
-      }
+      if (!field) throw new Error(`Column ${column} does not exist in schema ${model.table}`);
       if (value === null || value === undefined) return null
 
       if (this.iof(model, column, XqlIDField, XqlNumber, XqlString, XqlFile, XqlEnum)) {
@@ -103,6 +101,19 @@ class ValueFormatter {
 
       return value;
    }
+
+
+   // File related methods
+   static makeFilename(model: Schema, column: string, value: File): string {
+      let ext = value.name.split('.').pop() || 'dat';
+      const name = uid(`${model.table}_${column}_${value.name}_${value.size}_${value.lastModified}`, 32)
+      return `${name}.${ext}`;
+   }
+
+   static formatFile(model: Schema, column: string, file: File): File {
+      return new File([file], this.makeFilename(model, column, file), { type: file.type });
+   }
+
 }
 
 export default ValueFormatter;

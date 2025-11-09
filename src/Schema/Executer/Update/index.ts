@@ -23,7 +23,7 @@ class UpdateExecuter {
 
       const Where = new WhereArgs(model, args.where)
       let sql = `UPDATE ${model.table} SET ${UpdateArgs.sql} ${Where.sql}`.trim()
-      const update = await model.execute(sql)
+      const update = await model.execute(sql, UpdateArgs.files)
       if (!update.affectedRows) {
          return []
       }

@@ -45,8 +45,8 @@ abstract class SchemaBase {
       return column === this.IDColumn;
    }
 
-   async execute(sql: string): Promise<any> {
-      return await this.xansql.execute(sql)
+   async execute(sql: string, files?: File[]): Promise<any> {
+      return await this.xansql.execute(sql, files)
    }
 
    async drop() {

@@ -4,6 +4,8 @@ import { CreateArgsType } from "../../type"
 import SelectArgs from "../Find/SelectArgs"
 import { chunkArray } from "../../../utils/chunker"
 import RelationExecuteArgs from "../../Args/RelationExcuteArgs"
+import { chunkFile, countFileChunks } from "../../../utils/file"
+import { XansqlFileMeta } from "../../../core/type"
 
 
 class CreateExecuter {
@@ -25,7 +27,8 @@ class CreateExecuter {
       for (let { chunk } of chunkArray(dataArgs)) {
          for (let arg of chunk) {
             const sql = `INSERT INTO ${model.table} ${arg.sql}`
-            const { insertId } = await model.execute(sql)
+            const { insertId } = await model.execute(sql, arg.files)
+
             if (insertId) {
                insertIds.push(insertId)
                results.push({ [model.IDColumn]: insertId })

@@ -1,6 +1,7 @@
 import { crypto, SecurequClient, SecurequServer } from "securequ";
 import Xansql from "../Xansql"
-import { XansqlFetchDefault, XansqlOnFetchInfo } from "../type";
+import { XansqlFetchDefault, XansqlFileMeta, XansqlOnFetchInfo } from "../type";
+import { chunkFile, countFileChunks } from "../../utils/file";
 
 let clientModule: any = null;
 let serverModule: any = null;
@@ -8,7 +9,7 @@ let serverModule: any = null;
 
 class XansqlFetch {
    xansql: Xansql
-   private client: SecurequClient | null = null
+   private _client: SecurequClient | null = null
    private server: SecurequServer | null = null
    private secretCache: string | null = null
    private config: XansqlFetchDefault
@@ -26,10 +27,9 @@ class XansqlFetch {
       this.config = config
    }
 
-   async execute(sql: string) {
+   async client() {
       const secret = await this.makeSecret()
       const config = this.config as XansqlFetchDefault
-
       clientModule = clientModule || (await import("securequ/client")).default
       let client = this.client as any
       if (!client) {
@@ -37,16 +37,23 @@ class XansqlFetch {
             url: config.url,
             secret
          });
-         this.client = client
+         this._client = client
       }
+      return client;
+   }
 
+   async execute(sql: string): Promise<any> {
+      const client = await this.client()
       let type = sql.split(' ')[0].toUpperCase();
       const tableInfo = this.getTableName(sql);
-      // console.log(tableInfo, sql);
 
       let info = { sql, table: tableInfo ? tableInfo.table : null, type: tableInfo ? tableInfo.type : type };
       if (type == "SELECT") {
          let res = await client.get(await this.makePath('find'), { params: info })
+         !res.success && console.error(res);
+         return res.data || null
+      } else if (type == "INSERT") {
+         let res = await client.post(`/${await this.makePath('insert')}`, { body: info })
          !res.success && console.error(res);
          return res.data || null
       } else if (type == "UPDATE") {
@@ -57,15 +64,31 @@ class XansqlFetch {
          let res = await client.delete(await this.makePath('delete'), { params: info })
          !res.success && console.error(res);
          return res.data || null
-      } else if (type == "INSERT") {
-         let res = await client.post(`/${await this.makePath('insert')}`, { body: info })
-         !res.success && console.error(res);
-         return res.data || null
       } else {
          let res = await client.post(await this.makePath('executer'), { body: info })
          !res.success && console.error(res);
          return res.data || null
       }
+   }
+
+   async uploadFile(chunk: Uint8Array, chunkIndex: number, filemeta: XansqlFileMeta) {
+      const client = await this.client()
+      let res = await client.post(await this.makePath('uploadFile'), {
+         body: {
+            chunk,
+            chunkIndex,
+            filemeta
+         }
+      })
+      !res.success && console.error(res);
+      return res.data || null
+   }
+
+   async deleteFile(filename: string) {
+      const client = await this.client()
+      let res = await client.delete(await this.makePath('deleteFile'), { params: { filename } })
+      !res.success && console.error(res);
+      return res.data || null
    }
 
    async onFetch(url: string, info: XansqlOnFetchInfo) {
@@ -75,7 +98,6 @@ class XansqlFetch {
       let server = this.server as any
       if (!server) {
          const url = new URL(config.url)
-
          server = new serverModule({
             mode: config.mode,
             basepath: `/${url.pathname.replace(/^\/+/, '')}`,
@@ -112,6 +134,28 @@ class XansqlFetch {
          server.post(await this.makePath('executer'), async (info: any) => {
             const params: any = info.body
             throw await xansql.execute(params.sql);
+         })
+
+         server.post(await this.makePath('uploadFile'), async (info: any) => {
+            const params: any = info.body
+            const chunk: Uint8Array = params.chunk;
+            const chunkIndex: number = params.chunkIndex;
+            const filemeta: XansqlFileMeta = params.filemeta;
+            if (!xansql.config.file || !xansql.config.file.upload) {
+               throw new Error("Xansql file upload configuration is not set.");
+            }
+            const success = await xansql.config.file.upload(chunk, chunkIndex, filemeta);
+            throw success;
+         })
+
+         server.delete(await this.makePath('deleteFile'), async (info: any) => {
+            const params: any = info.searchParams
+            const filename: string = params.filename;
+            if (!xansql.config.file || !xansql.config.file.delete) {
+               throw new Error("Xansql file delete configuration is not set.");
+            }
+            const success = await xansql.config.file.delete(filename);
+            throw success;
          })
       }
 

@@ -1,10 +1,11 @@
 import Schema from "../Schema";
-import { ExecuterResult, XansqlConfigType, XansqlConfigTypeRequired, XansqlFetchDefault, XansqlModelOptions, XansqlOnFetchInfo } from "./type";
+import { ExecuterResult, XansqlConfigType, XansqlConfigTypeRequired, XansqlFetchDefault, XansqlFileMeta, XansqlModelOptions, XansqlOnFetchInfo } from "./type";
 import XansqlTransaction from "./classes/XansqlTransaction";
 import XansqlConfig from "./classes/XansqlConfig";
 import ModelFormatter from "./classes/ModelFormatter";
 import Migration from "./classes/Migration";
 import XansqlFetch from "./classes/XansqlFetch";
+import { chunkFile, countFileChunks } from "../utils/file";
 
 class Xansql {
    readonly config: XansqlConfigTypeRequired;
@@ -90,16 +91,75 @@ class Xansql {
       return this.ModelFactory.get(table) as Schema;
    }
 
-   async execute(sql: string): Promise<ExecuterResult> {
+   async execute(sql: string, files?: File[]): Promise<ExecuterResult> {
       sql = sql.trim().replaceAll(/\s+/g, ' ');
-      if (typeof window !== "undefined") {
-         if (this.config.fetch) {
-            const hasUrl = typeof this.config.fetch === "string" || typeof (this.config.fetch as XansqlFetchDefault).url === "string"
-            if (!hasUrl) throw new Error("Xansql fetch configuration does not have a valid url.")
+
+      if (typeof window !== "undefined" && !this.config.fetch) {
+         throw new Error("Xansql fetch configuration is required in client side.");
+      }
+
+      files = files || [];
+
+      try {
+         for (let file of files) {
+            await this.uploadFile(file);
+         }
+
+         if (typeof window !== "undefined") {
             return await this.XansqlFetch.execute(sql);
+         } else {
+            return await this.dialect.execute(sql) as any
+         }
+      } catch (error) {
+         for (let file of files) {
+            if (this.config.file && this.config.file.delete) {
+               await this.config.file.delete(file.name);
+            }
+         }
+         throw error;
+      }
+   }
+
+   async uploadFile(file: File) {
+      if (!this.config.file || !this.config.file.upload) {
+         throw new Error("Xansql file upload configuration is not provided.");
+      }
+      const totalChunks = countFileChunks(file);
+      const fileChunks = chunkFile(file);
+      const filemeta: XansqlFileMeta = {
+         name: file.name,
+         size: file.size,
+         mime: file.type,
+         chunk_size: totalChunks,
+      };
+
+      if (typeof window !== "undefined" && !this.config.fetch) {
+         throw new Error("Xansql fetch configuration is required in client side.");
+      }
+
+      for await (let { chunk, chunkIndex } of fileChunks) {
+         if (typeof window !== "undefined") {
+            await this.XansqlFetch.uploadFile(chunk, chunkIndex, filemeta);
+         } else {
+            await this.config.file.upload(chunk, chunkIndex, filemeta);
          }
       }
-      return await this.dialect.execute(sql) as any
+
+      return file.name
+   }
+
+   async deleteFile(filename: string) {
+      if (!this.config.file || !this.config.file.delete) {
+         throw new Error("Xansql file delete configuration is not provided.");
+      }
+      if (typeof window !== "undefined" && !this.config.fetch) {
+         throw new Error("Xansql fetch configuration is required in client side.");
+      }
+      if (typeof window !== "undefined") {
+         return await this.XansqlFetch.deleteFile(filename);
+      } else {
+         return await this.config.file.delete(filename);
+      }
    }
 
    async beginTransaction() {
@@ -141,10 +201,8 @@ class Xansql {
 
    async onFetch(url: string, info: XansqlOnFetchInfo) {
       if (typeof window !== "undefined") throw new Error("Xansql onFetch method is not available in client side.")
-
       const hasUrl = typeof this.config.fetch === "string" || typeof (this.config.fetch as XansqlFetchDefault).url === "string"
       if (!this.config.fetch || !hasUrl) throw new Error("Xansql fetch configuration does not have a valid url.")
-
       return await this.XansqlFetch.onFetch(url, info);
    }
 

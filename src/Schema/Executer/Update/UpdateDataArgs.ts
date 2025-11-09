@@ -29,6 +29,7 @@ class UpdateDataArgs {
    */
    private data: DataObject = {}
 
+   readonly files: File[] = []
    /**
    * Get data object
    * format: { col1: val1, col2: val2, col3: val3 }
@@ -40,7 +41,6 @@ class UpdateDataArgs {
     * format: { relation1: data1, relation2: data2 }
     */
    readonly sql: string = ''
-
 
 
    constructor(model: Schema, data: DataArgsType) {
@@ -99,6 +99,10 @@ class UpdateDataArgs {
             // check is the field is IDField or created_at or updated_at
             if (model.IDColumn === column || field instanceof XqlDate && (field.meta.update || field.meta.create)) {
                throw new Error(`Cannot set value for ${model.table}.${column}. It is automatically managed.`);
+            }
+
+            if (value instanceof File) {
+               this.files.push(ValueFormatter.formatFile(model, column, value))
             }
 
             this.data[column] = ValueFormatter.toSql(model, column, value)

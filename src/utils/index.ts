@@ -58,3 +58,40 @@ export const quote = (engine: XansqlDialectEngine, identifier: string) => {
    if (engine === 'postgresql' || engine === 'sqlite') return `"${identifier}"`;
    return identifier;
 }
+
+export const uid = (str: string, length = 28): string => {
+   let h1 = 0x811c9dc5;
+   let h2 = 0x811c9dc5 ^ str.length;
+
+   // Simple dual-hash loop
+   for (let i = 0; i < str.length; i++) {
+      const c = str.charCodeAt(i);
+      h1 = Math.imul(h1 ^ c, 0x1000193);
+      h2 = Math.imul(h2 ^ (c + i * 17), 0x85ebca6b);
+   }
+
+   // Base36 mix gives letters + digits
+   let base = (h1 >>> 0).toString(36) + (h2 >>> 0).toString(36);
+
+   // Add derived chars from original string to strengthen variety
+   for (let i = 0; i < str.length; i++) {
+      const code = str.charCodeAt(i);
+      base += ((code * (i + 31)) % 36).toString(36);
+   }
+
+   // Scramble characters deterministically based on input
+   const arr = base.split('');
+   for (let i = arr.length - 1; i > 0; i--) {
+      const j = (str.charCodeAt(i % str.length) + i * 19) % arr.length;
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+   }
+
+   // Ensure letters are mixed in
+   const mixed = arr
+      .map((c, i) =>
+         i % 3 === 0 ? String.fromCharCode(97 + (c.charCodeAt(0) % 26)) : c
+      )
+      .join('');
+
+   return mixed.slice(0, length);
+}

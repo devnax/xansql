@@ -21,6 +21,7 @@ const UserSchema = new Schema("users", {
    uid: xt.id(),
    name: xt.string(),
    username: xt.string().optional().index(),
+   photo: xt.file().optional(),
    email: xt.string().index(),
    password: xt.string(),
    metas: xt.array(xt.schema("user_metas", "user")),

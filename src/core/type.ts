@@ -62,6 +62,18 @@ export type XansqlCache<Row = object> = {
    onDelete: (model: Schema, rows: Row[]) => Promise<void>;
 }
 
+export type XansqlFileMeta = {
+   name: string;
+   ext?: string;
+   size: number;
+   mime: string;
+   chunk_size: number;
+}
+
+export type XansqlFile = {
+   upload: (chunk: Uint8Array, chunkIndex: number, filemeta: XansqlFileMeta) => Promise<boolean>;
+   delete: (filename: string) => Promise<boolean>
+}
 
 export type XansqlConfigType = {
    dialect: XansqlDialect;
@@ -69,14 +81,7 @@ export type XansqlConfigType = {
    socket?: XansqlSocket;
    cache?: XansqlCache;
 
-   file?: {
-      upload: {
-         chunk: (chunk: Uint8Array, uploadMeta: UploadFileMeta, metadata?: Metadata) => Promise<boolean>;
-         complete: (meta: UploadFileMeta, metadata?: Metadata) => Promise<UploadFilePath>;
-         failed?: (meta: UploadFileMeta, metadata?: Metadata) => Promise<boolean>;
-      };
-      delete: (filename: string) => Promise<boolean>
-   };
+   file?: XansqlFile
 
    maxLimit?: {
       find?: number;

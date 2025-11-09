@@ -189,68 +189,71 @@ const server = async (app: Express) => {
    })
 
    app.get('/create', async (req: any, res: any) => {
+      const file = new File(['Hello, world!'], 'hello.txt', { type: 'text/plain' });
 
-      // const result = await UserModel.create({
-      //    select: {
-      //       name: true,
-      //       email: true,
-      //       products: {
-      //          select: {
-      //             description: true,
-      //             name: true,
-      //             categories: {
-      //                select: {
-      //                   name: true,
-      //                },
-      //             }
-      //          }
-      //       }
-      //    },
-      //    data: {
-      //       name: "John Doe",
-      //       email: `john${Math.floor(Math.random() * 10000)}@doe.com`,
-      //       password: "password",
-      //       // created_at: new Date(),
-      //       products: {
-      //          name: "Hello World",
-      //          description: "This is my first post",
-      //          price: "19.99",
-      //          // user: 3,
-      //          categories: [
-      //             {
-      //                name: "Tech",
-      //             },
-      //             { name: "News" },
-      //          ],
-      //       }
-      //    }
-      // })
-
-      const result = await ProductModel.create({
+      const result = await UserModel.create({
          select: {
-            description: true,
             name: true,
-            user: true,
-            categories: {
+            email: true,
+            photo: true,
+            products: {
                select: {
+                  description: true,
                   name: true,
-               },
+                  categories: {
+                     select: {
+                        name: true,
+                     },
+                  }
+               }
             }
          },
          data: {
-            user: 1,
-            name: "Hello World",
-            description: "This is my first post",
-            price: "19.99",
-            // user: 3,
-            categories: [
-               {
-                  name: "Tech",
-               },
-               { name: "News" },
-            ],
+            name: "John Doe",
+            email: `john${Math.floor(Math.random() * 10000)}@doe.com`,
+            password: "password",
+            photo: file,
+            // created_at: new Date(),
+            products: {
+               name: "Hello World",
+               description: "This is my first post",
+               price: "19.99",
+               // user: 3,
+               categories: [
+                  {
+                     name: "Tech",
+                  },
+                  { name: "News" },
+               ],
+            }
          }
       })
+
+      // const result = await ProductModel.create({
+      //    // select: {
+      //    //    description: true,
+      //    //    name: true,
+      //    //    user: true,
+      //    //    categories: {
+      //    //       select: {
+      //    //          name: true,
+      //    //       },
+      //    //    }
+      //    // },
+      //    data: {
+      //       user: 1,
+      //       name: "Hello World",
+      //       description: "This is my first post",
+      //       price: "19.99",
+      //       // user: 3,
+      //       categories: [
+      //          {
+      //             name: "Tech",
+      //          },
+      //          { name: "News" },
+      //       ],
+      //    }
+      // })
       res.json(result)
    });
 
