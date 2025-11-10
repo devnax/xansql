@@ -5,7 +5,11 @@ import XansqlConfig from "./classes/XansqlConfig";
 import ModelFormatter from "./classes/ModelFormatter";
 import Migration from "./classes/Migration";
 import XansqlFetch from "./classes/XansqlFetch";
-import { chunkFile, countFileChunks, makeFilename } from "../utils/file";
+import { chunkFile, countFileChunks } from "../utils/file";
+import { crypto } from "securequ";
+import { hash } from "../utils";
+import XqlFile from "../Types/fields/File";
+import { FindArgsType } from "../Schema/type";
 
 class Xansql {
    readonly config: XansqlConfigTypeRequired;
@@ -115,9 +119,13 @@ class Xansql {
          throw new Error("Xansql fetch configuration is required in client side.");
       }
 
+      const total_chunks = countFileChunks(file);
+      let ext = file.name.split('.').pop() || '';
+      const name = `${hash(32)}${ext ? '.' + ext : ''}`;
       const filemeta: XansqlFileMeta = {
-         total_chunks: countFileChunks(file),
-         name: makeFilename(file),
+         total_chunks,
+         name,
+         original_name: file.name,
          size: file.size,
          mime: file.type,
          isComplete: false
@@ -133,7 +141,13 @@ class Xansql {
          }
       }
 
-      return filemeta.name
+      return {
+         name,
+         total_chunks,
+         original_name: file.name,
+         size: file.size,
+         mime: file.type,
+      }
    }
 
    async deleteFile(filename: string) {
@@ -172,6 +186,26 @@ class Xansql {
          const models = Array.from(this.ModelFactory.values()).reverse();
          for (let model of models) {
             const dsql = this.Migration.buildDrop(model);
+
+            const fileColumns: string[] = [];
+
+            for (let column in model.schema) {
+               const field = model.schema[column];
+               if (field instanceof XqlFile) {
+                  fileColumns.push(column);
+               }
+            }
+
+            if (Object.keys(fileColumns).length > 0) {
+               for (let column of fileColumns) {
+                  await model.delete({
+                     where: {
+                        [column]: { isNotNull: true }
+                     },
+                     select: { [model.IDColumn]: true }
+                  });
+               }
+            }
             await this.config.dialect.execute(dsql);
          }
       }

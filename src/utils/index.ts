@@ -95,3 +95,12 @@ export const uid = (str: string, length = 28): string => {
 
    return mixed.slice(0, length);
 }
+
+export function hash(length = 16): string {
+   let result = '';
+   while (result.length < length) {
+      result += Math.random().toString(36).slice(2);
+   }
+   return result.slice(0, length);
+}
+

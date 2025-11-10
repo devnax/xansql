@@ -12,6 +12,7 @@ import XqlRecord from "../../../Types/fields/Record";
 import XqlTuple from "../../../Types/fields/Tuple";
 import XqlUnion from "../../../Types/fields/Union";
 import Foreign, { ForeignInfoType } from "../../../core/classes/ForeignInfo";
+import XqlFile from "../../../Types/fields/File";
 
 export type SelectArgsRelationInfo = {
    args: {
@@ -154,7 +155,7 @@ class SelectArgs {
             }
 
          } else {
-            if (ValueFormatter.iof(model, column, XqlEnum, XqlArray, XqlObject, XqlRecord, XqlTuple, XqlUnion)) {
+            if (ValueFormatter.iof(model, column, XqlFile, XqlEnum, XqlArray, XqlObject, XqlRecord, XqlTuple, XqlUnion)) {
                this.formatable_columns.push(column)
             }
             this.columns.push(column)

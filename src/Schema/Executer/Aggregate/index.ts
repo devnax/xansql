@@ -16,6 +16,7 @@ class AggregateExecuter {
    }
 
    async execute(args: AggregateArgsType) {
+      const xansql = this.model.xansql
       const model = this.model
       const select = new SelectArgs(model, args.select || {})
       const Where = new WhereArgs(model, args.where || {})
@@ -43,7 +44,7 @@ class AggregateExecuter {
          groupBySql = ` GROUP BY ${args.groupBy.join(", ")} `
       }
       sql += `${select.sql} FROM ${model.table} ${Where.sql}${groupBySql}${OrderBy.sql}${LimitSql}`.trim()
-      const { results } = await model.execute(sql)
+      const { results } = await xansql.execute(sql)
 
       // remove groupBy columns from results
       if (this.removeGroupByColumns && results.length && args.groupBy && args.groupBy.length) {
@@ -51,7 +52,7 @@ class AggregateExecuter {
          for (let { chunk } of chunkArray(results)) {
             for (let row of chunk) {
                for (let column of groupBySet) {
-                  delete row[column]
+                  delete (row as any)[column]
                }
             }
          }

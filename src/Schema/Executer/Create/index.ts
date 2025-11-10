@@ -28,11 +28,13 @@ class CreateExecuter {
          for (let arg of chunk) {
             let insertId
             const fileColumns = Object.keys(arg.files)
+            const uploadedFileNames: string[] = []
             try {
                if (fileColumns.length > 0) {
                   for (let file_col of fileColumns) {
-                     const filename = await xansql.uploadFile(arg.files[file_col])
-                     arg.data[file_col] = `'${filename}'`
+                     const filemeta = await xansql.uploadFile(arg.files[file_col])
+                     uploadedFileNames.push(filemeta.name)
+                     arg.data[file_col] = `'${JSON.stringify(filemeta)}'`
                   }
                }
                const keys = Object.keys(arg.data)
@@ -41,8 +43,7 @@ class CreateExecuter {
                insertId = created.insertId
             } catch (error: any) {
                if (fileColumns.length > 0) {
-                  for (let file of fileColumns) {
-                     const filename = arg.data[file].replace(/'/g, '')
+                  for (let filename of uploadedFileNames) {
                      await xansql.deleteFile(filename)
                   }
                   throw new Error(`Error inserting into table ${model.table}: ${error.message}`);

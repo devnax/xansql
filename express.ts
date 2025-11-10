@@ -189,7 +189,7 @@ const server = async (app: Express) => {
    })
 
    app.get('/create', async (req: any, res: any) => {
-      let longText = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
+      let longText = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.".repeat(1000); // ~5MB
       const file = new File([longText], 'hello.txt', { type: 'text/plain' });
 
       const result = await UserModel.create({
@@ -262,7 +262,7 @@ const server = async (app: Express) => {
 
       const result = await UserModel.delete({
          where: {
-            uid: 161,
+            uid: 157,
          },
          select: {
             name: true,
@@ -327,6 +327,8 @@ const server = async (app: Express) => {
    });
 
    app.get('/update', async (req: any, res: any) => {
+      let longText = "Lorem ipsum dolor sit amet".repeat(1000); // ~5MB
+      const file = new File([longText], 'hello.txt', { type: 'text/plain' });
 
       const result = await UserModel.update({
          select: {
@@ -345,11 +347,12 @@ const server = async (app: Express) => {
             }
          },
          where: {
-            uid: 4,
+            uid: 1,
          },
          data: {
             name: "John Updated",
             email: `john${Math.floor(Math.random() * 10000)}@doe.com`,
+            photo: file,
             products: {
                // upsert: {
                //    where: {

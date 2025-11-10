@@ -20,21 +20,12 @@ class DeleteExecuter {
          throw new Error(`Where args is required for delete operation in model ${model.table}`)
       }
 
-
-      let findArgs: any = {
-         where: args.where,
-         select: {
-            [model.IDColumn]: true,
-            ...(args.select || {})
-         }
-      }
-
       let fileColumns: string[] = []
       let foreignFields: { [col: string]: XqlFields } = {}
+
       for (let column in model.schema) {
          const field = model.schema[column]
          if (field instanceof XqlFile) {
-            findArgs.select[column] = true
             fileColumns.push(column)
          }
 
@@ -43,10 +34,19 @@ class DeleteExecuter {
          }
       }
 
-      const results = await model.find(findArgs)
-      if (!results?.length) {
-         return null
+      const count = await model.count(args.where)
+      if (count === 0) {
+         return []
       }
+
+      const results = await model.find({
+         where: args.where,
+         limit: { take: count },
+         select: {
+            [model.IDColumn]: true,
+            ...(args.select || {})
+         }
+      })
 
       for (let column in foreignFields) {
          const field = foreignFields[column]
@@ -67,21 +67,37 @@ class DeleteExecuter {
          }
       }
 
+      let fileRows: any[] = []
+      if (fileColumns.length) {
+         fileRows = await model.find({
+            where: args.where,
+            select: fileColumns.reduce((acc, col) => {
+               acc[col] = true
+               return acc
+            }, {} as any)
+         })
+      }
+
       const Where = new WhereArgs(model, args.where)
       const sql = `DELETE FROM ${model.table} ${Where.sql}`.trim()
       const { affectedRows } = await xansql.execute(sql)
+      if (!affectedRows || affectedRows === 0) {
+         return []
+      }
 
       // delete files
-      for (let row of results) {
-         for (let file_col of fileColumns) {
-            const filename = row[file_col]
-            if (filename) {
-               await xansql.deleteFile(filename)
+      if (fileColumns.length && fileRows.length) {
+         for (let row of fileRows) {
+            for (let file_col of fileColumns) {
+               const filemeta = row[file_col]
+               if (filemeta) {
+                  await xansql.deleteFile(filemeta.name)
+               }
             }
          }
       }
 
-      return args.select ? results : !!affectedRows
+      return results
    }
 }
 

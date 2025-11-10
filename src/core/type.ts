@@ -64,7 +64,7 @@ export type XansqlCache<Row = object> = {
 
 export type XansqlFileMeta = {
    name: string;
-   ext?: string;
+   original_name: string;
    size: number;
    mime: string;
    total_chunks: number;

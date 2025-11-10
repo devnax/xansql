@@ -2,6 +2,7 @@ import dotenv from 'dotenv'
 import { Xansql, Schema, xt } from '../src'
 import SqliteDialect from '../src/dialects/Sqlite'
 import MysqlDialect from '../src/dialects/Mysql'
+import FileInDirectory from '../src/file/FileInDirectory';
 
 if (typeof process !== 'undefined' && process?.env) {
    try {
@@ -48,51 +49,11 @@ const ProductSchema = new Schema("products", {
 const mysqlConn: string = (typeof process !== 'undefined' ? process.env.MYSQL_DB : 'mysql://root:root1234@localhost:3306/xansql') as string
 const sqliteConn: string = 'db.sqlite'
 
-const uploads = new Map<string, Uint8Array[]>()
-
+const uploadsInProgress = new Map<string, { fileHandle: any, receivedChunks: number }>();
 export const db = new Xansql({
    dialect: SqliteDialect(sqliteConn),
    fetch: "http://localhost:4000/data",
-   file: {
-      upload: async (chunk: Uint8Array, chunkIndex: number, filemeta) => {
-
-         if (!uploads.has(filemeta.name)) {
-            uploads.set(filemeta.name, [])
-         }
-         const chunks = uploads.get(filemeta.name) as Uint8Array[]
-         chunks[chunkIndex] = chunk
-         uploads.set(filemeta.name, chunks)
-
-         if (filemeta.isComplete) {
-            const allChunks = uploads.get(filemeta.name) as Uint8Array[]
-            const fileData = new Uint8Array(allChunks.reduce((acc, curr) => acc + curr.length, 0))
-            let offset = 0
-            for (let c of allChunks) {
-               fileData.set(c, offset)
-               offset += c.length
-            }
-            // Here you can save the fileData to disk or cloud storage
-            console.log(`File ${filemeta.name} uploaded with size ${fileData.length} bytes`)
-            uploads.delete(filemeta.name)
-
-            const fs = await import('fs');
-            const path = await import('path');
-            const fileBuffer = Buffer.from(fileData);
-
-            const uploadDir = path.join(process.cwd(), 'uploads');
-            if (!fs.existsSync(uploadDir)) {
-               fs.mkdirSync(uploadDir);
-            }
-            const filePath = path.join(uploadDir, `${filemeta.name}`);
-            fs.writeFileSync(filePath, fileBuffer);
-
-         }
-      },
-      delete: async (filename: string) => {
-         // Custom file delete logic for server side
-         return true
-      }
-   },
+   file: FileInDirectory({ dir: 'uploads' }),
    // maxLimit: {
    //    // create: 10000
    // },

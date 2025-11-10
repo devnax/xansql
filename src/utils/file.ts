@@ -1,18 +1,3 @@
-import { uid } from ".";
-
-let counter = 0;
-export function makeFilename(file: File): string {
-   counter = (counter + 1) % 1000;
-   const originalName = uid(file.name.replaceAll(/[^a-zA-Z0-9.\-_]/g, '_').toLowerCase());
-   const ext = file.name.split('.').pop();
-   const random = Math.random().toString(36).slice(2, 10)
-      + Date.now().toString(36)
-      + counter.toString(36).padStart(3, '0')
-      + Math.random().toString(36).slice(2, 10);
-
-   return `${random}_${originalName}${ext ? `.${ext}` : ''}`;
-}
-
 
 /**
  * 
@@ -22,20 +7,29 @@ export function makeFilename(file: File): string {
 
 function getChunkSize(fileSize: number): number {
    // fileSize in bytes
-   if (fileSize <= 5 * 1024 * 1024) {
-      // <= 5MB → 128KB
-      return 128 * 1024;
-   } else if (fileSize <= 50 * 1024 * 1024) {
-      // 5–50MB → 256KB
-      return 256 * 1024;
-   } else if (fileSize <= 200 * 1024 * 1024) {
-      // 50–200MB → 512KB
-      return 512 * 1024;
+   const MB = 1024 * 1024;
+
+   if (fileSize <= 1 * MB) {
+      // Very small files (<1MB): single small chunk
+      return 64 * 1024; // 64 KB
+   } else if (fileSize <= 10 * MB) {
+      // Small files (1–10MB): medium chunks
+      return 256 * 1024; // 256 KB
+   } else if (fileSize <= 100 * MB) {
+      // Medium files (10–100MB): faster upload, moderate size
+      return 512 * 1024; // 512 KB
+   } else if (fileSize <= 500 * MB) {
+      // Large files (100–500MB): larger chunks to reduce overhead
+      return 1 * MB; // 1 MB
+   } else if (fileSize <= 2 * 1024 * MB) {
+      // Very large files (500MB–2GB): fewer but larger parts
+      return 2 * MB; // 2 MB
    } else {
-      // > 200MB → 1MB (max)
-      return 1024 * 1024;
+      // Extremely large files (>2GB)
+      return 4 * MB; // 4 MB max chunk size
    }
 }
+
 
 /**
  * 

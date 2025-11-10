@@ -65,6 +65,7 @@ class WhereArgs {
                _sql = _ors.length ? `(${_ors.join(" OR ")})` : ""
             } else if (isObject(value)) {
                const where = new WhereArgs(FModel, value, { parentTable: model.table })
+
                if (where.sql) {
                   _sql = where.wheres.join(" AND ")
                }
@@ -90,6 +91,7 @@ class WhereArgs {
             wheres.push(v)
          }
       }
+
       this.wheres = wheres
       this.sql = this.wheres.length ? `WHERE ${this.wheres.join(" AND ")} ` : ""
    }
@@ -98,11 +100,6 @@ class WhereArgs {
       const model = this.model
       const generate = Object.keys(conditions).map((subKey) => {
          let value = (conditions as any)[subKey];
-         if (value === null) return `${model.table}.${column} IS NULL`;
-         if (value === undefined) return `${model.table}.${column} IS NOT NULL`;
-         if (value === "") return `${model.table}.${column} = ''`;
-         if (value === false) return `${model.table}.${column} = FALSE`;
-         if (value === true) return `${model.table}.${column} = TRUE`;
          if (isObject(value)) {
             throw new Error(`Invalid value ${value} for ${model.table}.${column}`);
          }
@@ -118,6 +115,8 @@ class WhereArgs {
             } else {
                throw new Error(`Invalid array value ${val} for ${model.table}.${column} with operator ${subKey}`);
             }
+         } else if (typeof val === 'boolean') {
+            val = val ? "1" : "0";
          } else {
             val = ValueFormatter.toSql(model, column, val);
          }
@@ -125,8 +124,10 @@ class WhereArgs {
          let col = model.table + "." + column;
          switch (subKey) {
             case 'equals':
+               if (val === "NULL") return `${col} IS NULL`;
                return `${col} = ${val}`;
             case 'not':
+               if (val === "NULL") return `${col} IS NOT NULL`;
                return `${col} != ${val}`;
             case 'lt':
                return `${col} < ${val}`;
@@ -137,8 +138,7 @@ class WhereArgs {
             case 'gte':
                return `${col} >= ${val}`;
             case 'in':
-               // handle empty array and val is a single value
-               if (val.length === 0) {
+               if (val?.length === 0) {
                   return `1 = 0`;
                } else if (!val.includes(",")) {
                   return `${col} = ${val}`;
@@ -173,9 +173,9 @@ class WhereArgs {
             case 'isNotEmpty':
                return `(WHERE ${col} IS NOT NULL AND LENGTH(${col}) > 0)`;
             case 'isTrue':
-               return `${col} = ${val}`;
+               return `${col} = TRUE`;
             case 'isFalse':
-               return `${col} = ${val}`;
+               return `${col} = FALSE`;
             default:
                throw new Error(`Invalid operator in where clause: ${subKey} for ${model.table}.${column}`);
          }
@@ -191,7 +191,7 @@ class WhereArgs {
          || xanv instanceof XqlObject
          || xanv instanceof XqlRecord
          || xanv instanceof XqlTuple
-         || xanv instanceof XqlFile
+      // || xanv instanceof XqlFile
 
       if (isNotAllowed) {
          throw new Error(`${column} is not allowed in where clause in table ${this.model.table}`);

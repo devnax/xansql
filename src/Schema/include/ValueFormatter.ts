@@ -51,7 +51,7 @@ class ValueFormatter {
          } else if (this.iof(model, column, XqlIDField, XqlNumber, XqlSchema)) {
             return value
          } else if (this.iof(model, column, XqlFile)) {
-            return `'${this.makeFilename(model, column, value as File)}'`;
+            return `'${value.name}'`;
          } else if (this.iof(model, column, XqlString, XqlEnum)) {
             return `'${this.escape(value)}'`;
          } else if (this.iof(model, column, XqlObject, XqlRecord, XqlArray, XqlTuple, XqlUnion)) {
@@ -99,18 +99,6 @@ class ValueFormatter {
       }
 
       return value;
-   }
-
-
-   // File related methods
-   static makeFilename(model: Schema, column: string, value: File): string {
-      let ext = value.name.split('.').pop() || 'dat';
-      const name = uid(`${model.table}_${column}_${value.name}_${value.size}_${value.lastModified}`, 32)
-      return `${name}.${ext}`;
-   }
-
-   static formatFile(model: Schema, column: string, file: File): File {
-      return new File([file], this.makeFilename(model, column, file), { type: file.type });
    }
 
 }

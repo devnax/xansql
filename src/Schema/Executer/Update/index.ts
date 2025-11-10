@@ -24,21 +24,46 @@ class UpdateExecuter {
 
       const Where = new WhereArgs(model, args.where)
       const fileColumns = Object.keys(upArgs.files)
+      const uploadedFileNames: string[] = []
+
+      let existing_file_rows: any[] = []
+      if (fileColumns.length > 0) {
+         existing_file_rows = await model.find({
+            where: args.where,
+            select: fileColumns.reduce((acc, col) => {
+               acc[col] = true
+               return acc
+            }, {} as any)
+         })
+      }
+
       try {
-         for (let file_col of fileColumns) {
-            const filename = await xansql.uploadFile(upArgs.files[file_col])
-            upArgs.data[file_col] = `'${filename}'`
+
+         if (existing_file_rows.length > 0) {
+            for (let file_col of fileColumns) {
+               const filemeta = await xansql.uploadFile(upArgs.files[file_col])
+               uploadedFileNames.push(filemeta.name)
+               upArgs.data[file_col] = `'${JSON.stringify(filemeta)}'`
+            }
          }
 
          const keys = Object.keys(upArgs.data)
          let upsql = keys.map(col => `${col} = ${upArgs.data[col]}`).join(", ")
          let sql = `UPDATE ${model.table} SET ${upsql} ${Where.sql}`.trim()
          let update = await xansql.execute(sql)
-         if (!update.affectedRows) {
-            for (let file_col of fileColumns) {
-               const filename = upArgs.data[file_col].replace(/'/g, '')
-               await xansql.deleteFile(filename)
+
+         if (existing_file_rows.length > 0) {
+            for (let row of existing_file_rows) {
+               for (let file_col of fileColumns) {
+                  const oldFileMeta = row[file_col]
+                  if (oldFileMeta) {
+                     await xansql.deleteFile(oldFileMeta.name)
+                  }
+               }
             }
+         }
+
+         if (!update.affectedRows) {
             return []
          }
       } catch (error) {
@@ -50,8 +75,14 @@ class UpdateExecuter {
          throw new Error("Error executing update: " + (error as Error).message);
       }
 
+      const count = await model.count(args.where)
+      if (count === 0) {
+         return []
+      }
+
       const updated_rows = await model.find({
          where: args.where,
+         limit: { take: count },
          select: {
             [model.IDColumn]: true
          }
