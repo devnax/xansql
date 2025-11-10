@@ -26,9 +26,28 @@ class CreateExecuter {
 
       for (let { chunk } of chunkArray(dataArgs)) {
          for (let arg of chunk) {
-            const sql = `INSERT INTO ${model.table} ${arg.sql}`
-            const { insertId } = await model.execute(sql, arg.files)
-
+            let insertId
+            const fileColumns = Object.keys(arg.files)
+            try {
+               if (fileColumns.length > 0) {
+                  for (let file_col of fileColumns) {
+                     const filename = await xansql.uploadFile(arg.files[file_col])
+                     arg.data[file_col] = `'${filename}'`
+                  }
+               }
+               const keys = Object.keys(arg.data)
+               const sql = `INSERT INTO ${model.table} (${keys.join(", ")}) VALUES (${keys.map(k => arg.data[k]).join(", ")})`
+               const created = await xansql.execute(sql)
+               insertId = created.insertId
+            } catch (error: any) {
+               if (fileColumns.length > 0) {
+                  for (let file of fileColumns) {
+                     const filename = arg.data[file].replace(/'/g, '')
+                     await xansql.deleteFile(filename)
+                  }
+                  throw new Error(`Error inserting into table ${model.table}: ${error.message}`);
+               }
+            }
             if (insertId) {
                insertIds.push(insertId)
                results.push({ [model.IDColumn]: insertId })

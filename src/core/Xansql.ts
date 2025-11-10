@@ -5,7 +5,7 @@ import XansqlConfig from "./classes/XansqlConfig";
 import ModelFormatter from "./classes/ModelFormatter";
 import Migration from "./classes/Migration";
 import XansqlFetch from "./classes/XansqlFetch";
-import { chunkFile, countFileChunks } from "../utils/file";
+import { chunkFile, countFileChunks, makeFilename } from "../utils/file";
 
 class Xansql {
    readonly config: XansqlConfigTypeRequired;
@@ -91,32 +91,18 @@ class Xansql {
       return this.ModelFactory.get(table) as Schema;
    }
 
-   async execute(sql: string, files?: File[]): Promise<ExecuterResult> {
-      sql = sql.trim().replaceAll(/\s+/g, ' ');
+   async execute(sql: string): Promise<ExecuterResult> {
 
       if (typeof window !== "undefined" && !this.config.fetch) {
          throw new Error("Xansql fetch configuration is required in client side.");
       }
 
-      files = files || [];
+      sql = sql.trim().replaceAll(/\s+/g, ' ');
 
-      try {
-         for (let file of files) {
-            await this.uploadFile(file);
-         }
-
-         if (typeof window !== "undefined") {
-            return await this.XansqlFetch.execute(sql);
-         } else {
-            return await this.dialect.execute(sql) as any
-         }
-      } catch (error) {
-         for (let file of files) {
-            if (this.config.file && this.config.file.delete) {
-               await this.config.file.delete(file.name);
-            }
-         }
-         throw error;
+      if (typeof window !== "undefined") {
+         return await this.XansqlFetch.execute(sql);
+      } else {
+         return await this.dialect.execute(sql) as any
       }
    }
 
@@ -124,20 +110,22 @@ class Xansql {
       if (!this.config.file || !this.config.file.upload) {
          throw new Error("Xansql file upload configuration is not provided.");
       }
-      const totalChunks = countFileChunks(file);
-      const fileChunks = chunkFile(file);
-      const filemeta: XansqlFileMeta = {
-         name: file.name,
-         size: file.size,
-         mime: file.type,
-         chunk_size: totalChunks,
-      };
 
       if (typeof window !== "undefined" && !this.config.fetch) {
          throw new Error("Xansql fetch configuration is required in client side.");
       }
 
-      for await (let { chunk, chunkIndex } of fileChunks) {
+      const filemeta: XansqlFileMeta = {
+         total_chunks: countFileChunks(file),
+         name: makeFilename(file),
+         size: file.size,
+         mime: file.type,
+         isComplete: false
+      };
+
+      for await (let { chunk, chunkIndex } of chunkFile(file)) {
+         const isComplete = chunkIndex + 1 === filemeta.total_chunks;
+         filemeta.isComplete = isComplete;
          if (typeof window !== "undefined") {
             await this.XansqlFetch.uploadFile(chunk, chunkIndex, filemeta);
          } else {
@@ -145,7 +133,7 @@ class Xansql {
          }
       }
 
-      return file.name
+      return filemeta.name
    }
 
    async deleteFile(filename: string) {

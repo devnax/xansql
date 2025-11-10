@@ -15,6 +15,10 @@ type RelationObject = {
    }
 }
 
+type Files = {
+   [column: string]: File
+}
+
 type DataValue = {
    relations: RelationObject
    sql: string
@@ -27,21 +31,14 @@ class UpdateDataArgs {
    * For create mode: (col1, col2, col3) VALUES (val1, val2, val3)
    * For update mode: col1 = val1, col2 = val2, col3 = val3
    */
-   private data: DataObject = {}
+   readonly data: DataObject = {}
 
-   readonly files: File[] = []
+   readonly files: Files = {}
    /**
    * Get data object
    * format: { col1: val1, col2: val2, col3: val3 }
    */
    readonly relations: RelationObject = {}
-
-   /**
-    * Get relations object. the object is not processed yet. it will be processed later in executer
-    * format: { relation1: data1, relation2: data2 }
-    */
-   readonly sql: string = ''
-
 
    constructor(model: Schema, data: DataArgsType) {
 
@@ -102,10 +99,11 @@ class UpdateDataArgs {
             }
 
             if (value instanceof File) {
-               this.files.push(ValueFormatter.formatFile(model, column, value))
+               this.files[column] = value
+               this.data[column] = ""
+            } else {
+               this.data[column] = ValueFormatter.toSql(model, column, value)
             }
-
-            this.data[column] = ValueFormatter.toSql(model, column, value)
          }
       }
 
@@ -125,10 +123,6 @@ class UpdateDataArgs {
             this.data[column] = ValueFormatter.toSql(model, column, new Date())
          }
       }
-
-      // generate sql
-      const keys = Object.keys(this.data)
-      this.sql = keys.map(col => `${col} = ${this.data[col]}`).join(", ")
 
    }
 

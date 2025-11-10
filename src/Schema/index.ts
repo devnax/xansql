@@ -113,7 +113,7 @@ class Schema extends SchemaBase {
    }
 
    async truncate() {
-      await this.execute(`TRUNCATE TABLE ${this.table}`);
+      await this.xansql.execute(`TRUNCATE TABLE ${this.table}`);
    }
 
    // Helpers Methods
@@ -231,7 +231,7 @@ class Schema extends SchemaBase {
       const { IndexMigration } = this.xansql.Migration;
       const indexsql = IndexMigration.buildCreate(this.table, column);
       try {
-         await this.execute(indexsql);
+         await this.xansql.execute(indexsql);
       } catch (error) {
          throw new Error("Index already exists");
       }
@@ -240,7 +240,7 @@ class Schema extends SchemaBase {
    async dropIndex(column: string) {
       const { IndexMigration } = this.xansql.Migration;
       const indexsql = IndexMigration.buildDrop(this.table, column);
-      await this.execute(indexsql);
+      await this.xansql.execute(indexsql);
    }
 
    async addColumn(column: string, field: XqlFields) {
@@ -250,7 +250,7 @@ class Schema extends SchemaBase {
       }
       const sqlColumn = Migration.buildColumn(this.table, column);
       let sql = `ALTER TABLE ${this.table} ADD COLUMN ${sqlColumn};`;
-      await this.execute(sql);
+      await this.xansql.execute(sql);
       this.schema[column] = field;
 
       // add foreign key if exists
@@ -258,13 +258,13 @@ class Schema extends SchemaBase {
       if (Foreign.isSchema(field)) {
          const info = Foreign.get(this, column)
          const fkSql = Migration.ForeignKeyMigration.buildCreate(this.table, column, info.table, info.relation.main);
-         await this.execute(`ALTER TABLE ${this.table} ADD ${fkSql};`);
+         await this.xansql.execute(`ALTER TABLE ${this.table} ADD ${fkSql};`);
       }
 
       // add index if exists
       if (meta.index) {
          const indexSql = Migration.IndexMigration.buildCreate(this.table, column);
-         await this.execute(indexSql);
+         await this.xansql.execute(indexSql);
       }
 
    }
@@ -286,7 +286,7 @@ class Schema extends SchemaBase {
       } else if (engine === 'sqlite') {
          throw new Error(`Renaming columns is not supported in SQLite`);
       }
-      await this.execute(sql);
+      await this.xansql.execute(sql);
       const field = this.schema[oldColumn];
       delete this.schema[oldColumn];
       this.schema[newColumn] = field;
@@ -304,7 +304,7 @@ class Schema extends SchemaBase {
          } else if (engine === 'sqlite') {
             throw new Error(`Renaming foreign keys is not supported in SQLite`);
          }
-         await this.execute(fsql);
+         await this.xansql.execute(fsql);
       }
 
       // rename index if exists
@@ -319,7 +319,7 @@ class Schema extends SchemaBase {
          } else if (engine === 'sqlite') {
             throw new Error(`Renaming indexes is not supported in SQLite`);
          }
-         await this.execute(isql);
+         await this.xansql.execute(isql);
       }
    }
 
@@ -329,7 +329,7 @@ class Schema extends SchemaBase {
       }
 
       let sql = `ALTER TABLE ${this.table} DROP COLUMN ${column};`;
-      await this.execute(sql);
+      await this.xansql.execute(sql);
       const field = this.schema[column];
       delete this.schema[column];
       const fieldMeta = field.meta || {};
@@ -337,13 +337,13 @@ class Schema extends SchemaBase {
       // drop foreign key if exists
       if (Foreign.isSchema(field)) {
          const fkSql = this.xansql.Migration.ForeignKeyMigration.buildDrop(this.table, column);
-         await this.execute(fkSql);
+         await this.xansql.execute(fkSql);
       }
 
       // drop index if exists
       if (fieldMeta.index) {
          const indexSql = this.xansql.Migration.IndexMigration.buildDrop(this.table, column);
-         await this.execute(indexSql);
+         await this.xansql.execute(indexSql);
       }
    }
 

@@ -16,6 +16,7 @@ class FindExecuter {
    }
 
    async execute(args: FindArgsType) {
+      const xansql = this.model.xansql
       const model = this.model
       const Select = new SelectArgs(model, args.select || {})
       const Where = new WhereArgs(model, args.where || {})
@@ -35,7 +36,7 @@ class FindExecuter {
       for (let { take, skip } of batchLimit) {
          const batchLimitArgs = new LimitArgs(model, { take, skip: Limit.skip + skip })
          const sql = `SELECT ${Select.sql} FROM ${model.table} ${where_sql}${OrderBy.sql}${batchLimitArgs.sql}`.trim()
-         const { results: batchResults } = await model.execute(sql)
+         const { results: batchResults } = await xansql.execute(sql)
          results = results.concat(batchResults)
       }
 
@@ -155,7 +156,7 @@ class FindExecuter {
          `
          }
 
-         const res = (await FModel.execute(sql)).results
+         const res = (await xansql.execute(sql)).results
          fres = fres.concat(res)
       }
 

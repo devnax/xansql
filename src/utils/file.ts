@@ -1,14 +1,16 @@
+import { uid } from ".";
 
 let counter = 0;
-export function makeFileUID(file: File): string {
+export function makeFilename(file: File): string {
    counter = (counter + 1) % 1000;
+   const originalName = uid(file.name.replaceAll(/[^a-zA-Z0-9.\-_]/g, '_').toLowerCase());
    const ext = file.name.split('.').pop();
-   const uid = Math.random().toString(36).slice(2, 10)
+   const random = Math.random().toString(36).slice(2, 10)
       + Date.now().toString(36)
       + counter.toString(36).padStart(3, '0')
       + Math.random().toString(36).slice(2, 10);
 
-   return `${uid}${ext ? `.${ext}` : ''}`;
+   return `${random}_${originalName}${ext ? `.${ext}` : ''}`;
 }
 
 

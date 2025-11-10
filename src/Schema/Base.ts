@@ -45,13 +45,9 @@ abstract class SchemaBase {
       return column === this.IDColumn;
    }
 
-   async execute(sql: string, files?: File[]): Promise<any> {
-      return await this.xansql.execute(sql, files)
-   }
-
    async drop() {
       ErrorWhene(typeof window !== "undefined", "This method can only be used on the server side.");
-      await this.execute(`DROP TABLE IF EXISTS ${this.table}`);
+      await this.xansql.execute(`DROP TABLE IF EXISTS ${this.table}`);
    }
 
    async migrate(force = false) {

@@ -67,11 +67,12 @@ export type XansqlFileMeta = {
    ext?: string;
    size: number;
    mime: string;
-   chunk_size: number;
+   total_chunks: number;
+   isComplete: boolean
 }
 
 export type XansqlFile = {
-   upload: (chunk: Uint8Array, chunkIndex: number, filemeta: XansqlFileMeta) => Promise<boolean>;
+   upload: (chunk: Uint8Array, chunkIndex: number, filemeta: XansqlFileMeta) => Promise<void>;
    delete: (filename: string) => Promise<boolean>
 }
 

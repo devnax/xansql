@@ -14,7 +14,6 @@ import XqlString from "../../Types/fields/String";
 import XqlTuple from "../../Types/fields/Tuple";
 import XqlUnion from "../../Types/fields/Union";
 import { uid } from "../../utils";
-import { chunkFile, countFileChunks, makeFileUID } from "../../utils/file";
 
 class ValueFormatter {
    static iof(model: Schema, column: string, ...instances: any[]) {

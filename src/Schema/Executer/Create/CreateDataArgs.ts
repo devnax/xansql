@@ -1,6 +1,5 @@
 import Schema from "../.."
 import Foreign, { ForeignInfoType } from "../../../core/classes/ForeignInfo"
-import { XansqlFileMeta } from "../../../core/type"
 import XqlDate from "../../../Types/fields/Date"
 import { isArray, isNumber, isObject } from "../../../utils"
 import ValueFormatter from "../../include/ValueFormatter"
@@ -15,10 +14,13 @@ type RelationObject = {
    }
 }
 
+type Files = {
+   [column: string]: File
+}
 type DataValue = {
    relations: RelationObject
-   sql: string,
-   files: File[]
+   data: DataObject,
+   files: Files
 }
 
 class CreateDataArgs {
@@ -30,7 +32,7 @@ class CreateDataArgs {
    */
    private data: DataObject = {}
 
-   private files: File[] = []
+   private files: Files = {}
 
    /**
    * Get data object
@@ -102,9 +104,11 @@ class CreateDataArgs {
                   throw new Error(`Cannot set value for ${model.table}.${column}. It is automatically managed.`);
                }
                if (value instanceof File) {
-                  this.files.push(ValueFormatter.formatFile(model, column, value))
+                  this.files[column] = value
+                  this.data[column] = ''
+               } else {
+                  this.data[column] = ValueFormatter.toSql(model, column, value)
                }
-               this.data[column] = ValueFormatter.toSql(model, column, value)
             }
          }
 
@@ -134,12 +138,13 @@ class CreateDataArgs {
          }
 
          // generate sql
-         const keys = Object.keys(this.data)
-         let sql = `(${keys.join(", ")}) VALUES (${keys.map(k => this.data[k]).join(", ")})`
+         // const keys = Object.keys(this.data)
+         // let sql = `(${keys.join(", ")}) VALUES (${keys.map(k => this.data[k]).join(", ")})`
 
          this.values.push({
-            sql,
+            // sql,
             relations: this.relations,
+            data: this.data,
             files: this.files
          })
       }
