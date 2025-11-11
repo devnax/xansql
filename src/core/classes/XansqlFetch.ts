@@ -1,7 +1,6 @@
 import { crypto, SecurequClient, SecurequServer } from "securequ";
 import Xansql from "../Xansql"
-import { XansqlFetchDefault, XansqlFileMeta, XansqlOnFetchInfo } from "../type";
-import { chunkFile, countFileChunks } from "../../utils/file";
+import { XansqlFetchConfig, XansqlFileMeta, XansqlOnFetchInfo } from "../type";
 
 let clientModule: any = null;
 let serverModule: any = null;
@@ -12,11 +11,11 @@ class XansqlFetch {
    private _client: SecurequClient | null = null
    private server: SecurequServer | null = null
    private secretCache: string | null = null
-   private config: XansqlFetchDefault
+   private config: XansqlFetchConfig
 
    constructor(xansql: Xansql) {
       this.xansql = xansql
-      let config = xansql.config.fetch as XansqlFetchDefault
+      let config = xansql.config.fetch as XansqlFetchConfig
       if (config) {
          if (typeof config === 'string') {
             config = {
@@ -29,7 +28,7 @@ class XansqlFetch {
 
    async client() {
       const secret = await this.makeSecret()
-      const config = this.config as XansqlFetchDefault
+      const config = this.config as XansqlFetchConfig
       clientModule = clientModule || (await import("securequ/client")).default
       let client = this._client as any
       if (!client) {
@@ -92,7 +91,7 @@ class XansqlFetch {
    }
 
    async onFetch(url: string, info: XansqlOnFetchInfo) {
-      const config = this.config as XansqlFetchDefault
+      const config = this.config as XansqlFetchConfig
       const secret = await this.makeSecret()
       serverModule = serverModule || (await import("securequ/server")).default;
       let server = this.server as any
@@ -111,33 +110,78 @@ class XansqlFetch {
          this.server = server
          const xansql = this.xansql
 
-         server.get(await this.makePath('find'), async (info: any) => {
-            const params: any = info.searchParams
+         server.get(await this.makePath('find'), async (req: any) => {
+            const params: any = req.searchParams
+            if (info.permission) {
+               const isPermit = await info.permission({
+                  method: "GET",
+                  table: params.table,
+                  type: "find",
+                  modle: xansql.models.get(params.table) || null
+               })
+               if (!isPermit) throw new Error("Permission denied for fetch request.")
+            }
             throw await xansql.execute(params.sql);
          })
 
-         server.post(await this.makePath('insert'), async (info: any) => {
-            const params: any = info.body
+         server.post(await this.makePath('insert'), async (req: any) => {
+            const params: any = req.body
+            if (info.permission) {
+               const isPermit = await info.permission({
+                  method: "POST",
+                  table: params.table,
+                  type: "insert",
+                  modle: xansql.models.get(params.table) || null
+               })
+               if (!isPermit) throw new Error("Permission denied for fetch request.")
+            }
             throw await xansql.execute(params.sql);
          })
 
-         server.put(await this.makePath('update'), async (info: any) => {
-            const params: any = info.body
+         server.put(await this.makePath('update'), async (req: any) => {
+            const params: any = req.body
+            if (info.permission) {
+               const isPermit = await info.permission({
+                  method: "PUT",
+                  table: params.table,
+                  type: "update",
+                  modle: xansql.models.get(params.table) || null
+               })
+               if (!isPermit) throw new Error("Permission denied for fetch request.")
+            }
             throw await xansql.execute(params.sql);
          })
 
-         server.delete(await this.makePath('delete'), async (info: any) => {
-            const params: any = info.searchParams
+         server.delete(await this.makePath('delete'), async (req: any) => {
+            const params: any = req.searchParams
+            if (info.permission) {
+               const isPermit = await info.permission({
+                  method: "DELETE",
+                  table: params.table,
+                  type: "delete",
+                  modle: xansql.models.get(params.table) || null
+               })
+               if (!isPermit) throw new Error("Permission denied for fetch request.")
+            }
             throw await xansql.execute(params.sql);
          })
 
-         server.post(await this.makePath('executer'), async (info: any) => {
-            const params: any = info.body
+         server.post(await this.makePath('executer'), async (req: any) => {
+            const params: any = req.body
+            if (info.permission) {
+               const isPermit = await info.permission({
+                  method: "POST",
+                  table: params.table,
+                  type: "executer",
+                  modle: xansql.models.get(params.table) || null
+               })
+               if (!isPermit) throw new Error("Permission denied for fetch request.")
+            }
             throw await xansql.execute(params.sql);
          })
 
-         server.post(await this.makePath('uploadFile'), async (info: any) => {
-            const params: any = info.body
+         server.post(await this.makePath('uploadFile'), async (req: any) => {
+            const params: any = req.body
             const chunk: Uint8Array = params.chunk;
             const chunkIndex: number = params.chunkIndex;
             const filemeta: XansqlFileMeta = params.filemeta;
@@ -148,8 +192,8 @@ class XansqlFetch {
             throw success;
          })
 
-         server.delete(await this.makePath('deleteFile'), async (info: any) => {
-            const params: any = info.searchParams
+         server.delete(await this.makePath('deleteFile'), async (req: any) => {
+            const params: any = req.searchParams
             const filename: string = params.filename;
             if (!xansql.config.file || !xansql.config.file.delete) {
                throw new Error("Xansql file delete configuration is not set.");

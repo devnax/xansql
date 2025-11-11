@@ -1,5 +1,5 @@
 import Schema from "../Schema";
-import { ExecuterResult, XansqlConfigType, XansqlConfigTypeRequired, XansqlFetchDefault, XansqlFileMeta, XansqlModelOptions, XansqlOnFetchInfo } from "./type";
+import { ExecuterResult, XansqlConfigType, XansqlConfigTypeRequired, XansqlFetchConfig, XansqlFileMeta, XansqlModelOptions, XansqlOnFetchInfo } from "./type";
 import XansqlTransaction from "./classes/XansqlTransaction";
 import XansqlConfig from "./classes/XansqlConfig";
 import ModelFormatter from "./classes/ModelFormatter";
@@ -213,7 +213,7 @@ class Xansql {
 
    async onFetch(url: string, info: XansqlOnFetchInfo) {
       if (typeof window !== "undefined") throw new Error("Xansql onFetch method is not available in client side.")
-      const hasUrl = typeof this.config.fetch === "string" || typeof (this.config.fetch as XansqlFetchDefault).url === "string"
+      const hasUrl = typeof this.config.fetch === "string" || typeof this.config.fetch.url === "string"
       if (!this.config.fetch || !hasUrl) throw new Error("Xansql fetch configuration does not have a valid url.")
       return await this.XansqlFetch.onFetch(url, info);
    }

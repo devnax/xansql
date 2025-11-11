@@ -1,6 +1,4 @@
-import { Metadata, SecurequClientConfig, SecurequServerConfig, UploadFileMeta, UploadFilePath } from "securequ";
 import Schema from "../Schema";
-import Xansql from "./Xansql";
 import { AggregateArgsType, CreateArgsType, DeleteArgsType, FindArgsType, UpdateArgsType } from "../Schema/type";
 
 export type XansqlConnectionOptions = {
@@ -24,10 +22,31 @@ export type XansqlDialect = {
 }
 
 // FETCH TYPE
+export type XansqlFetchMethod = "GET" | "POST" | "PUT" | "DELETE"
+export type XansqlFetchPermissionType =
+   | "find"
+   | "insert"
+   | "update"
+   | "delete"
+   | "aggregate"
+   | "executer"
+   | "createTable"
+   | "dropTable"
+   | "alterTable"
+   | "uploadFile"
+   | "deleteFile"
+
+export type XansqlFetchPermissionInfo = {
+   method: XansqlFetchMethod;
+   table: string | null;
+   type: XansqlFetchPermissionType;
+   modle: Schema | null;
+}
 export type XansqlOnFetchInfo = {
    body: any;
    headers: { [key: string]: string };
    cookies: { [key: string]: string };
+   permission?: (info: XansqlFetchPermissionInfo) => Promise<boolean>;
 }
 
 export type XansqlOnFetchResponse = {
@@ -37,15 +56,6 @@ export type XansqlOnFetchResponse = {
    cookies?: { [key: string]: string };
 };
 
-
-export type XansqlFetchUrl = string
-
-export type XansqlFetchDefault = {
-   url: XansqlFetchUrl;
-   mode?: "production" | "development";
-   server?: Omit<SecurequServerConfig, 'clients' | 'accept' | 'mode'>;
-   client?: Omit<SecurequClientConfig, 'url' | 'defaultOptions' | 'secret'>;
-}
 
 export type XansqlSocket = {
    open: (socket: WebSocket) => Promise<void>;
@@ -76,9 +86,17 @@ export type XansqlFile = {
    delete: (filename: string) => Promise<boolean>
 }
 
+
+export type XansqlFetchUrl = string
+
+export type XansqlFetchConfig = {
+   url: XansqlFetchUrl;
+   mode?: "production" | "development";
+}
+
 export type XansqlConfigType = {
    dialect: XansqlDialect;
-   fetch?: XansqlFetchUrl | XansqlFetchDefault
+   fetch?: XansqlFetchUrl | XansqlFetchConfig
    socket?: XansqlSocket;
    cache?: XansqlCache;
 
