@@ -1,10 +1,11 @@
 import Schema from "../.."
 import WhereArgs from "../../Args/WhereArgs"
-import { DeleteArgsType } from "../../type"
+import { DeleteArgsType, WhereArgsType } from "../../type"
 import RelationExecuteArgs from "../../Args/RelationExcuteArgs"
 import Foreign from "../../../core/classes/ForeignInfo"
 import XqlFile from "../../../Types/fields/File"
 import { XqlFields } from "../../../Types/types"
+import { chunkArray } from "../../../utils/chunker"
 
 
 class DeleteExecuter {
@@ -34,19 +35,18 @@ class DeleteExecuter {
          }
       }
 
-      const count = await model.count(args.where)
-      if (count === 0) {
-         return []
-      }
-
       const results = await model.find({
          where: args.where,
-         limit: { take: count },
+         limit: "all",
          select: {
             [model.IDColumn]: true,
             ...(args.select || {})
          }
       })
+
+      if (results.length === 0) {
+         return []
+      }
 
       for (let column in foreignFields) {
          const field = foreignFields[column]
@@ -69,8 +69,18 @@ class DeleteExecuter {
 
       let fileRows: any[] = []
       if (fileColumns.length) {
+         let fileWhere: WhereArgsType = [
+            ...fileColumns.map(col => ({ [col]: { isNotNull: true } }))
+         ]
+         if (Array.isArray(args.where)) {
+            fileWhere = [...args.where, ...fileWhere]
+         } else {
+            fileWhere = [args.where, ...fileWhere]
+         }
+
          fileRows = await model.find({
-            where: args.where,
+            where: fileWhere,
+            limit: "all",
             select: fileColumns.reduce((acc, col) => {
                acc[col] = true
                return acc
@@ -87,11 +97,13 @@ class DeleteExecuter {
 
       // delete files
       if (fileColumns.length && fileRows.length) {
-         for (let row of fileRows) {
-            for (let file_col of fileColumns) {
-               const filemeta = row[file_col]
-               if (filemeta) {
-                  await xansql.deleteFile(filemeta.name)
+         for (let { chunk } of chunkArray(fileRows)) {
+            for (let row of chunk) {
+               for (let file_col of fileColumns) {
+                  const filemeta = row[file_col]
+                  if (filemeta) {
+                     await xansql.deleteFile(filemeta.name)
+                  }
                }
             }
          }

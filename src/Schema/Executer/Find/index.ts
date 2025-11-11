@@ -30,18 +30,20 @@ class FindExecuter {
       }
 
       // batch execution with limit and offset
-      const batchLimit = chunkNumbers(Limit.take)
       let results: any[] = []
 
-      for (let { take, skip } of batchLimit) {
-         const batchLimitArgs = new LimitArgs(model, { take, skip: Limit.skip + skip })
-         const sql = `SELECT ${Select.sql} FROM ${model.table} ${where_sql}${OrderBy.sql}${batchLimitArgs.sql}`.trim()
+      if (!Limit.sql) {
+         const sql = `SELECT ${Select.sql} FROM ${model.table} ${where_sql}${OrderBy.sql}`.trim()
          const { results: batchResults } = await xansql.execute(sql)
          results = results.concat(batchResults)
+      } else {
+         for (let { take, skip } of chunkNumbers(Limit.take)) {
+            const batchLimitArgs = new LimitArgs(model, { take, skip: Limit.skip + skip })
+            const sql = `SELECT ${Select.sql} FROM ${model.table} ${where_sql}${OrderBy.sql}${batchLimitArgs.sql}`.trim()
+            const { results: batchResults } = await xansql.execute(sql)
+            results = results.concat(batchResults)
+         }
       }
-
-      // const sql = `SELECT ${Select.sql} FROM ${model.table} ${where_sql}${OrderBy.sql}${Limit.sql}`.trim()
-      // const { results } = await model.execute(sql)
 
       if (results?.length) {
          const is = Select.formatable_columns.length
@@ -145,7 +147,10 @@ class FindExecuter {
          if (!Foreign.isSchema(field)) {
             sql = `SELECT ${args.select.sql} FROM ${table} ${where_sql} ${args.orderBy} ${limit.sql}`.trim()
          } else {
-            sql = `
+            if (!limit.sql) {
+               sql = `SELECT ${args.select.sql} FROM ${table} ${where_sql} ${args.orderBy}`.trim()
+            } else {
+               sql = `
             SELECT ${args.select.sql} FROM (
               SELECT
                   ${args.select.sql},
@@ -155,6 +160,7 @@ class FindExecuter {
             ) AS ${table}
             WHERE ${table}_rank > ${limit.skip} AND ${table}_rank <= ${limit.take + limit.skip};
          `
+            }
          }
 
          const res = (await xansql.execute(sql)).results

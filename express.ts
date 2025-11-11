@@ -98,10 +98,11 @@ const server = async (app: Express) => {
             // take: 1000,
          },
          where: {
-            uid: { gt: 100 }
+
          },
          select: {
             name: true,
+            photo: true,
             products: {
                aggregate: {
                   categories: {
@@ -261,9 +262,11 @@ const server = async (app: Express) => {
    app.get('/delete', async (req: any, res: any) => {
 
       const result = await UserModel.delete({
-         where: {
-            uid: 157,
-         },
+         where: [
+            {
+               uid: 157,
+            },
+         ],
          select: {
             name: true,
             email: true,
@@ -413,16 +416,7 @@ const server = async (app: Express) => {
 
    app.get('/faker', async (req: any, res: any) => {
       const d = await fakeData(100)
-      const d1 = await fakeData(100)
       const start = Date.now()
-      await UserModel.create({
-         data: d1,
-         select: {
-            username: true,
-            metas: true,
-            products: true,
-         }
-      })
       const users = await UserModel.create({
          data: d,
          select: {

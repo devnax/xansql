@@ -23,7 +23,7 @@ export type SelectArgsRelationInfo = {
          relations?: SelectArgsRelations,
       },
       where: string,
-      limit: Required<LimitArgsType>,
+      limit: Required<LimitArgs>,
       orderBy: string
       aggregate: FindArgsAggregate,
    },
@@ -129,12 +129,7 @@ class SelectArgs {
             fargs.orderBy = (new OrderByArgs(FModel, relArgs.orderBy || {})).sql
 
             // ===== Limit =====
-            const limit = new LimitArgs(FModel, relArgs.limit || {})
-            fargs.limit = {
-               take: limit.take,
-               skip: limit.skip,
-               sql: limit.sql
-            }
+            fargs.limit = new LimitArgs(FModel, relArgs.limit || {})
 
             // ===== Distinct =====
             if (relArgs.distinct) {

@@ -1,7 +1,6 @@
 import Schema from "..";
 import Foreign from "../../core/classes/ForeignInfo";
 import XqlArray from "../../Types/fields/Array";
-import XqlFile from "../../Types/fields/File";
 import XqlObject from "../../Types/fields/Object";
 import XqlRecord from "../../Types/fields/Record";
 import XqlTuple from "../../Types/fields/Tuple";
@@ -21,74 +20,84 @@ class WhereArgs {
    readonly sql: string = ''
    private condition_keys = ["equals", "not", "lt", "lte", "gt", "gte", "in", "notIn", "between", "notBetween", "contains", "notContains", "startsWith", "endsWith", "isNull", "isNotNull", "isEmpty", "isNotEmpty", "isTrue", "isFalse"]
 
-   constructor(model: Schema, where: WhereArgsType, meta?: Meta) {
+   constructor(model: Schema, where: WhereArgsType | WhereArgsType[], meta?: Meta) {
       this.model = model
 
       let schema = model.schema
       let wheres: string[] = []
 
-      for (let column in where) {
-         this.checkIsAllowed(column)
-         const value: any = where[column]
-         const field = schema[column]
-
-         if (Foreign.is(field)) {
-            if (!isArray(value) && !isObject(value)) {
-               throw new Error(`${column} must be an object or array in the WHERE clause, but received ${typeof value} in table ${model.table}`);
-            } else if (isObject(value) && Object.keys(value).length === 0 || isArray(value) && value.length === 0) {
-               // skip empty object
-               continue;
+      if (Array.isArray(where)) {
+         let _ors = []
+         for (let w of where) {
+            const whereArgs = new WhereArgs(model, w, meta)
+            if (whereArgs.sql) {
+               if (whereArgs.wheres.length > 1) {
+                  _ors.push(`(${whereArgs.wheres.join(" AND ")})`)
+               } else {
+                  _ors.push(`${whereArgs.wheres.join(" AND ")}`)
+               }
             }
+         }
 
-            if (Foreign.isSchema(field) && isObject(value) && Object.keys(value).some(k => this.condition_keys.includes(k))) {
-               const v = this.condition(column, value as WhereSubCondition)
-               wheres.push(v)
-               continue
-            }
+         if (_ors.length) {
+            wheres.push(`(${_ors.join(" OR ")})`)
+         }
+      } else {
+         for (let column in where) {
+            this.checkIsAllowed(column)
+            const value: any = where[column]
+            const field = schema[column]
 
-            let foreign = Foreign.get(model, column)
-            let FModel = model.xansql.getModel(foreign.table)
-            if (meta && meta.parentTable === foreign.table) {
-               throw new Error(`Circular reference detected in where clause for ${model.table}.${column}`);
-            }
-            let _sql = ''
-            if (Array.isArray(value)) {
-               let _ors = []
-               for (let w of value) {
-                  if (!isObject(w)) throw new Error(`${column} must be an object in the WHERE clause, but received ${typeof w} in table ${model.table}`)
+            if (Foreign.is(field)) {
+               if (!isArray(value) && !isObject(value)) {
+                  throw new Error(`${column} must be an object or array in the WHERE clause, but received ${typeof value} in table ${model.table}`);
+               } else if (isObject(value) && Object.keys(value).length === 0 || isArray(value) && value.length === 0) {
+                  // skip empty object
+                  continue;
+               }
 
-                  const where = new WhereArgs(FModel, w, { parentTable: model.table })
+               if (Foreign.isSchema(field) && isObject(value) && Object.keys(value).some(k => this.condition_keys.includes(k))) {
+                  const v = this.condition(column, value as WhereSubCondition)
+                  wheres.push(v)
+                  continue
+               }
+
+               let foreign = Foreign.get(model, column)
+               let FModel = model.xansql.getModel(foreign.table)
+               if (meta && meta.parentTable === foreign.table) {
+                  throw new Error(`Circular reference detected in where clause for ${model.table}.${column}`);
+               }
+               let _sql = ''
+               if (Array.isArray(value) || isObject(value)) {
+                  const where = new WhereArgs(FModel, value, { parentTable: model.table })
                   if (where.sql) {
-                     _ors.push(`(${where.wheres.join(" AND ")})`)
+                     _sql = where.wheres.join(" AND ")
                   }
+               } else {
+                  throw new Error(`${column} must be an object or array in the WHERE clause, but received ${typeof value} in table ${model.table}`);
                }
-               _sql = _ors.length ? `(${_ors.join(" OR ")})` : ""
-            } else if (isObject(value)) {
-               const where = new WhereArgs(FModel, value, { parentTable: model.table })
 
-               if (where.sql) {
-                  _sql = where.wheres.join(" AND ")
+               wheres.push(`EXISTS (SELECT 1 FROM ${foreign.table} WHERE ${foreign.sql} ${_sql ? ` AND ${_sql}` : ""})`)
+            } else {
+               let v = ''
+               if (Array.isArray(value)) {
+                  const sub = value.map((_v: any) => {
+                     return isObject(_v)
+                        ? this.condition(column, _v)
+                        : `${model.table}.${column} = ${ValueFormatter.toSql(model, column, _v)}`
+                  })
+                  if (sub.length > 1) {
+                     v = `(${sub.join(" OR ")})`
+                  } else {
+                     v = sub.join(" OR ")
+                  }
+               } else if (isObject(value)) {
+                  v = this.condition(column, value)
+               } else {
+                  v = `${model.table}.${column} = ${ValueFormatter.toSql(model, column, value)}`
                }
-            } else {
-               throw new Error(`${column} must be an object or array in the WHERE clause, but received ${typeof value} in table ${model.table}`);
+               wheres.push(v)
             }
-
-            wheres.push(`EXISTS (SELECT 1 FROM ${foreign.table} WHERE ${foreign.sql} ${_sql ? ` AND ${_sql}` : ""})`)
-         } else {
-            let v = ''
-            if (Array.isArray(value)) {
-               const sub = value.map((_v: any) => {
-                  return isObject(_v)
-                     ? this.condition(column, _v)
-                     : `${model.table}.${column} = ${ValueFormatter.toSql(model, column, _v)}`
-               })
-               v = `(${sub.join(" OR ")})`
-            } else if (isObject(value)) {
-               v = this.condition(column, value)
-            } else {
-               v = `${model.table}.${column} = ${ValueFormatter.toSql(model, column, value)}`
-            }
-            wheres.push(v)
          }
       }
 

@@ -4,9 +4,6 @@ import { CreateArgsType } from "../../type"
 import SelectArgs from "../Find/SelectArgs"
 import { chunkArray } from "../../../utils/chunker"
 import RelationExecuteArgs from "../../Args/RelationExcuteArgs"
-import { chunkFile, countFileChunks } from "../../../utils/file"
-import { XansqlFileMeta } from "../../../core/type"
-
 
 class CreateExecuter {
    model: Schema
@@ -74,13 +71,13 @@ class CreateExecuter {
       }
 
       if (args.select) {
-         const findArgs: any = {
+         results = await model.find({
             where: {
                [model.IDColumn]: insertIds.length === 1 ? insertIds[0] : { in: insertIds }
             },
+            limit: "all",
             select: args.select
-         }
-         results = await model.find(findArgs)
+         })
       }
 
       return results

@@ -23,7 +23,7 @@ class Schema extends SchemaBase {
       if (isRelArgs) args = (args as any).args
 
       try {
-         if (!isRelArgs) await xansql.beginTransaction()
+         if (!isRelArgs) await xansql.XansqlTransaction.begin()
          if (this.options?.hooks && this.options.hooks.beforeCreate) {
             args = await this.options.hooks.beforeCreate(args) || args
          }
@@ -33,10 +33,10 @@ class Schema extends SchemaBase {
          if (this.options?.hooks && this.options.hooks.afterCreate) {
             result = await this.options.hooks.afterCreate(result, args) || result
          }
-         if (!isRelArgs) await xansql.commitTransaction()
+         if (!isRelArgs) await xansql.XansqlTransaction.commit()
          return result
       } catch (error) {
-         if (!isRelArgs) await xansql.rollbackTransaction()
+         if (!isRelArgs) await xansql.XansqlTransaction.rollback()
          throw error;
       }
    }
@@ -47,7 +47,7 @@ class Schema extends SchemaBase {
       if (isRelArgs) args = (args as any).args
 
       try {
-         if (!isRelArgs) await xansql.beginTransaction()
+         if (!isRelArgs) await xansql.XansqlTransaction.begin()
          if (this.options?.hooks && this.options.hooks.beforeUpdate) {
             args = await this.options.hooks.beforeUpdate(args) || args
          }
@@ -56,10 +56,10 @@ class Schema extends SchemaBase {
          if (this.options?.hooks && this.options.hooks.afterUpdate) {
             return await this.options.hooks.afterUpdate(result, args) || result
          }
-         if (!isRelArgs) await xansql.commitTransaction()
+         if (!isRelArgs) await xansql.XansqlTransaction.commit()
          return result
       } catch (error) {
-         if (!isRelArgs) await xansql.rollbackTransaction()
+         if (!isRelArgs) await xansql.XansqlTransaction.rollback()
          throw error;
       }
 
@@ -71,7 +71,7 @@ class Schema extends SchemaBase {
       if (isRelArgs) args = (args as any).args
 
       try {
-         if (!isRelArgs) await xansql.beginTransaction()
+         if (!isRelArgs) await xansql.XansqlTransaction.begin()
          if (this.options?.hooks && this.options.hooks.beforeDelete) {
             args = await this.options.hooks.beforeDelete(args) || args
          }
@@ -80,10 +80,10 @@ class Schema extends SchemaBase {
          if (this.options.hooks && this.options.hooks.afterDelete) {
             return await this.options.hooks.afterDelete(result, args) || result
          }
-         if (!isRelArgs) await xansql.commitTransaction()
+         if (!isRelArgs) await xansql.XansqlTransaction.commit()
          return result
       } catch (error) {
-         if (!isRelArgs) await xansql.rollbackTransaction()
+         if (!isRelArgs) await xansql.XansqlTransaction.rollback()
          throw error;
       }
    }

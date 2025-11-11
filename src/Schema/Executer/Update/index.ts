@@ -30,6 +30,7 @@ class UpdateExecuter {
       if (fileColumns.length > 0) {
          existing_file_rows = await model.find({
             where: args.where,
+            limit: "all",
             select: fileColumns.reduce((acc, col) => {
                acc[col] = true
                return acc
@@ -75,18 +76,18 @@ class UpdateExecuter {
          throw new Error("Error executing update: " + (error as Error).message);
       }
 
-      const count = await model.count(args.where)
-      if (count === 0) {
-         return []
-      }
 
       const updated_rows = await model.find({
          where: args.where,
-         limit: { take: count },
+         limit: "all",
          select: {
             [model.IDColumn]: true
          }
       })
+
+      if (updated_rows.length > 0) {
+         return []
+      }
 
       const ids = []
       for (let urow of updated_rows) {
@@ -197,6 +198,7 @@ class UpdateExecuter {
                      in: chunk
                   }
                },
+               limit: "all",
                select: args.select
             })
             results.concat(res)

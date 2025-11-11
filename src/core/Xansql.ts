@@ -3,7 +3,7 @@ import { ExecuterResult, XansqlConfigType, XansqlConfigTypeRequired, XansqlFetch
 import XansqlTransaction from "./classes/XansqlTransaction";
 import XansqlConfig from "./classes/XansqlConfig";
 import ModelFormatter from "./classes/ModelFormatter";
-import Migration from "./classes/Migration";
+import TableMigration from "./classes/TableMigration";
 import XansqlFetch from "./classes/XansqlFetch";
 import { chunkFile, countFileChunks } from "../utils/file";
 import { crypto } from "securequ";
@@ -17,11 +17,11 @@ class Xansql {
    private _aliases = new Map<string, string>();
    private ModelFormatter: ModelFormatter;
    private XansqlConfig: XansqlConfig;
-   private XansqlTransaction: XansqlTransaction;
+   readonly XansqlTransaction: XansqlTransaction;
    private XansqlFetch: XansqlFetch
 
    // SQL Generator Instances can be added here
-   readonly Migration: Migration
+   readonly TableMigration: TableMigration
 
    constructor(config: XansqlConfigType) {
       this.XansqlConfig = new XansqlConfig(this, config);
@@ -29,7 +29,7 @@ class Xansql {
       this.XansqlTransaction = new XansqlTransaction(this);
       this.ModelFormatter = new ModelFormatter(this);
 
-      this.Migration = new Migration(this);
+      this.TableMigration = new TableMigration(this);
 
       this.XansqlFetch = new XansqlFetch(this);
    }
@@ -163,53 +163,37 @@ class Xansql {
       }
    }
 
-   async beginTransaction() {
-      return await this.XansqlTransaction.begin();
-   }
-
-   async commitTransaction() {
-      return await this.XansqlTransaction.commit();
-   }
-
-   async rollbackTransaction() {
-      return await this.XansqlTransaction.rollback();
-   }
 
    async transaction(callback: () => Promise<any>) {
       return await this.XansqlTransaction.transaction(callback);
    }
 
    async migrate(force?: boolean) {
-      const { options, tables, indexes } = this.Migration.statements();
+      const { options, tables, indexes } = this.TableMigration.statements();
       if (force) {
          const models = Array.from(this.ModelFactory.values()).reverse();
 
          for (let model of models) {
-            const fileColumns: string[] = [];
+            const fileWhere: any[] = [];
             for (let column in model.schema) {
                const field = model.schema[column];
                if (field instanceof XqlFile) {
-                  fileColumns.push(column);
+                  fileWhere.push({ [column]: { isNotNull: true } });
                }
             }
 
-            if (Object.keys(fileColumns).length > 0) {
-               for (let column of fileColumns) {
-                  try {
-                     await model.delete({
-                        where: {
-                           [column]: { isNotNull: true }
-                        },
-                        select: { [model.IDColumn]: true }
-                     });
-                  } catch (error) {
-
-                  }
-               }
+            if (Object.keys(fileWhere).length > 0) {
+               try {
+                  await model.delete({
+                     where: fileWhere,
+                     select: { [model.IDColumn]: true }
+                  });
+               } catch (error) { }
             }
          }
+
          for (let model of models) {
-            const dsql = this.Migration.buildDrop(model);
+            const dsql = this.TableMigration.buildDrop(model);
             await this.config.dialect.execute(dsql);
          }
       }
@@ -223,6 +207,8 @@ class Xansql {
             await this.config.dialect.execute(index);
          } catch (error) { }
       }
+
+      return true;
    }
 
    async onFetch(url: string, info: XansqlOnFetchInfo) {

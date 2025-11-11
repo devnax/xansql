@@ -68,7 +68,23 @@ function buildUserMetas(count = 5): UserMeta[] {
    return items
 }
 
-function buildUsers(count = 3): User[] {
+async function fileFromUrl(url: string, fileName: string): Promise<File> {
+   const response = await fetch(url);
+
+   // Ensure it's a valid response
+   if (!response.ok) return new File(["lorem"], fileName);
+
+   // Convert response to Blob
+   const blob = await response.blob();
+
+   // Create a File from Blob
+   const file = new File([blob], fileName, { type: blob.type });
+
+   return file;
+}
+
+
+async function buildUsers(count = 3): Promise<User[]> {
    let items: any = []
    for (let i = 0; i < count; i++) {
       items.push({
@@ -78,6 +94,7 @@ function buildUsers(count = 3): User[] {
          password: faker.internet.password(),
          metas: buildUserMetas(),
          products: buildProducts(),
+         photo: await fileFromUrl(faker.image.avatar(), `avatar_${i + 1}.png`)
       })
    }
    return items

@@ -24,11 +24,11 @@ export interface WhereSubCondition {
 
 export type WhereArgsTypeValue = string | number | boolean | WhereSubCondition | null | Date | WhereArgsType
 
-export interface WhereArgsType {
+export type WhereArgsType = {
    [column: string]: WhereArgsTypeValue | WhereArgsTypeValue[];
-}
+} | WhereArgsType[];
 
-export type LimitArgsType = {
+export type LimitArgsType = "all" | {
    take?: number;
    skip?: number;
    sql?: string;
