@@ -31,7 +31,7 @@ class XansqlFetch {
       const secret = await this.makeSecret()
       const config = this.config as XansqlFetchDefault
       clientModule = clientModule || (await import("securequ/client")).default
-      let client = this.client as any
+      let client = this._client as any
       if (!client) {
          client = new clientModule({
             url: config.url,
