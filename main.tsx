@@ -54,10 +54,11 @@ const App = () => {
               }
             },
             where: {
-              uid: { gt: 100 }
+              // uid: { gt: 100 }
             },
             select: {
               name: true,
+              photo: true,
               products: {
                 aggregate: {
                   categories: {

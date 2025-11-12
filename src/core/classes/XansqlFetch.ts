@@ -248,10 +248,12 @@ class XansqlFetch {
       return gen;
    }
 
-   getTableName(sql: string): { table: string; type: string } | null {
-      sql = sql.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
+   getTableName(sql: string): { table: string | null, type: string | "unknown" } | null {
+      sql = sql.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
 
-      // Operation keywords mapped to types
+      const lower = sql.toLowerCase();
+
+      // keyword → type map
       const keywordMap: any = {
          'create table': 'CREATE_TABLE',
          'alter table': 'ALTER_TABLE',
@@ -261,29 +263,38 @@ class XansqlFetch {
          'update': 'UPDATE',
          'delete from': 'DELETE',
          'merge into': 'MERGE',
-         'select from': 'SELECT'
+         'select': 'SELECT'
       };
 
-      // Check each operation keyword in logical order
+      // detect query type
+      let foundType = null;
+      for (const keyword in keywordMap) {
+         if (lower.startsWith(keyword)) {
+            foundType = keywordMap[keyword];
+            break;
+         }
+      }
+      if (!foundType && lower.startsWith('select')) foundType = 'SELECT';
+
+      let match = null;
+
+      // 1️⃣ Direct table references (CREATE, INSERT, UPDATE, DELETE, etc.)
       for (const keyword in keywordMap) {
          const regex = new RegExp(`${keyword}\\s+([\\w\`"\\.]+)`, 'i');
-         const match = sql.match(regex);
+         match = sql.match(regex);
          if (match) {
-            let table = match[1].replace(/[`"'[\]]/g, '');
-            return { table, type: keywordMap[keyword] };
+            return { table: match[1].replace(/[`"'[\]]/g, ''), type: keywordMap[keyword] };
          }
       }
 
-      // Fallback: check for simple SELECT without explicit 'from'
-      if (/select\s+/i.test(sql)) {
-         const match = sql.match(/from\s+([^\s;]+)/i);
-         if (match) {
-            return { table: match[1].replace(/[`"'[\]]/g, ''), type: 'SELECT' };
-         }
+      // 2️⃣ For SELECT with subqueries — find the last FROM target
+      const fromMatches = [...sql.matchAll(/from\s+([^\s(;\)]+)/gi)];
+      if (fromMatches.length > 0) {
+         const last = fromMatches[fromMatches.length - 1][1];
+         return { table: last.replace(/[`"'[\]]/g, ''), type: foundType || 'SELECT' };
       }
 
-      // Nothing matched
-      return null;
+      return { table: null, type: foundType || 'UNKNOWN' };
    }
 }
 

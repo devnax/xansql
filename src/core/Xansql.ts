@@ -127,12 +127,12 @@ class Xansql {
          original_name: file.name,
          size: file.size,
          mime: file.type,
-         isComplete: false
+         isFinish: false
       };
 
       for await (let { chunk, chunkIndex } of chunkFile(file)) {
-         const isComplete = chunkIndex + 1 === filemeta.total_chunks;
-         filemeta.isComplete = isComplete;
+         const isFinish = chunkIndex + 1 === filemeta.total_chunks;
+         filemeta.isFinish = isFinish;
          if (typeof window !== "undefined") {
             await this.XansqlFetch.uploadFile(chunk, chunkIndex, filemeta);
          } else {

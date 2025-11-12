@@ -46,7 +46,9 @@ export type XansqlOnFetchInfo = {
    body: any;
    headers: { [key: string]: string };
    cookies: { [key: string]: string };
-   permission?: (info: XansqlFetchPermissionInfo) => Promise<boolean>;
+   beforeRequest?: (info: XansqlOnFetchInfo) => Promise<XansqlOnFetchInfo>;
+   afterResponse?: (response: XansqlOnFetchResponse) => Promise<XansqlOnFetchResponse>;
+   isAuthorized?: (info: XansqlFetchPermissionInfo) => Promise<boolean>;
 }
 
 export type XansqlOnFetchResponse = {
@@ -78,7 +80,7 @@ export type XansqlFileMeta = {
    size: number;
    mime: string;
    total_chunks: number;
-   isComplete: boolean
+   isFinish: boolean
 }
 
 export type XansqlFile = {

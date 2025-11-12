@@ -33,7 +33,7 @@ const FileInDirectory = (options: FileInDirectoryOptions) => {
          await upload.fileHandle.write(chunk, 0, chunk.length, offset);
          upload.receivedChunks++;
 
-         if (filemeta.isComplete && upload.receivedChunks === filemeta.total_chunks) {
+         if (filemeta.isFinish && upload.receivedChunks === filemeta.total_chunks) {
             await upload.fileHandle.close();
             uploadsInProgress.delete(filemeta.name);
          }

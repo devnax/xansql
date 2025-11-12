@@ -228,7 +228,7 @@ class Schema extends SchemaBase {
 
    // end Helpers Methods
    async createIndex(column: string) {
-      const { IndexMigration } = this.xansql.Migration;
+      const { IndexMigration } = this.xansql.TableMigration;
       const indexsql = IndexMigration.buildCreate(this.table, column);
       try {
          await this.xansql.execute(indexsql);
@@ -238,17 +238,17 @@ class Schema extends SchemaBase {
    }
 
    async dropIndex(column: string) {
-      const { IndexMigration } = this.xansql.Migration;
+      const { IndexMigration } = this.xansql.TableMigration;
       const indexsql = IndexMigration.buildDrop(this.table, column);
       await this.xansql.execute(indexsql);
    }
 
    async addColumn(column: string, field: XqlFields) {
-      const { Migration } = this.xansql;
+      const { TableMigration } = this.xansql;
       if (column in this.schema) {
          throw new Error(`Column ${column} already exists in table ${this.table}`);
       }
-      const sqlColumn = Migration.buildColumn(this.table, column);
+      const sqlColumn = TableMigration.buildColumn(this.table, column);
       let sql = `ALTER TABLE ${this.table} ADD COLUMN ${sqlColumn};`;
       await this.xansql.execute(sql);
       this.schema[column] = field;
@@ -257,13 +257,13 @@ class Schema extends SchemaBase {
       const meta = field.meta || {};
       if (Foreign.isSchema(field)) {
          const info = Foreign.get(this, column)
-         const fkSql = Migration.ForeignKeyMigration.buildCreate(this.table, column, info.table, info.relation.main);
+         const fkSql = TableMigration.ForeignKeyMigration.buildCreate(this.table, column, info.table, info.relation.main);
          await this.xansql.execute(`ALTER TABLE ${this.table} ADD ${fkSql};`);
       }
 
       // add index if exists
       if (meta.index) {
-         const indexSql = Migration.IndexMigration.buildCreate(this.table, column);
+         const indexSql = TableMigration.IndexMigration.buildCreate(this.table, column);
          await this.xansql.execute(indexSql);
       }
 
@@ -280,7 +280,7 @@ class Schema extends SchemaBase {
       let sql = ``;
 
       if (engine === 'mysql') {
-         sql = `ALTER TABLE ${this.table} CHANGE COLUMN ${oldColumn} ${newColumn} ${this.xansql.Migration.buildColumn(this.table, oldColumn)};`;
+         sql = `ALTER TABLE ${this.table} CHANGE COLUMN ${oldColumn} ${newColumn} ${this.xansql.TableMigration.buildColumn(this.table, oldColumn)};`;
       } else if (engine === 'postgresql') {
          sql = `ALTER TABLE ${this.table} RENAME COLUMN ${oldColumn} TO ${newColumn};`;
       } else if (engine === 'sqlite') {
@@ -294,8 +294,8 @@ class Schema extends SchemaBase {
       // rename foreign key if exists
       const fieldMeta = field.meta || {};
       if (Foreign.isSchema(field)) {
-         const fkOld = this.xansql.Migration.ForeignKeyMigration.identifier(this.table, oldColumn);
-         const fkNew = this.xansql.Migration.ForeignKeyMigration.identifier(this.table, newColumn);
+         const fkOld = this.xansql.TableMigration.ForeignKeyMigration.identifier(this.table, oldColumn);
+         const fkNew = this.xansql.TableMigration.ForeignKeyMigration.identifier(this.table, newColumn);
          let fsql = ``;
          if (engine === 'mysql') {
             fsql = `ALTER TABLE ${this.table} DROP FOREIGN KEY ${fkOld}, ADD CONSTRAINT ${fkNew} FOREIGN KEY (${newColumn}) REFERENCES ${Foreign.get(this, newColumn).table}(${Foreign.get(this, newColumn).relation.main});`;
@@ -309,8 +309,8 @@ class Schema extends SchemaBase {
 
       // rename index if exists
       if (fieldMeta.index) {
-         const indexOld = this.xansql.Migration.IndexMigration.identifier(this.table, oldColumn);
-         const indexNew = this.xansql.Migration.IndexMigration.identifier(this.table, newColumn);
+         const indexOld = this.xansql.TableMigration.IndexMigration.identifier(this.table, oldColumn);
+         const indexNew = this.xansql.TableMigration.IndexMigration.identifier(this.table, newColumn);
          let isql = ``;
          if (engine === 'mysql') {
             isql = `ALTER TABLE ${this.table} DROP INDEX ${indexOld}, ADD INDEX ${indexNew} (${newColumn});`;
@@ -336,13 +336,13 @@ class Schema extends SchemaBase {
 
       // drop foreign key if exists
       if (Foreign.isSchema(field)) {
-         const fkSql = this.xansql.Migration.ForeignKeyMigration.buildDrop(this.table, column);
+         const fkSql = this.xansql.TableMigration.ForeignKeyMigration.buildDrop(this.table, column);
          await this.xansql.execute(fkSql);
       }
 
       // drop index if exists
       if (fieldMeta.index) {
-         const indexSql = this.xansql.Migration.IndexMigration.buildDrop(this.table, column);
+         const indexSql = this.xansql.TableMigration.IndexMigration.buildDrop(this.table, column);
          await this.xansql.execute(indexSql);
       }
    }

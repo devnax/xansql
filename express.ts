@@ -19,6 +19,10 @@ const server = async (app: Express) => {
          body: req.body,
          headers: req.headers,
          cookies: req.cookies,
+         guard: async (info) => {
+            // Implement your authorization logic here
+            return true;
+         }
       })
 
       res.status(response.status).end(response.body);
