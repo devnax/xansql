@@ -1,4 +1,4 @@
-import Schema from "../../Schema";
+import Model from "../../model";
 import XqlArray from "../../Types/fields/Array";
 import XqlSchema from "../../Types/fields/Schema";
 import { XqlFields } from "../../Types/types";
@@ -34,7 +34,7 @@ class Foreign {
       return field instanceof XqlSchema
    }
 
-   static get(model: Schema, column: string): ForeignInfoType {
+   static get(model: Model, column: string): ForeignInfoType {
       let table = model.table
       let schema = model.schema
       let field: any = schema[column]

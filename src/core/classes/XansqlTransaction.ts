@@ -1,4 +1,5 @@
 import { Xansql } from "../..";
+import ExecuteMeta from "../ExcuteMeta";
 
 export type XansqlTransactionKey = string
 export type XansqlTransactionValue = boolean
@@ -14,22 +15,31 @@ class XansqlTransection {
 
    async begin() {
       if (!this.isBegin) {
+         if (typeof window !== "undefined") {
+            return
+         }
          this.isBegin = true;
-         await this.xansql.dialect.execute('BEGIN');
+         await this.xansql.execute('BEGIN');
       }
    }
 
    async commit() {
       if (this.isBegin) {
+         if (typeof window !== "undefined") {
+            return
+         }
          this.isBegin = false;
-         await this.xansql.dialect.execute('COMMIT');
+         await this.xansql.execute('COMMIT');
       }
    }
 
    async rollback() {
       if (this.isBegin) {
+         if (typeof window !== "undefined") {
+            return
+         }
          this.isBegin = false;
-         await this.xansql.dialect.execute('ROLLBACK');
+         await this.xansql.execute('ROLLBACK');
       }
    }
 

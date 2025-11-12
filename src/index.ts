@@ -1,5 +1,5 @@
 import Xansql from "./core/Xansql";
-import Schema from "./Schema";
+import Model from "./model";
 import xt from "./Types";
 
-export { Xansql, Schema, xt };
+export { Xansql, Model, xt };

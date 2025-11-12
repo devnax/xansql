@@ -17,23 +17,15 @@ const Button = ({ label, onClick }: any) => {
 }
 
 const App = () => {
+  const [file, setFile] = React.useState<File | null>(null);
   return (
     <div style={{ fontFamily: 'monospace,math, sans-serif', textAlign: 'center', marginTop: '50px' }}>
-
+      <input type="file" onChange={(e) => {
+        const file = e.target.files ? e.target.files[0] : null;
+        setFile(file);
+      }} />
       <div style={{ marginTop: "50px" }}>
         <Button label="Find" onClick={async () => {
-
-          // const l = await db.log?.find({
-          //   where: {
-          //     id: { gt: 0 }
-          //   },
-          //   orderBy: { id: 'desc' },
-          //   limit: { take: 10 },
-          // })
-          // console.log(l);
-          // return
-
-
           const result = await UserModel.find({
             aggregate: {
               products: {
@@ -79,7 +71,49 @@ const App = () => {
           console.log(result);
 
         }} />
-        <Button label="Update" onClick={async () => {
+        <Button label="Create" onClick={async () => {
+          let longText = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.".repeat(1000); // ~5MB
+          // const file = new File([longText], 'hello.txt', { type: 'text/plain' });
+
+          const result = await UserModel.create({
+            select: {
+              name: true,
+              email: true,
+              photo: true,
+              products: {
+                select: {
+                  description: true,
+                  name: true,
+                  categories: {
+                    select: {
+                      name: true,
+                    },
+                  }
+                }
+              }
+            },
+            data: {
+              name: "John Doe",
+              email: `john${Math.floor(Math.random() * 10000)}@doe.com`,
+              password: "password",
+              photo: file,
+              // created_at: new Date(),
+              products: {
+                name: "Hello World",
+                description: "This is my first post",
+                price: "19.99",
+                // user: 3,
+                categories: [
+                  {
+                    name: "Tech",
+                  },
+                  { name: "News" },
+                ],
+              }
+            }
+          })
+
+          console.log(result);
 
 
         }} />

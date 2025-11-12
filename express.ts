@@ -3,9 +3,9 @@ dotenv.config()
 import fakeData from './faker'
 import express, { Express } from 'express';
 import { db, ProductModel, UserModel } from './example'
-import WhereArgsQuery from './src/Schema/Args/WhereArgs';
-import SelectArgs from './src/Schema/Executer/Find/SelectArgs';
-import UpdateDataArgs from './src/Schema/Executer/Update/UpdateDataArgs';
+import WhereArgsQuery from './src/model/Args/WhereArgs';
+import SelectArgs from './src/model/Executer/Find/SelectArgs';
+import UpdateDataArgs from './src/model/Executer/Update/UpdateDataArgs';
 
 
 const server = async (app: Express) => {
@@ -15,12 +15,12 @@ const server = async (app: Express) => {
    app.disable('etag');
 
    app.use('/data/*', express.raw({ type: db.XANFETCH_CONTENT_TYPE, limit: "10mb" }), async (req: any, res: any) => {
+
       const response = await db.onFetch(req.originalUrl, {
          body: req.body,
          headers: req.headers,
          cookies: req.cookies,
-         guard: async (info) => {
-            // Implement your authorization logic here
+         isAuthorized: async (info) => {
             return true;
          }
       })

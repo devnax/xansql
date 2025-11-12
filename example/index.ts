@@ -1,8 +1,8 @@
 import dotenv from 'dotenv'
-import { Xansql, Schema, xt } from '../src'
-import SqliteDialect from '../src/dialects/Sqlite'
-import MysqlDialect from '../src/dialects/Mysql'
-import FileInDirectory from '../src/file/FileInDirectory';
+import { Xansql, Model, xt } from '../src'
+import SqliteDialect from '../src/libs/SqliteDialect'
+import MysqlDialect from '../src/libs/MysqlDialect'
+import FileInDirectory from '../src/libs/FileInDirectory';
 
 if (typeof process !== 'undefined' && process?.env) {
    try {
@@ -12,13 +12,13 @@ if (typeof process !== 'undefined' && process?.env) {
    }
 }
 
-const UserMetaSchema = new Schema("user_metas", {
+const UserMetaSchema = new Model("user_metas", {
    uoid: xt.id(),
    meta_key: xt.string(),
    meta_value: xt.string(),
 });
 
-const UserSchema = new Schema("users", {
+const UserSchema = new Model("users", {
    uid: xt.id(),
    name: xt.string(),
    username: xt.string().optional().index(),
@@ -30,14 +30,14 @@ const UserSchema = new Schema("users", {
    updated_at: xt.date().update(),
 });
 
-const ProductCategorySchema = new Schema("categories", {
+const ProductCategorySchema = new Model("categories", {
    pcid: xt.id(),
    name: xt.string().index(),
    description: xt.string().optional(),
    post: xt.schema('products', "categories"),
 });
 
-const ProductSchema = new Schema("products", {
+const ProductSchema = new Model("products", {
    pid: xt.id(),
    name: xt.string().index(),
    description: xt.string(),

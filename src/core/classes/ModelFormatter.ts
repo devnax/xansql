@@ -1,5 +1,7 @@
-import { Schema, Xansql, xt } from "../..";
+import xt from "../../Types";
+import Model from "../../model";
 import XqlSchema from "../../Types/fields/Schema";
+import Xansql from "../Xansql";
 import Foreign from "./ForeignInfo";
 
 /**
@@ -44,7 +46,7 @@ class ModelFormatter {
       // sort models by foreign key dependencies
       const sortedTables: string[] = [];
       for (let table of models.keys()) {
-         const model = models.get(table) as Schema
+         const model = models.get(table) as Model
          const schema = model.schema
          for (let column in schema) {
             let field: any = schema[column]
@@ -70,9 +72,9 @@ class ModelFormatter {
       }
 
       // update models based with sorted tables
-      const sortedModels: Map<string, Schema> = new Map();
+      const sortedModels: Map<string, Model> = new Map();
       for (let table of sortedTables) {
-         const model = models.get(table) as Schema
+         const model = models.get(table) as Model
          sortedModels.set(table, model);
       }
 
@@ -97,7 +99,7 @@ class ModelFormatter {
       return models
    }
 
-   private formatIsSchema(model: Schema, column: string) {
+   private formatIsSchema(model: Model, column: string) {
       const models = this.xansql.ModelFactory;
       let field: any = model.schema[column]
       const FModel = models.get(field.table);
@@ -123,7 +125,7 @@ class ModelFormatter {
       }
    }
 
-   private formatIsArray(model: Schema, column: string) {
+   private formatIsArray(model: Model, column: string) {
       const models = this.xansql.ModelFactory;
       let field: any = model.schema[column];
       const FSchemaField = (field as any).type as XqlSchema;

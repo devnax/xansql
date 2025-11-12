@@ -1,27 +1,26 @@
-import Schema from "../Schema";
-import { ExecuterResult, XansqlConfigType, XansqlConfigTypeRequired, XansqlFetchConfig, XansqlFileMeta, XansqlModelOptions, XansqlOnFetchInfo } from "./type";
+import Model from "../model";
+import { ExecuterResult, XansqlConfigType, XansqlConfigTypeRequired, XansqlModelOptions, XansqlOnFetchInfo } from "./type";
 import XansqlTransaction from "./classes/XansqlTransaction";
 import XansqlConfig from "./classes/XansqlConfig";
 import ModelFormatter from "./classes/ModelFormatter";
-import TableMigration from "./classes/TableMigration";
 import XansqlFetch from "./classes/XansqlFetch";
-import { chunkFile, countFileChunks } from "../utils/file";
-import { crypto } from "securequ";
-import { hash } from "../utils";
-import XqlFile from "../Types/fields/File";
+import ExecuteMeta from "./ExcuteMeta";
+import FileHandler from "./classes/FileHandler";
+import XansqlMigration from "./classes/Migration";
 
 class Xansql {
    readonly config: XansqlConfigTypeRequired;
-   readonly ModelFactory = new Map<string, Schema>()
+   readonly ModelFactory = new Map<string, Model>()
    readonly XANFETCH_CONTENT_TYPE = 'application/octet-stream';
    private _aliases = new Map<string, string>();
    private ModelFormatter: ModelFormatter;
    private XansqlConfig: XansqlConfig;
    readonly XansqlTransaction: XansqlTransaction;
    private XansqlFetch: XansqlFetch
+   private FileHandler: FileHandler
 
    // SQL Generator Instances can be added here
-   readonly TableMigration: TableMigration
+   readonly XansqlMigration: XansqlMigration
 
    constructor(config: XansqlConfigType) {
       this.XansqlConfig = new XansqlConfig(this, config);
@@ -29,9 +28,9 @@ class Xansql {
       this.XansqlTransaction = new XansqlTransaction(this);
       this.ModelFormatter = new ModelFormatter(this);
 
-      this.TableMigration = new TableMigration(this);
-
+      this.XansqlMigration = new XansqlMigration(this);
       this.XansqlFetch = new XansqlFetch(this);
+      this.FileHandler = new FileHandler(this, this.XansqlFetch);
    }
 
    get dialect() {
@@ -45,7 +44,7 @@ class Xansql {
    clone(config?: Partial<XansqlConfigType>) {
       const self = new XansqlClone({ ...this.config, ...(config || {}) });
       for (let [table, model] of this.ModelFactory) {
-         self.model(new Schema(table, model.schema));
+         self.model(new Model(table, model.schema));
       }
       return self;
    }
@@ -67,7 +66,7 @@ class Xansql {
    }
 
    private _timer: any;
-   model<S extends Schema>(model: S, options?: Partial<XansqlModelOptions>): S {
+   model<S extends Model>(model: S, options?: Partial<XansqlModelOptions>): S {
       if (!model.IDColumn) {
          throw new Error("Schema must have an ID column");
       }
@@ -87,15 +86,14 @@ class Xansql {
       return model
    }
 
-   getModel(table: string): Schema {
+   getModel(table: string): Model {
       if (!this.ModelFactory.has(table)) {
          throw new Error(`Model for table ${table} does not exist`);
       }
-      return this.ModelFactory.get(table) as Schema;
+      return this.ModelFactory.get(table) as Model;
    }
 
-   async execute(sql: string): Promise<ExecuterResult> {
-
+   async execute(sql: string, executeId?: string): Promise<ExecuterResult> {
       if (typeof window !== "undefined" && !this.config.fetch) {
          throw new Error("Xansql fetch configuration is required in client side.");
       }
@@ -103,112 +101,31 @@ class Xansql {
       sql = sql.trim().replaceAll(/\s+/g, ' ');
 
       if (typeof window !== "undefined") {
-         return await this.XansqlFetch.execute(sql);
+         if (!executeId || !ExecuteMeta.has(executeId)) {
+            throw new Error(`from client side raw query is not supported.`)
+         }
+         const res = await this.XansqlFetch.execute(sql, executeId);
+         ExecuteMeta.delete(executeId);
+         return res
       } else {
          return await this.dialect.execute(sql) as any
       }
    }
 
-   async uploadFile(file: File) {
-      if (!this.config.file || !this.config.file.upload) {
-         throw new Error("Xansql file upload configuration is not provided.");
-      }
-
-      if (typeof window !== "undefined" && !this.config.fetch) {
-         throw new Error("Xansql fetch configuration is required in client side.");
-      }
-
-      const total_chunks = countFileChunks(file);
-      let ext = file.name.split('.').pop() || '';
-      const name = `${hash(32)}${ext ? '.' + ext : ''}`;
-      const filemeta: XansqlFileMeta = {
-         total_chunks,
-         name,
-         original_name: file.name,
-         size: file.size,
-         mime: file.type,
-         isFinish: false
-      };
-
-      for await (let { chunk, chunkIndex } of chunkFile(file)) {
-         const isFinish = chunkIndex + 1 === filemeta.total_chunks;
-         filemeta.isFinish = isFinish;
-         if (typeof window !== "undefined") {
-            await this.XansqlFetch.uploadFile(chunk, chunkIndex, filemeta);
-         } else {
-            await this.config.file.upload(chunk, chunkIndex, filemeta);
-         }
-      }
-
-      return {
-         name,
-         total_chunks,
-         original_name: file.name,
-         size: file.size,
-         mime: file.type,
-      }
+   async uploadFile(file: File, executeId?: string) {
+      return await this.FileHandler.uploadFile(file, executeId);
    }
 
-   async deleteFile(filename: string) {
-      if (!this.config.file || !this.config.file.delete) {
-         throw new Error("Xansql file delete configuration is not provided.");
-      }
-      if (typeof window !== "undefined" && !this.config.fetch) {
-         throw new Error("Xansql fetch configuration is required in client side.");
-      }
-      if (typeof window !== "undefined") {
-         return await this.XansqlFetch.deleteFile(filename);
-      } else {
-         return await this.config.file.delete(filename);
-      }
+   async deleteFile(filename: string, executeId?: string) {
+      return await this.FileHandler.deleteFile(filename, executeId);
    }
-
 
    async transaction(callback: () => Promise<any>) {
       return await this.XansqlTransaction.transaction(callback);
    }
 
    async migrate(force?: boolean) {
-      const { options, tables, indexes } = this.TableMigration.statements();
-      if (force) {
-         const models = Array.from(this.ModelFactory.values()).reverse();
-
-         for (let model of models) {
-            const fileWhere: any[] = [];
-            for (let column in model.schema) {
-               const field = model.schema[column];
-               if (field instanceof XqlFile) {
-                  fileWhere.push({ [column]: { isNotNull: true } });
-               }
-            }
-
-            if (Object.keys(fileWhere).length > 0) {
-               try {
-                  await model.delete({
-                     where: fileWhere,
-                     select: { [model.IDColumn]: true }
-                  });
-               } catch (error) { }
-            }
-         }
-
-         for (let model of models) {
-            const dsql = this.TableMigration.buildDrop(model);
-            await this.config.dialect.execute(dsql);
-         }
-      }
-
-      for (let table of [...options, ...tables]) {
-         await this.config.dialect.execute(table);
-      }
-
-      for (let index of indexes) {
-         try {
-            await this.config.dialect.execute(index);
-         } catch (error) { }
-      }
-
-      return true;
+      return await this.XansqlMigration.migrate(force);
    }
 
    async onFetch(url: string, info: XansqlOnFetchInfo) {

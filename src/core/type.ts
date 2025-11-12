@@ -1,5 +1,6 @@
-import Schema from "../Schema";
-import { AggregateArgsType, CreateArgsType, DeleteArgsType, FindArgsType, UpdateArgsType } from "../Schema/type";
+import Model from "../model";
+import { AggregateArgsType, CreateArgsType, DeleteArgsType, FindArgsType, UpdateArgsType } from "../model/type";
+import { ExecuteMetaData } from "./ExcuteMeta";
 
 export type XansqlConnectionOptions = {
    host: string,
@@ -23,31 +24,14 @@ export type XansqlDialect = {
 
 // FETCH TYPE
 export type XansqlFetchMethod = "GET" | "POST" | "PUT" | "DELETE"
-export type XansqlFetchPermissionType =
-   | "find"
-   | "insert"
-   | "update"
-   | "delete"
-   | "aggregate"
-   | "executer"
-   | "createTable"
-   | "dropTable"
-   | "alterTable"
-   | "uploadFile"
-   | "deleteFile"
 
-export type XansqlFetchPermissionInfo = {
+export type XansqlFetchPermissionInfo = ExecuteMetaData & {
    method: XansqlFetchMethod;
-   table: string | null;
-   type: XansqlFetchPermissionType;
-   modle: Schema | null;
 }
 export type XansqlOnFetchInfo = {
    body: any;
    headers: { [key: string]: string };
    cookies: { [key: string]: string };
-   beforeRequest?: (info: XansqlOnFetchInfo) => Promise<XansqlOnFetchInfo>;
-   afterResponse?: (response: XansqlOnFetchResponse) => Promise<XansqlOnFetchResponse>;
    isAuthorized?: (info: XansqlFetchPermissionInfo) => Promise<boolean>;
 }
 
@@ -66,12 +50,12 @@ export type XansqlSocket = {
 }
 
 export type XansqlCache<Row = object> = {
-   cache: (sql: string, model: Schema) => Promise<Row[] | void>;
-   clear: (model: Schema) => Promise<void>;
-   onFind: (sql: string, model: Schema, data: Row) => Promise<void>;
-   onCreate: (model: Schema, insertId: number) => Promise<void>;
-   onUpdate: (model: Schema, rows: Row[]) => Promise<void>;
-   onDelete: (model: Schema, rows: Row[]) => Promise<void>;
+   cache: (sql: string, model: Model) => Promise<Row[] | void>;
+   clear: (model: Model) => Promise<void>;
+   onFind: (sql: string, model: Model, data: Row) => Promise<void>;
+   onCreate: (model: Model, insertId: number) => Promise<void>;
+   onUpdate: (model: Model, rows: Row[]) => Promise<void>;
+   onDelete: (model: Model, rows: Row[]) => Promise<void>;
 }
 
 export type XansqlFileMeta = {
@@ -80,12 +64,14 @@ export type XansqlFileMeta = {
    size: number;
    mime: string;
    total_chunks: number;
-   isFinish: boolean
+   isFinish: boolean;
+   chunkSize: number;
+   chunkIndex: number;
 }
 
 export type XansqlFile = {
-   upload: (chunk: Uint8Array, chunkIndex: number, filemeta: XansqlFileMeta) => Promise<void>;
-   delete: (filename: string) => Promise<boolean>
+   upload: (chunk: Uint8Array, filemeta: XansqlFileMeta, model?: Model) => Promise<void>;
+   delete: (filename: string, model?: Model) => Promise<boolean>
 }
 
 

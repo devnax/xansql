@@ -1,6 +1,8 @@
 import { crypto, SecurequClient, SecurequServer } from "securequ";
 import Xansql from "../Xansql"
 import { XansqlFetchConfig, XansqlFileMeta, XansqlOnFetchInfo } from "../type";
+import ExecuteMeta, { ExecuteMetaData } from "../ExcuteMeta";
+import Model from "../../model";
 
 let clientModule: any = null;
 let serverModule: any = null;
@@ -41,51 +43,60 @@ class XansqlFetch {
       return client;
    }
 
-   async execute(sql: string): Promise<any> {
-      const client = await this.client()
-      let type = sql.split(' ')[0].toUpperCase();
-      const tableInfo = this.getTableName(sql);
+   async execute(sql: string, executeId: string): Promise<any> {
 
-      let info = { sql, table: tableInfo ? tableInfo.table : null, type: tableInfo ? tableInfo.type : type };
-      if (type == "SELECT") {
-         let res = await client.get(await this.makePath('find'), { params: info })
+      const client = await this.client()
+      const meta = ExecuteMeta.get(executeId) as ExecuteMetaData
+      const data = {
+         sql,
+         table: meta.model.table,
+         action: meta.action,
+         modelType: meta.modelType,
+         args: meta.args
+      };
+
+      if (meta.action === "SELECT" || meta.action === "AGGREGATE") {
+         let res = await client.get(await this.makePath('find'), { params: data })
          !res.success && console.error(res);
          return res.data || null
-      } else if (type == "INSERT") {
-         let res = await client.post(`/${await this.makePath('insert')}`, { body: info })
+      } else if (meta.action === "INSERT") {
+         let res = await client.post(await this.makePath('insert'), { body: data })
          !res.success && console.error(res);
          return res.data || null
-      } else if (type == "UPDATE") {
-         let res = await client.put(await this.makePath('update'), { body: info })
+      } else if (meta.action === "UPDATE") {
+         let res = await client.put(await this.makePath('update'), { body: data })
          !res.success && console.error(res);
          return res.data || null
-      } else if (type == "DELETE") {
-         let res = await client.delete(await this.makePath('delete'), { params: info })
+      } else if (meta.action === "DELETE") {
+         let res = await client.delete(await this.makePath('delete'), { params: data })
          !res.success && console.error(res);
          return res.data || null
       } else {
-         let res = await client.post(await this.makePath('executer'), { body: info })
+         let res = await client.post(await this.makePath('executer'), { body: data })
          !res.success && console.error(res);
          return res.data || null
       }
    }
 
-   async uploadFile(chunk: Uint8Array, chunkIndex: number, filemeta: XansqlFileMeta) {
+   async uploadFile(chunk: Uint8Array, filemeta: XansqlFileMeta, executeId?: string) {
       const client = await this.client()
+      const meta = ExecuteMeta.get(executeId!) as ExecuteMetaData
+
       let res = await client.post(await this.makePath('uploadFile'), {
          body: {
             chunk,
-            chunkIndex,
-            filemeta
+            filemeta,
+            model: meta?.model?.table,
          }
       })
       !res.success && console.error(res);
       return res.data || null
    }
 
-   async deleteFile(filename: string) {
+   async deleteFile(filename: string, executeId?: string) {
       const client = await this.client()
-      let res = await client.delete(await this.makePath('deleteFile'), { params: { filename } })
+      const meta = ExecuteMeta.get(executeId!) as ExecuteMetaData
+      let res = await client.delete(await this.makePath('deleteFile'), { params: { filename, model: meta?.model?.table } })
       !res.success && console.error(res);
       return res.data || null
    }
@@ -93,6 +104,7 @@ class XansqlFetch {
    async onFetch(url: string, info: XansqlOnFetchInfo) {
       const config = this.config as XansqlFetchConfig
       const secret = await this.makeSecret()
+
       serverModule = serverModule || (await import("securequ/server")).default;
       let server = this.server as any
       if (!server) {
@@ -112,70 +124,75 @@ class XansqlFetch {
 
          server.get(await this.makePath('find'), async (req: any) => {
             const params: any = req.searchParams
-            if (info.permission) {
-               const isPermit = await info.permission({
+            if (info.isAuthorized) {
+               const isPermit = await info.isAuthorized({
                   method: "GET",
-                  table: params.table,
-                  type: "find",
-                  modle: xansql.models.get(params.table) || null
+                  model: xansql.models.get(params.table) as Model,
+                  action: params.action,
+                  modelType: params.modelType,
+                  args: params.args
                })
-               if (!isPermit) throw new Error("Permission denied for fetch request.")
+               if (!isPermit) throw new Error("isAuthorized denied for fetch request.")
             }
             throw await xansql.execute(params.sql);
          })
 
          server.post(await this.makePath('insert'), async (req: any) => {
             const params: any = req.body
-            if (info.permission) {
-               const isPermit = await info.permission({
+            if (info.isAuthorized) {
+               const isPermit = await info.isAuthorized({
                   method: "POST",
-                  table: params.table,
-                  type: "insert",
-                  modle: xansql.models.get(params.table) || null
+                  model: xansql.models.get(params.table) as Model,
+                  action: params.action,
+                  modelType: params.modelType,
+                  args: params.args,
                })
-               if (!isPermit) throw new Error("Permission denied for fetch request.")
+               if (!isPermit) throw new Error("isAuthorized denied for fetch request.")
             }
             throw await xansql.execute(params.sql);
          })
 
          server.put(await this.makePath('update'), async (req: any) => {
             const params: any = req.body
-            if (info.permission) {
-               const isPermit = await info.permission({
+            if (info.isAuthorized) {
+               const isPermit = await info.isAuthorized({
                   method: "PUT",
-                  table: params.table,
-                  type: "update",
-                  modle: xansql.models.get(params.table) || null
+                  model: xansql.models.get(params.table) as Model,
+                  action: params.action,
+                  modelType: params.modelType,
+                  args: params.args,
                })
-               if (!isPermit) throw new Error("Permission denied for fetch request.")
+               if (!isPermit) throw new Error("isAuthorized denied for fetch request.")
             }
             throw await xansql.execute(params.sql);
          })
 
          server.delete(await this.makePath('delete'), async (req: any) => {
             const params: any = req.searchParams
-            if (info.permission) {
-               const isPermit = await info.permission({
+            if (info.isAuthorized) {
+               const isPermit = await info.isAuthorized({
                   method: "DELETE",
-                  table: params.table,
-                  type: "delete",
-                  modle: xansql.models.get(params.table) || null
+                  model: xansql.models.get(params.table) as Model,
+                  action: params.action,
+                  modelType: params.modelType,
+                  args: params.args,
                })
-               if (!isPermit) throw new Error("Permission denied for fetch request.")
+               if (!isPermit) throw new Error("isAuthorized denied for fetch request.")
             }
             throw await xansql.execute(params.sql);
          })
 
          server.post(await this.makePath('executer'), async (req: any) => {
             const params: any = req.body
-            if (info.permission) {
-               const isPermit = await info.permission({
+            if (info.isAuthorized) {
+               const isPermit = await info.isAuthorized({
                   method: "POST",
-                  table: params.table,
-                  type: "executer",
-                  modle: xansql.models.get(params.table) || null
+                  model: xansql.models.get(params.table) as Model,
+                  action: params.action,
+                  modelType: params.modelType,
+                  args: params.args,
                })
-               if (!isPermit) throw new Error("Permission denied for fetch request.")
+               if (!isPermit) throw new Error("isAuthorized denied for fetch request.")
             }
             throw await xansql.execute(params.sql);
          })
@@ -183,12 +200,13 @@ class XansqlFetch {
          server.post(await this.makePath('uploadFile'), async (req: any) => {
             const params: any = req.body
             const chunk: Uint8Array = params.chunk;
-            const chunkIndex: number = params.chunkIndex;
             const filemeta: XansqlFileMeta = params.filemeta;
             if (!xansql.config.file || !xansql.config.file.upload) {
                throw new Error("Xansql file upload configuration is not set.");
             }
-            const success = await xansql.config.file.upload(chunk, chunkIndex, filemeta);
+            const model = xansql.models.get(params.model)
+
+            const success = await xansql.config.file.upload(chunk, filemeta, model);
             throw success;
          })
 
@@ -198,7 +216,8 @@ class XansqlFetch {
             if (!xansql.config.file || !xansql.config.file.delete) {
                throw new Error("Xansql file delete configuration is not set.");
             }
-            const success = await xansql.config.file.delete(filename);
+            const model = xansql.models.get(params.model)
+            const success = await xansql.config.file.delete(filename, model);
             throw success;
          })
       }

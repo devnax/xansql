@@ -5,7 +5,7 @@
  * @returns 
  */
 
-function getChunkSize(fileSize: number): number {
+export function getChunkSize(fileSize: number): number {
    // fileSize in bytes
    const MB = 1024 * 1024;
 

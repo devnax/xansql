@@ -4,7 +4,7 @@ import Xansql from "../Xansql";
 class XansqlConfig {
    readonly xansql: Xansql;
    readonly config: XansqlConfigType;
-   readonly engins: XansqlDialectEngine[] = ['mysql', 'postgresql', 'sqlite', 'mssql'];
+   readonly engins: XansqlDialectEngine[] = ['mysql', 'postgresql', 'sqlite'];
    constructor(xansql: Xansql, config: XansqlConfigType) {
       this.xansql = xansql;
       this.config = config;
@@ -24,8 +24,6 @@ class XansqlConfig {
             update: this.config.maxLimit?.update || 100,
             delete: this.config.maxLimit?.delete || 100,
          },
-         cachePlugins: this.config.cachePlugins || [],
-         listenerConfig: this.config.listenerConfig || null,
       }
 
       return config as XansqlConfigTypeRequired
