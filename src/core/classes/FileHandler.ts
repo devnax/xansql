@@ -53,7 +53,7 @@ class FileHandler {
             }
          } else {
             try {
-               return await xansql.config.file.upload(chunk, filemeta);
+               await xansql.config.file.upload(chunk, filemeta);
             } catch (error) {
                await xansql.config.file.delete(name);
                throw error;

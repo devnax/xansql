@@ -7,6 +7,7 @@ import XansqlFetch from "./classes/XansqlFetch";
 import ExecuteMeta from "./ExcuteMeta";
 import FileHandler from "./classes/FileHandler";
 import XansqlMigration from "./classes/Migration";
+import { XansqlSchemaObject } from "../Types/types";
 
 class Xansql {
    readonly config: XansqlConfigTypeRequired;
@@ -44,7 +45,7 @@ class Xansql {
    clone(config?: Partial<XansqlConfigType>) {
       const self = new XansqlClone({ ...this.config, ...(config || {}) });
       for (let [table, model] of this.ModelFactory) {
-         self.model(new Model(table, model.schema));
+         self.model(table, model.schema, model.options);
       }
       return self;
    }
@@ -66,7 +67,8 @@ class Xansql {
    }
 
    private _timer: any;
-   model<S extends Model>(model: S, options?: Partial<XansqlModelOptions>): S {
+   model(table: string, schema: XansqlSchemaObject, options?: Partial<XansqlModelOptions>): Model {
+      const model = new Model(table, schema);
       if (!model.IDColumn) {
          throw new Error("Schema must have an ID column");
       }

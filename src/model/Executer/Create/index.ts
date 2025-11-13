@@ -71,7 +71,10 @@ class CreateExecuter {
                      });
                   }
                   for (let filename of uploadedFileNames) {
-                     await xansql.deleteFile(filename, executeId)
+                     try {
+                        await xansql.deleteFile(filename, executeId)
+                     } catch (error) {
+                     }
                   }
                   throw new Error(`Error inserting into table ${model.table}: ${error.message}`);
                }
