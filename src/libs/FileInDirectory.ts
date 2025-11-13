@@ -14,7 +14,6 @@ const FileInDirectory = (options: FileInDirectoryOptions) => {
          fs = fs || await import('fs');
          path = path || await import('path');
 
-
          const uploadDir = path.join(process.cwd(), dir);
          if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
 
