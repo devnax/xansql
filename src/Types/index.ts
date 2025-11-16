@@ -96,20 +96,20 @@ export const x = {
       return inst;
    },
    photo: () => {
-      const inst = x.file(2 * 1024 * 1024); // 2 MB
+      const inst = x.file().maxSize(2 * 1024 * 1024); // 2 MB
       inst.set("photo" as any, (v: any) => {
          const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
-         if (!allowedTypes.includes(v.mimetype)) {
+         if (!allowedTypes.includes(v.type)) {
             throw new Error("Invalid photo file type.");
          }
       });
       return inst;
    },
    avatar: () => {
-      const inst = x.file(1 * 1024 * 1024); // 1 MB
+      const inst = x.file().maxSize(2 * 1024 * 1024); // 1 MB
       inst.set("avatar" as any, (v: any) => {
          const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
-         if (!allowedTypes.includes(v.mimetype)) {
+         if (!allowedTypes.includes(v.type)) {
             throw new Error("Invalid avatar file type.");
          }
       });

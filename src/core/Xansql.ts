@@ -7,6 +7,7 @@ import XansqlFetch from "./classes/XansqlFetch";
 import ExecuteMeta from "./ExcuteMeta";
 import XansqlMigration from "./classes/Migration";
 import { XansqlSchemaObject } from "../Types/types";
+import { xt } from "..";
 
 class Xansql {
    readonly config: XansqlConfigTypeRequired;
@@ -17,6 +18,7 @@ class Xansql {
    private XansqlConfig: XansqlConfig;
    readonly XansqlTransaction: XansqlTransaction;
    private XansqlFetch: XansqlFetch
+   private MigrateModel: Model
 
    // SQL Generator Instances can be added here
    readonly XansqlMigration: XansqlMigration
@@ -29,6 +31,12 @@ class Xansql {
 
       this.XansqlMigration = new XansqlMigration(this);
       this.XansqlFetch = new XansqlFetch(this);
+
+      this.MigrateModel = this.model("migrations", {
+         id: xt.id(),
+         info: xt.record(xt.string(), xt.string()),
+         createdAt: xt.createdAt(),
+      })
    }
 
    get dialect() {
@@ -128,9 +136,6 @@ class Xansql {
    }
 
    async onFetch(url: string, info: XansqlOnFetchInfo) {
-      if (typeof window !== "undefined") throw new Error("Xansql onFetch method is not available in client side.")
-      const hasUrl = typeof this.config.fetch === "string" || typeof this.config.fetch.url === "string"
-      if (!this.config.fetch || !hasUrl) throw new Error("Xansql fetch configuration does not have a valid url.")
       return await this.XansqlFetch.onFetch(url, info);
    }
 

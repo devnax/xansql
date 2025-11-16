@@ -102,6 +102,12 @@ class XansqlFetch {
    private loaded = false
    async onFetch(url: string, info: XansqlOnFetchInfo) {
       const xansql = this.xansql
+      const config = xansql.config
+
+      if (typeof window !== "undefined") throw new Error("Xansql onFetch method is not available in client side.")
+      const hasUrl = typeof config.fetch === "string" || typeof config.fetch.url === "string"
+      if (!config.fetch || !hasUrl) throw new Error("Xansql fetch configuration does not have a valid url.")
+
       let server = await this.server()
 
       if (!this.loaded) {
@@ -217,6 +223,8 @@ class XansqlFetch {
          return res.data
       } else {
          const server = await this.server();
+         console.log(file);
+
          return await server.uploadFile(file);
       }
    }

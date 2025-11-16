@@ -94,7 +94,7 @@ async function buildUsers(count = 3): Promise<User[]> {
          password: faker.internet.password(),
          metas: buildUserMetas(),
          products: buildProducts(),
-         photo: new File(["lorem"], "avatar.png"),
+         photo: new File(["lorem"], "avatar.txt", { type: "text/plain" }),
       })
    }
    return items
