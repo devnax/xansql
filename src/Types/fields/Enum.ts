@@ -9,7 +9,6 @@ class XqlEnum extends XVEnum {
 
    unique() {
       this.meta.unique = true
-      this.index()
       return this
    }
 }

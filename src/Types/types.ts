@@ -11,6 +11,7 @@ import XqlString from "./fields/String"
 import XqlTuple from "./fields/Tuple"
 import XqlUnion from "./fields/Union"
 import XqlSchema from "./fields/Schema"
+import XqlPassowrd from "./fields/extra/Password"
 
 export type XqlFields =
    | XqlArray
@@ -27,6 +28,9 @@ export type XqlFields =
    | XqlSchema
 
    | XqlIDField
+
+   // Extra Types
+   | XqlPassowrd
 
 
 

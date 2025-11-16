@@ -13,6 +13,7 @@ import XqlIDField from "./fields/IDField";
 import XqlFile from "./fields/File";
 import XqlSchema from "./fields/Schema";
 import { XqlFields } from "./types";
+import XqlPassowrd from "./fields/extra/Password";
 
 export const x = {
    id: () => new XqlIDField(),
@@ -28,6 +29,7 @@ export const x = {
    union: (type: XqlFields[]) => new XqlUnion(type as any),
    file: (size?: number) => new XqlFile(size),
    schema: (table: string, column: string) => new XqlSchema(table, column),
+   password: () => new XqlPassowrd(),
 }
 
 export default x;
