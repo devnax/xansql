@@ -27,7 +27,7 @@ class CreateExecuter {
          for (let arg of chunk) {
             let insertId
             const fileColumns = Object.keys(arg.files)
-            const uploadedFileNames: string[] = []
+            const uploadedFileIds: string[] = []
             try {
 
                if (fileColumns.length > 0) {
@@ -42,7 +42,7 @@ class CreateExecuter {
                   }
                   for (let file_col of fileColumns) {
                      const filemeta = await xansql.uploadFile(arg.files[file_col], executeId)
-                     uploadedFileNames.push(filemeta.name)
+                     uploadedFileIds.push(filemeta.fileId)
                      arg.data[file_col] = `'${JSON.stringify(filemeta)}'`
                   }
                }
@@ -70,9 +70,9 @@ class CreateExecuter {
                         args: arg
                      });
                   }
-                  for (let filename of uploadedFileNames) {
+                  for (let fileId of uploadedFileIds) {
                      try {
-                        await xansql.deleteFile(filename, executeId)
+                        await xansql.deleteFile(fileId, executeId)
                      } catch (error) {
                      }
                   }

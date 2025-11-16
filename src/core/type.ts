@@ -1,3 +1,4 @@
+import { UploadFileMeta } from "securequ";
 import Model from "../model";
 import { AggregateArgsType, CreateArgsType, DeleteArgsType, FindArgsType, UpdateArgsType } from "../model/type";
 import { ExecuteMetaData } from "./ExcuteMeta";
@@ -58,21 +59,12 @@ export type XansqlCache<Row = object> = {
    onDelete: (model: Model, rows: Row[]) => Promise<void>;
 }
 
-export type XansqlFileMeta = {
-   name: string;
-   original_name: string;
-   size: number;
-   mime: string;
-   total_chunks: number;
-   isFinish: boolean;
-   chunkSize: number;
-   chunkIndex: number;
-}
+export type XansqlFileMeta = UploadFileMeta
 
-export type XansqlFile = {
-   upload: (chunk: Uint8Array, filemeta: XansqlFileMeta, model?: Model) => Promise<void>;
-   delete: (filename: string, model?: Model) => Promise<boolean>
-}
+// export type XansqlFile = {
+//    upload: (chunk: Uint8Array, filemeta: XansqlFileMeta, model?: Model) => Promise<void>;
+//    delete: (filename: string, model?: Model) => Promise<boolean>
+// }
 
 
 export type XansqlFetchUrl = string
@@ -82,13 +74,21 @@ export type XansqlFetchConfig = {
    mode?: "production" | "development";
 }
 
+export type XansqlFileConfig = {
+   maxFilesize?: number; // in KB
+   checkFileType?: boolean;
+   chunkSize?: number; // in KB
+   upload: (chunk: Uint8Array, filemeta: UploadFileMeta) => Promise<void>;
+   delete: (filename: string) => Promise<void>;
+}
+
 export type XansqlConfigType = {
    dialect: XansqlDialect;
    fetch?: XansqlFetchUrl | XansqlFetchConfig
    socket?: XansqlSocket;
    cache?: XansqlCache;
 
-   file?: XansqlFile
+   file?: XansqlFileConfig
 
    maxLimit?: {
       find?: number;

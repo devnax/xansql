@@ -46,8 +46,10 @@ class FindExecuter {
             });
          }
          const sql = `SELECT ${Select.sql} FROM ${model.table} ${where_sql}${OrderBy.sql}`.trim()
-         const { results: batchResults } = await xansql.execute(sql, executeId)
-         results = results.concat(batchResults)
+         const executed = await xansql.execute(sql, executeId)
+         if (executed?.results) {
+            results = results.concat(executed.results)
+         }
       } else {
          for (let { take, skip } of chunkNumbers(Limit.take)) {
             let executeId = undefined;
@@ -61,8 +63,10 @@ class FindExecuter {
             }
             const batchLimitArgs = new LimitArgs(model, { take, skip: Limit.skip + skip })
             const sql = `SELECT ${Select.sql} FROM ${model.table} ${where_sql}${OrderBy.sql}${batchLimitArgs.sql}`.trim()
-            const { results: batchResults } = await xansql.execute(sql, executeId)
-            results = results.concat(batchResults)
+            const executed = await xansql.execute(sql, executeId)
+            if (executed?.results) {
+               results = results.concat(executed.results)
+            }
          }
       }
 
@@ -193,7 +197,9 @@ class FindExecuter {
             });
          }
          const res = (await xansql.execute(sql, executeId)).results
-         fres = fres.concat(res)
+         if (res) {
+            fres = fres.concat(res)
+         }
       }
 
       // let insql = `${foreign.relation.main} IN (${ids.join(",")})`

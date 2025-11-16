@@ -3,7 +3,7 @@ import { Xansql, Model, xt } from '../src'
 import SqliteDialect from '../src/libs/SqliteDialect'
 import MysqlDialect from '../src/libs/MysqlDialect'
 import FileInDirectory from '../src/libs/FileInDirectory';
-
+import sha256 from '../src/utils/sha256';
 if (typeof process !== 'undefined' && process?.env) {
    try {
       dotenv.config()
@@ -99,13 +99,13 @@ export const UserModelMeta = db.model("user_metas", {
 export const UserModel = db.model("users", {
    uid: xt.id(),
    name: xt.string(),
-   username: xt.string().optional().index(),
-   photo: xt.file().optional(),
-   email: xt.string().index(),
-   password: xt.string(),
+   username: xt.username().optional(),
+   photo: xt.avatar().optional(),
+   email: xt.email(),
+   password: xt.password(),
    metas: xt.array(xt.schema("user_metas", "user")),
-   created_at: xt.date().create(),
-   updated_at: xt.date().update(),
+   created_at: xt.createdAt(),
+   updated_at: xt.updatedAt(),
 }, {
    hooks: {
       beforeCreate: async (args) => {

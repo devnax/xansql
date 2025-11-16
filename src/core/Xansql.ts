@@ -5,7 +5,6 @@ import XansqlConfig from "./classes/XansqlConfig";
 import ModelFormatter from "./classes/ModelFormatter";
 import XansqlFetch from "./classes/XansqlFetch";
 import ExecuteMeta from "./ExcuteMeta";
-import FileHandler from "./classes/FileHandler";
 import XansqlMigration from "./classes/Migration";
 import { XansqlSchemaObject } from "../Types/types";
 
@@ -18,7 +17,6 @@ class Xansql {
    private XansqlConfig: XansqlConfig;
    readonly XansqlTransaction: XansqlTransaction;
    private XansqlFetch: XansqlFetch
-   private FileHandler: FileHandler
 
    // SQL Generator Instances can be added here
    readonly XansqlMigration: XansqlMigration
@@ -31,7 +29,6 @@ class Xansql {
 
       this.XansqlMigration = new XansqlMigration(this);
       this.XansqlFetch = new XansqlFetch(this);
-      this.FileHandler = new FileHandler(this, this.XansqlFetch);
    }
 
    get dialect() {
@@ -115,11 +112,11 @@ class Xansql {
    }
 
    async uploadFile(file: File, executeId?: string) {
-      return await this.FileHandler.uploadFile(file, executeId);
+      return await this.XansqlFetch.uploadFile(file, executeId);
    }
 
    async deleteFile(filename: string, executeId?: string) {
-      return await this.FileHandler.deleteFile(filename, executeId);
+      return await this.XansqlFetch.deleteFile(filename, executeId);
    }
 
    async transaction(callback: () => Promise<any>) {

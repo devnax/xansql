@@ -4,16 +4,16 @@ import { XansqlFetchConfig, XansqlFileMeta, XansqlOnFetchInfo } from "../type";
 import ExecuteMeta, { ExecuteMetaData } from "../ExcuteMeta";
 import Model from "../../model";
 
-let clientModule: any = null;
-let serverModule: any = null;
+let clientModule: typeof import("securequ/client").default | null = null;
+let serverModule: typeof import("securequ/server").default | null = null;
 
 
 class XansqlFetch {
    xansql: Xansql
    private _client: SecurequClient | null = null
-   private server: SecurequServer | null = null
+   private _server: SecurequServer | null = null
    private secretCache: string | null = null
-   private config: XansqlFetchConfig
+   private fetchConfig: XansqlFetchConfig
 
    constructor(xansql: Xansql) {
       this.xansql = xansql
@@ -25,22 +25,43 @@ class XansqlFetch {
             }
          }
       }
-      this.config = config
+      this.fetchConfig = config
    }
 
    async client() {
-      const secret = await this.makeSecret()
-      const config = this.config as XansqlFetchConfig
-      clientModule = clientModule || (await import("securequ/client")).default
-      let client = this._client as any
-      if (!client) {
-         client = new clientModule({
+      if (!this._client) {
+         const secret = await this.makeSecret()
+         const config = this.fetchConfig as XansqlFetchConfig
+         clientModule = clientModule || (await import("securequ/client")).default
+         this._client = new clientModule({
             url: config.url,
             secret
          });
-         this._client = client
       }
-      return client;
+      return this._client;
+   }
+
+   async server() {
+      if (!this._server) {
+         const xansql = this.xansql
+         const config = xansql.config
+         const fetchConfig = this.fetchConfig as XansqlFetchConfig
+         const secret = await this.makeSecret()
+         serverModule = serverModule || (await import("securequ/server")).default;
+         const url = new URL(fetchConfig.url)
+         this._server = new serverModule({
+            mode: fetchConfig.mode,
+            basepath: `/${url.pathname.replace(/^\/+/, '')}`,
+            file: config.file,
+            clients: [
+               {
+                  origin: `*`,
+                  secret
+               }
+            ]
+         });
+      }
+      return this._server;
    }
 
    async execute(sql: string, executeId: string): Promise<any> {
@@ -78,50 +99,13 @@ class XansqlFetch {
       }
    }
 
-   async uploadFile(chunk: Uint8Array, filemeta: XansqlFileMeta, executeId?: string) {
-      const client = await this.client()
-      const meta = ExecuteMeta.get(executeId!) as ExecuteMetaData
-
-      let res = await client.post(await this.makePath('uploadFile'), {
-         body: {
-            chunk,
-            filemeta,
-            model: meta?.model?.table,
-         }
-      })
-      !res.success && console.error(res);
-      return res.data || null
-   }
-
-   async deleteFile(filename: string, executeId?: string) {
-      const client = await this.client()
-      const meta = ExecuteMeta.get(executeId!) as ExecuteMetaData
-      let res = await client.delete(await this.makePath('deleteFile'), { params: { filename, model: meta?.model?.table } })
-      !res.success && console.error(res);
-      return res.data || null
-   }
-
+   private loaded = false
    async onFetch(url: string, info: XansqlOnFetchInfo) {
-      const config = this.config as XansqlFetchConfig
-      const secret = await this.makeSecret()
+      const xansql = this.xansql
+      let server = await this.server()
 
-      serverModule = serverModule || (await import("securequ/server")).default;
-      let server = this.server as any
-      if (!server) {
-         const url = new URL(config.url)
-         server = new serverModule({
-            mode: config.mode,
-            basepath: `/${url.pathname.replace(/^\/+/, '')}`,
-            clients: [
-               {
-                  origin: `*`,
-                  secret
-               }
-            ]
-         });
-         this.server = server
-         const xansql = this.xansql
-
+      if (!this.loaded) {
+         this.loaded = true
          server.get(await this.makePath('find'), async (req: any) => {
             const params: any = req.searchParams
             if (info.isAuthorized) {
@@ -136,7 +120,6 @@ class XansqlFetch {
             }
             throw await xansql.execute(params.sql);
          })
-
          server.post(await this.makePath('insert'), async (req: any) => {
             const params: any = req.body
             if (info.isAuthorized) {
@@ -151,7 +134,6 @@ class XansqlFetch {
             }
             throw await xansql.execute(params.sql);
          })
-
          server.put(await this.makePath('update'), async (req: any) => {
             const params: any = req.body
             if (info.isAuthorized) {
@@ -166,7 +148,6 @@ class XansqlFetch {
             }
             throw await xansql.execute(params.sql);
          })
-
          server.delete(await this.makePath('delete'), async (req: any) => {
             const params: any = req.searchParams
             if (info.isAuthorized) {
@@ -181,7 +162,6 @@ class XansqlFetch {
             }
             throw await xansql.execute(params.sql);
          })
-
          server.post(await this.makePath('executer'), async (req: any) => {
             const params: any = req.body
             if (info.isAuthorized) {
@@ -196,30 +176,6 @@ class XansqlFetch {
             }
             throw await xansql.execute(params.sql);
          })
-
-         server.post(await this.makePath('uploadFile'), async (req: any) => {
-            const params: any = req.body
-            const chunk: Uint8Array = params.chunk;
-            const filemeta: XansqlFileMeta = params.filemeta;
-            if (!xansql.config.file || !xansql.config.file.upload) {
-               throw new Error("Xansql file upload configuration is not set.");
-            }
-            const model = xansql.models.get(params.model)
-
-            const success = await xansql.config.file.upload(chunk, filemeta, model);
-            throw success;
-         })
-
-         server.delete(await this.makePath('deleteFile'), async (req: any) => {
-            const params: any = req.searchParams
-            const filename: string = params.filename;
-            if (!xansql.config.file || !xansql.config.file.delete) {
-               throw new Error("Xansql file delete configuration is not set.");
-            }
-            const model = xansql.models.get(params.model)
-            const success = await xansql.config.file.delete(filename, model);
-            throw success;
-         })
       }
 
       try {
@@ -233,6 +189,7 @@ class XansqlFetch {
             body: res.content,
          }
       } catch (error: any) {
+         const secret = await this.makeSecret()
          return {
             status: 500,
             body: await crypto.encryptBuffer({
@@ -240,6 +197,47 @@ class XansqlFetch {
                message: error.message || 'Internal Server Error'
             }, secret)
          }
+      }
+   }
+
+   async uploadFile(file: File, executeId?: string): Promise<XansqlFileMeta> {
+      const xansql = this.xansql;
+      if (!xansql.config.file || !xansql.config.file.upload) {
+         throw new Error("Xansql file upload configuration is not provided.");
+      }
+
+      if (typeof window !== "undefined" && !xansql.config.fetch) {
+         throw new Error("Xansql fetch configuration is required in client side.");
+      }
+
+      if (typeof window !== "undefined") {
+         const client = await this.client();
+         const res = await client.uploadFile(file);
+         ExecuteMeta.delete(executeId!);
+         return res.data
+      } else {
+         const server = await this.server();
+         return await server.uploadFile(file);
+      }
+   }
+
+   async deleteFile(fileId: string, executeId?: string) {
+      const xansql = this.xansql;
+      if (!xansql.config.file || !xansql.config.file.delete) {
+         throw new Error("Xansql file delete configuration is not provided.");
+      }
+      if (typeof window !== "undefined" && !xansql.config.fetch) {
+         throw new Error("Xansql fetch configuration is required in client side.");
+      }
+      if (typeof window !== "undefined") {
+         const client = await this.client();
+         const res = await client.deleteFile(fileId);
+         ExecuteMeta.delete(executeId!);
+         return res;
+      } else {
+         const server = await this.server();
+         const res = await server.deleteFile(fileId);
+         return res;
       }
    }
 

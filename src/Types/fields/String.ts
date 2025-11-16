@@ -23,17 +23,6 @@ class XqlString extends XVString {
       super.email()
       return this
    }
-
-   username(): this {
-      this.set("username" as any, (v: any) => {
-         const usernameRegex = /^[a-zA-Z0-9._-]{3,30}$/;
-         if (!usernameRegex.test(v)) {
-            throw new Error("Invalid username format.");
-         }
-      });
-      this.index()
-      return this
-   }
 }
 
 export default XqlString

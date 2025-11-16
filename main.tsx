@@ -1,6 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { db, ProductModel, UserModel } from './example'
+import { password } from 'bun';
 
 
 const Button = ({ label, onClick }: any) => {
@@ -46,11 +47,12 @@ const App = () => {
               }
             },
             where: {
-              // uid: { gt: 100 }
+              name: "John Doe"
             },
             select: {
               name: true,
               photo: true,
+              password: true,
               products: {
                 aggregate: {
                   categories: {

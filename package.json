@@ -13,8 +13,8 @@
       "release": "makepack release"
    },
    "dependencies": {
-      "securequ": "^1.1.4",
-      "xanv": "^1.0.9",
+      "securequ": "^1.1.5",
+      "xanv": "^1.1.0",
       "youid": "^1.0.13"
    },
    "devDependencies": {

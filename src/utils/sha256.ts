@@ -60,3 +60,5 @@ export function sha256(str: string): string {
 
    return H.map(x => (x >>> 0).toString(16).padStart(8, "0")).join("");
 }
+
+export default sha256;

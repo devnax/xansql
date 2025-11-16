@@ -26,7 +26,7 @@ class UpdateExecuter {
 
       const Where = new WhereArgs(model, args.where)
       const fileColumns = Object.keys(upArgs.files)
-      const uploadedFileNames: string[] = []
+      const uploadedFileIds: string[] = []
 
       let existing_file_rows: any[] = []
       if (fileColumns.length > 0) {
@@ -54,7 +54,7 @@ class UpdateExecuter {
             }
             for (let file_col of fileColumns) {
                const filemeta = await xansql.uploadFile(upArgs.files[file_col], executeId)
-               uploadedFileNames.push(filemeta.name)
+               uploadedFileIds.push(filemeta.fileId)
                upArgs.data[file_col] = `'${JSON.stringify(filemeta)}'`
             }
          }
@@ -86,7 +86,7 @@ class UpdateExecuter {
                for (let file_col of fileColumns) {
                   const oldFileMeta = row[file_col]
                   if (oldFileMeta) {
-                     await xansql.deleteFile(oldFileMeta.name, executeId)
+                     await xansql.deleteFile(oldFileMeta.fileId, executeId)
                   }
                }
             }
@@ -106,9 +106,8 @@ class UpdateExecuter {
                args
             });
          }
-         for (let file_col of fileColumns) {
-            const filename = upArgs.data[file_col].replace(/'/g, '')
-            await xansql.deleteFile(filename, executeId)
+         for (let fileId of uploadedFileIds) {
+            await xansql.deleteFile(fileId, executeId)
          }
          throw new Error("Error executing update: " + (error as Error).message);
       }

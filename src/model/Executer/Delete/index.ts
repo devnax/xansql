@@ -123,7 +123,7 @@ class DeleteExecuter {
                for (let file_col of fileColumns) {
                   const filemeta = row[file_col]
                   if (filemeta) {
-                     await xansql.deleteFile(filemeta.name, executeId)
+                     await xansql.deleteFile(filemeta.fileId, executeId)
                   }
                }
             }

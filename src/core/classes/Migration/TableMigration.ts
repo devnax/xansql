@@ -3,7 +3,6 @@ import XqlArray from "../../../Types/fields/Array";
 import XqlBoolean from "../../../Types/fields/Boolean";
 import XqlDate from "../../../Types/fields/Date";
 import XqlEnum from "../../../Types/fields/Enum";
-import XqlPassowrd from "../../../Types/fields/extra/Password";
 import XqlFile from "../../../Types/fields/File";
 import XqlIDField from "../../../Types/fields/IDField";
 import XqlNumber from "../../../Types/fields/Number";
@@ -209,8 +208,6 @@ class Migration {
          if (!isSchemaArray) {
             sql += col(column, "TEXT")
          }
-      } else if (field instanceof XqlPassowrd) {
-         sql += col(column, "VARCHAR(60)")
       } else {
          throw new Error(`Unsupported field type for column ${column}`);
       }
