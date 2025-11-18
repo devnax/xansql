@@ -1,5 +1,4 @@
 import Model from "../.."
-import { isArray } from "../../../utils"
 import WhereArgs from "../../Args/WhereArgs"
 import { UpdateArgsType } from "../../type"
 import RelationExecuteArgs from "../../Args/RelationExcuteArgs"
@@ -168,7 +167,7 @@ class UpdateExecuter {
          if (relArgs.create) {
             for (let { chunk } of chunkArray(ids)) {
                for (let id of chunk) {
-                  if (isArray(relArgs.create.data)) {
+                  if (Array.isArray(relArgs.create.data)) {
                      for (let item of relArgs.create.data) {
                         await FModel.create(new RelationExecuteArgs({
                            data: {

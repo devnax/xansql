@@ -14,6 +14,7 @@ import XqlFile from "./fields/File";
 import XqlSchema from "./fields/Schema";
 import { XqlFields } from "./types";
 import sha256 from "../utils/sha256";
+import XqlJson from "./fields/Json";
 
 export const x = {
    id: () => new XqlIDField(),
@@ -24,6 +25,7 @@ export const x = {
    number: (length?: number) => new XqlNumber(length),
    object: (arg?: XVObjectType) => new XqlObject(arg),
    record: (key: XqlFields, value: XqlFields) => new XqlRecord(key as any, value as any),
+   json: () => new XqlJson(),
    string: (length?: number) => new XqlString(length),
    tuple: (type: XqlFields[]) => new XqlTuple(type as any),
    union: (type: XqlFields[]) => new XqlUnion(type as any),

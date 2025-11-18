@@ -108,6 +108,7 @@ class CreateDataArgs {
                   this.data[column] = ''
                   ValueFormatter.toSql(model, column, value) // for validation
                } else {
+
                   this.data[column] = ValueFormatter.toSql(model, column, value)
                }
             }

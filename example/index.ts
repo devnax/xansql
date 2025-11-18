@@ -124,3 +124,7 @@ export const ProductModel = db.model("products", {
    user: xt.schema("users", "products").optional(),
 })
 
+
+
+db.on("BEFORE_CREATE", async ({ model, args }) => {
+});

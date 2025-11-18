@@ -1,13 +1,22 @@
+import xt from "../../../Types";
+import Model from "../../../model";
 import XqlFile from "../../../Types/fields/File";
 import ExecuteMeta from "../../ExcuteMeta";
 import Xansql from "../../Xansql";
 import TableMigration from "./TableMigration";
 
 class XansqlMigration {
-   xansql: Xansql
+   readonly xansql: Xansql
+   readonly MigrateModel: Model
    readonly TableMigration: TableMigration
+   private migration_table = "migrations"
    constructor(xansql: Xansql) {
       this.xansql = xansql;
+      this.MigrateModel = xansql.model(this.migration_table, {
+         id: xt.id(),
+         info: xt.object(),
+         createdAt: xt.createdAt(),
+      });
       this.TableMigration = new TableMigration(xansql);
    }
 
@@ -55,6 +64,12 @@ class XansqlMigration {
          await xansql.dialect.execute(option);
       }
 
+      let migrationMeta: {
+         [table: string]: {
+            [column: string]: { [key: string]: any }
+         }
+      } = {};
+
       for (let { table, sql } of tables) {
          let executeId = undefined;
          if (typeof window !== "undefined") {
@@ -65,7 +80,20 @@ class XansqlMigration {
                args: {}
             });
          }
+
+         await xansql.EventManager.emit("BEFORE_MIGRATE", { info: { table, sql } });
          await xansql.execute(sql, executeId);
+         await xansql.EventManager.emit("MIGRATE", { info: { table, sql } });
+
+         if (!force && table !== this.migration_table) {
+            const model = xansql.getModel(table);
+            migrationMeta[table] = {}
+
+            for (let column in model.schema) {
+               const field = model.schema[column];
+               migrationMeta[table][column] = field.meta || {}
+            }
+         }
       }
 
       for (let { sql, table } of indexes) {
@@ -81,6 +109,20 @@ class XansqlMigration {
             }
             await xansql.execute(sql, executeId);
          } catch (error) { }
+      }
+
+      if (!force) {
+         const lastMigration = await this.MigrateModel.findOne({
+            select: { info: true },
+            orderBy: { id: "desc" }
+         });
+
+         console.log(lastMigration);
+         await this.MigrateModel.create({
+            data: {
+               info: migrationMeta
+            }
+         });
       }
 
       return true;

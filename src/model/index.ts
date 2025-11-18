@@ -29,15 +29,17 @@ class Model extends ModelBase {
             args = await this.options.hooks.beforeCreate(args) || args
          }
 
+         // event emit BEFORE_CREATE
          const executer = new CreateExecuter(this);
-
-         let result = await executer.execute(args);
+         await xansql.EventManager.emit("BEFORE_CREATE", { model: this, args });
+         let results = await executer.execute(args);
+         await xansql.EventManager.emit("CREATE", { model: this, results, args });
 
          if (this.options?.hooks && this.options.hooks.afterCreate) {
-            result = await this.options.hooks.afterCreate(result, args) || result
+            results = await this.options.hooks.afterCreate(results, args) || results
          }
          if (!isRelArgs) await xansql.XansqlTransaction.commit()
-         return result
+         return results
       } catch (error) {
          if (!isRelArgs) await xansql.XansqlTransaction.rollback()
          throw error;
@@ -55,7 +57,9 @@ class Model extends ModelBase {
             args = await this.options.hooks.beforeUpdate(args) || args
          }
          const executer = new UpdateExecuter(this);
+         await xansql.EventManager.emit("BEFORE_UPDATE", { model: this, args });
          const result = await executer.execute(args);
+         await xansql.EventManager.emit("UPDATE", { model: this, results: result, args });
          if (this.options?.hooks && this.options.hooks.afterUpdate) {
             return await this.options.hooks.afterUpdate(result, args) || result
          }
@@ -79,7 +83,9 @@ class Model extends ModelBase {
             args = await this.options.hooks.beforeDelete(args) || args
          }
          const executer = new DeleteExecuter(this);
+         await xansql.EventManager.emit("BEFORE_DELETE", { model: this, args });
          const result = await executer.execute(args);
+         await xansql.EventManager.emit("DELETE", { model: this, results: result, args });
          if (this.options.hooks && this.options.hooks.afterDelete) {
             return await this.options.hooks.afterDelete(result, args) || result
          }
@@ -96,7 +102,9 @@ class Model extends ModelBase {
          args = await this.options.hooks.beforeFind(args) || args
       }
       const executer = new FindExecuter(this);
+      await this.xansql.EventManager.emit("BEFORE_FIND", { model: this, args });
       const result = await executer.execute(args);
+      await this.xansql.EventManager.emit("FIND", { model: this, results: result, args });
       if (this.options.hooks && this.options.hooks.afterFind) {
          return await this.options.hooks.afterFind(result, args) || result
       }
@@ -108,7 +116,9 @@ class Model extends ModelBase {
          args = await this.options.hooks.beforeAggregate(args) || args
       }
       const executer = new AggregateExecuter(this);
+      await this.xansql.EventManager.emit("BEFORE_AGGREGATE", { model: this, args });
       const result = await executer.execute(args);
+      await this.xansql.EventManager.emit("AGGREGATE", { model: this, results: result, args });
       if (this.options?.hooks && this.options.hooks.afterAggregate) {
          return await this.options.hooks.afterAggregate(result, args) || result
       }
@@ -445,7 +455,7 @@ class Model extends ModelBase {
                args: {}
             });
          }
-         await this.xansql.execute(indexSql);
+         await this.xansql.execute(indexSql, executeId);
       }
    }
 

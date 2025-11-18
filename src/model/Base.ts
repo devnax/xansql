@@ -1,3 +1,4 @@
+import { EventHandler, EventNames } from "../core/classes/EventManager";
 import Foreign from "../core/classes/ForeignInfo";
 import Xansql from "../core/Xansql";
 import XqlIDField from "../Types/fields/IDField";
@@ -50,10 +51,10 @@ abstract class ModelBase {
       await this.xansql.execute(`DROP TABLE IF EXISTS ${this.table}`);
    }
 
-   async migrate(force = false) {
-      if (typeof window !== "undefined") return;
-      if (force) await this.drop();
-      // await this.xansql.dialect.migrate(this as any);
+   on<K extends EventNames>(event: K, handler: EventHandler<K>) {
+      this.xansql.EventManager.on(event, ({ model, ...rest }: any) => {
+         handler.apply(this, rest as any);
+      });
    }
 }
 

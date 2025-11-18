@@ -7,7 +7,7 @@ import XansqlFetch from "./classes/XansqlFetch";
 import ExecuteMeta from "./ExcuteMeta";
 import XansqlMigration from "./classes/Migration";
 import { XansqlSchemaObject } from "../Types/types";
-import { xt } from "..";
+import EventManager, { EventHandler, EventNames } from "./classes/EventManager";
 
 class Xansql {
    readonly config: XansqlConfigTypeRequired;
@@ -18,7 +18,7 @@ class Xansql {
    private XansqlConfig: XansqlConfig;
    readonly XansqlTransaction: XansqlTransaction;
    private XansqlFetch: XansqlFetch
-   private MigrateModel: Model
+   readonly EventManager: EventManager
 
    // SQL Generator Instances can be added here
    readonly XansqlMigration: XansqlMigration
@@ -31,12 +31,10 @@ class Xansql {
 
       this.XansqlMigration = new XansqlMigration(this);
       this.XansqlFetch = new XansqlFetch(this);
+      this.EventManager = new EventManager();
 
-      this.MigrateModel = this.model("migrations", {
-         id: xt.id(),
-         info: xt.record(xt.string(), xt.string()),
-         createdAt: xt.createdAt(),
-      })
+
+
    }
 
    get dialect() {
@@ -57,7 +55,7 @@ class Xansql {
 
    private makeAlias(table: string) {
       let wordLength = 1;
-      table = table.toLowerCase().replaceAll(/[^a-z0-9_]/g, '_')
+      table = table.toLowerCase().replace(/[^a-z0-9_]/g, '_')
       let alias = table.slice(0, wordLength)
       while (true) {
          if (!this._aliases.has(alias) || wordLength > table.length) break;
@@ -105,7 +103,7 @@ class Xansql {
          throw new Error("Xansql fetch configuration is required in client side.");
       }
 
-      sql = sql.trim().replaceAll(/\s+/g, ' ');
+      sql = sql.trim().replace(/\s+/g, ' ');
 
       if (typeof window !== "undefined") {
          if (!executeId || !ExecuteMeta.has(executeId)) {
@@ -137,6 +135,10 @@ class Xansql {
 
    async onFetch(url: string, info: XansqlOnFetchInfo) {
       return await this.XansqlFetch.onFetch(url, info);
+   }
+
+   on<K extends EventNames>(event: K, handler: EventHandler<K>) {
+      this.EventManager.on(event, handler);
    }
 
 }

@@ -1,7 +1,6 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { db, ProductModel, UserModel } from './example'
-import { password } from 'bun';
 
 
 const Button = ({ label, onClick }: any) => {
