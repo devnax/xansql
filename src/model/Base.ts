@@ -1,5 +1,6 @@
 import { EventHandler, EventNames } from "../core/classes/EventManager";
 import Foreign from "../core/classes/ForeignInfo";
+import ExecuteMeta from "../core/ExcuteMeta";
 import Xansql from "../core/Xansql";
 import XqlIDField from "../Types/fields/IDField";
 import { XansqlSchemaObject } from "../Types/types";
@@ -48,7 +49,16 @@ abstract class ModelBase {
 
    async drop() {
       ErrorWhene(typeof window !== "undefined", "This method can only be used on the server side.");
-      await this.xansql.execute(`DROP TABLE IF EXISTS ${this.table}`);
+      let executeId = undefined;
+      if (typeof window !== "undefined") {
+         executeId = ExecuteMeta.set({
+            model: this as any,
+            action: "DROP_TABLE",
+            modelType: "main",
+            args: {}
+         });
+      }
+      await this.xansql.execute(`DROP TABLE IF EXISTS ${this.table}`, executeId);
    }
 
    on<K extends EventNames>(event: K, handler: EventHandler<K>) {

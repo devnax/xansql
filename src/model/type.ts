@@ -121,10 +121,9 @@ export type UpdateDataArgsType = {
    [column: string]: DataValue | UpdateDataRelationArgs;
 }
 
-export type UpdateArgsType = {
+export type UpdateArgsType = FindArgsType & {
    data: UpdateDataArgsType;
    where: WhereArgsType;
-   select?: SelectArgsType
 }
 
 export type DeleteArgsType = {

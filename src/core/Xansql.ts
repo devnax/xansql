@@ -33,8 +33,6 @@ class Xansql {
       this.XansqlFetch = new XansqlFetch(this);
       this.EventManager = new EventManager();
 
-
-
    }
 
    get dialect() {
@@ -69,7 +67,7 @@ class Xansql {
       return alias;
    }
 
-   private _timer: any;
+   _timer: any = null;
    model(table: string, schema: XansqlSchemaObject, options?: Partial<XansqlModelOptions>): Model {
       const model = new Model(table, schema);
       if (!model.IDColumn) {
@@ -86,7 +84,7 @@ class Xansql {
       // this will delay the model formatting to allow multiple models to be added before formatting
       clearTimeout(this._timer);
       this._timer = setTimeout(() => {
-         this.migrate()
+         this.ModelFormatter.format()
       }, 5);
       return model
    }
@@ -117,6 +115,13 @@ class Xansql {
       }
    }
 
+   async getRawSchema() {
+      if (typeof window !== "undefined") {
+         return await this.XansqlFetch.getSchema();
+      }
+      return await this.dialect.getSchema();
+   }
+
    async uploadFile(file: File, executeId?: string) {
       return await this.XansqlFetch.uploadFile(file, executeId);
    }
@@ -131,6 +136,10 @@ class Xansql {
 
    async migrate(force?: boolean) {
       return await this.XansqlMigration.migrate(force);
+   }
+
+   async generateMigration() {
+      return await this.XansqlMigration.generate();
    }
 
    async onFetch(url: string, info: XansqlOnFetchInfo) {

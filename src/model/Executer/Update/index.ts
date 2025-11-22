@@ -120,7 +120,8 @@ class UpdateExecuter {
          }
       })
 
-      if (updated_rows.length > 0) {
+
+      if (!updated_rows.length) {
          return []
       }
 
@@ -150,7 +151,7 @@ class UpdateExecuter {
          }
 
          // handle update
-         if (relArgs.update) {
+         if (relArgs.update && relArgs.update.data) {
             for (let { chunk } of chunkArray(ids)) {
                await FModel.update(new RelationExecuteArgs({
                   data: relArgs.update.data,
@@ -164,7 +165,7 @@ class UpdateExecuter {
             }
          }
          // handle create
-         if (relArgs.create) {
+         if (relArgs.create && relArgs.create.data) {
             for (let { chunk } of chunkArray(ids)) {
                for (let id of chunk) {
                   if (Array.isArray(relArgs.create.data)) {
@@ -189,7 +190,7 @@ class UpdateExecuter {
          }
 
          // handle upsert
-         if (relArgs.upsert) {
+         if (relArgs.upsert && relArgs.upsert.where && relArgs.upsert.create && relArgs.upsert.update) {
             for (let { chunk } of chunkArray(ids)) {
                const has = await FModel.count({
                   where: {
@@ -224,8 +225,8 @@ class UpdateExecuter {
          }
       }
 
-      if (args.select) {
-         const results: any[] = []
+      if (args.select || args.aggregate) {
+         let results: any[] = []
          for (let { chunk } of chunkArray(ids)) {
             const res = await model.find({
                where: {
@@ -234,10 +235,18 @@ class UpdateExecuter {
                   }
                },
                limit: "all",
-               select: args.select
+               select: args.select || {
+                  [model.IDColumn]: true
+               },
+               aggregate: args.aggregate || {},
+               distinct: args.select ? undefined : [model.IDColumn],
+               orderBy: args.orderBy || {}
             })
-            results.concat(res)
+
+            results = results.concat(res)
          }
+
+         return results
       }
 
       return updated_rows

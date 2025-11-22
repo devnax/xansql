@@ -18,6 +18,8 @@ export type ExecuteMetaAction =
    | "ADD_FOREIGN_KEY"
    | "UPLOAD_FILE"
    | "DELETE_FILE"
+   | "MODIFY_COLUMN"
+   | "getSchema"
 
 
 export type ExecuteMetaData = {

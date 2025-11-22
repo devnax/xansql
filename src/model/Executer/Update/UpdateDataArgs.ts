@@ -59,33 +59,22 @@ class UpdateDataArgs {
                   throw new Error(`Invalid value for relation column ${model.table}.${column}. Expected object, got ${typeof value}`);
                }
 
-               if (value.delete && !isObject(value.delete)) {
-                  throw new Error(`Invalid value for relation delete operation in column ${model.table}.${column}. Expected object, got ${typeof value}`);
+               if (value.delete && !isObject(value.delete.where)) {
+                  throw new Error(`Invalid value for relation delete operation 'where' field in column ${model.table}.${column}. Expected object, got ${typeof value.delete.where}`);
                }
 
-               if (value.update && !isObject(value.update)) {
-                  throw new Error(`Invalid value for relation update operation in column ${model.table}.${column}. Expected object, got ${typeof value}`);
+               if (value.update && (!isObject(value.update.where) || !isObject(value.update.data))) {
+                  throw new Error(`Invalid value for relation update operation in column ${model.table}.${column}. 'where' and 'data' fields are required and must be objects.`);
                }
 
-               if (value.create && !isObject(value.create) && !isArray(value.create)) {
-                  throw new Error(`Invalid value for relation create operation in column ${model.table}.${column}. Expected object or array, got ${typeof value}`);
+               if (value.create && (!isObject(value.create.data) && !isArray(value.create.data))) {
+                  throw new Error(`Invalid value for relation create operation 'data' field in column ${model.table}.${column}. Expected object or array, got ${typeof value.create.data}`);
                }
 
-               if (value.upsert && !isObject(value.upsert)) {
-                  throw new Error(`Invalid value for relation upsert operation in column ${model.table}.${column}. Expected object, got ${typeof value}`);
+               if (value.upsert && (!isObject(value.upsert.where) || !isObject(value.upsert.create) || !isObject(value.upsert.update))) {
+                  throw new Error(`Invalid value for relation upsert operation in column ${model.table}.${column}. 'where', 'create' and 'update' fields are required and must be objects.`);
                }
 
-               if (value.upsert) {
-                  if (!isObject(value.upsert.where)) {
-                     throw new Error(`Invalid value for relation upsert operation 'where' field in column ${model.table}.${column}. Expected object, got ${typeof value.upsert.where}`);
-                  }
-                  if (!isObject(value.upsert.create)) {
-                     throw new Error(`Invalid value for relation upsert operation 'create' field in column ${model.table}.${column}. Expected object, got ${typeof value.upsert.create}`);
-                  }
-                  if (!isObject(value.upsert.update)) {
-                     throw new Error(`Invalid value for relation upsert operation 'update' field in column ${model.table}.${column}. Expected object, got ${typeof value.upsert.update}`);
-                  }
-               }
                const foreign = Foreign.get(model, column)
                this.relations[column] = {
                   args: value,

@@ -1,6 +1,2 @@
--> need to add XVJson
 -> need to remove hooks and add Event like: model.on("migrate"), db.on("find")
--> back model thinks
 -> route middleware for ExpressMiddlware, BunMiddleware, etc.
--> add generator fn in Xansql which will generate all tables sql
--> add migration table to detect the changes

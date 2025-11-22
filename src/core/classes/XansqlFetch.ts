@@ -99,6 +99,15 @@ class XansqlFetch {
       }
    }
 
+   async getSchema(): Promise<any> {
+      const client = await this.client()
+      const res = await client.get(await this.makePath('raw_schema'))
+      if (!res.success) {
+         throw new Error("Failed to fetch raw schema from server.")
+      }
+      return res.data
+   }
+
    private loaded = false
    async onFetch(url: string, info: XansqlOnFetchInfo) {
       const xansql = this.xansql
@@ -182,6 +191,19 @@ class XansqlFetch {
             }
             throw await xansql.execute(params.sql);
          })
+         server.get(await this.makePath('raw_schema'), async (req: any) => {
+            if (info.isAuthorized) {
+               const isPermit = await info.isAuthorized({
+                  method: "GET",
+                  action: "getSchema",
+                  model: null as any,
+                  modelType: "main",
+                  args: {},
+               })
+               if (!isPermit) throw new Error("isAuthorized denied for fetch request.")
+            }
+            throw await xansql.dialect.getSchema();
+         })
       }
 
       try {
@@ -223,8 +245,6 @@ class XansqlFetch {
          return res.data
       } else {
          const server = await this.server();
-         console.log(file);
-
          return await server.uploadFile(file);
       }
    }

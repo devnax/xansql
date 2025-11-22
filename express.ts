@@ -338,28 +338,37 @@ const server = async (app: Express) => {
       const file = new File([longText], 'hello.txt', { type: 'text/plain' });
 
       const result = await UserModel.update({
-         select: {
-            name: true,
-            email: true,
+         aggregate: {
             products: {
-               orderBy: {
-                  pid: "desc"
-               },
-               select: {
-                  pid: true,
-                  name: true,
-                  description: true,
-                  price: true,
+               price: {
+                  sum: {
+                     alias: "total_price"
+                  },
                }
             }
          },
+         // select: {
+         //    name: true,
+         //    email: true,
+         //    products: {
+         //       orderBy: {
+         //          pid: "desc"
+         //       },
+         //       select: {
+         //          pid: true,
+         //          name: true,
+         //          description: true,
+         //          price: true,
+         //       }
+         //    }
+         // },
          where: {
             uid: 1,
          },
          data: {
             name: "John Updated",
             email: `john${Math.floor(Math.random() * 10000)}@doe.com`,
-            photo: file,
+            // photo: file,
             products: {
                // upsert: {
                //    where: {
@@ -414,12 +423,12 @@ const server = async (app: Express) => {
    });
 
    app.get('/migrate', async (req: any, res: any) => {
-      const status = await db.migrate(true)
+      const status = await db.migrate()
       res.json({ status });
    });
 
    app.get('/faker', async (req: any, res: any) => {
-      const d = await fakeData(100)
+      const d = await fakeData(1)
       const start = Date.now()
       const users = await UserModel.create({
          data: d,

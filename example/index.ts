@@ -120,6 +120,7 @@ export const ProductModel = db.model("products", {
    name: xt.string().index(),
    description: xt.string(),
    price: xt.string(),
+   test: xt.string(2).optional(),
    categories: xt.array(xt.schema("categories", "post")),
    user: xt.schema("users", "products").optional(),
 })

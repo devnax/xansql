@@ -18,9 +18,22 @@ export type ExecuterResult<Row = object> = {
 }
 
 export type XansqlDialectEngine = 'mysql' | 'postgresql' | 'sqlite'
+export type XansqlDialectSchemaColumn = {
+   name: string;
+   type: string;
+   notnull: boolean;
+   default_value: any;
+   pk: boolean;
+   index: boolean;
+   unique: boolean;
+}
+export type XansqlDialectSchemaType = {
+   [table: string]: XansqlDialectSchemaColumn[]
+}
 export type XansqlDialect = {
    engine: XansqlDialectEngine;
    execute: (sql: string) => Promise<ExecuterResult | null>;
+   getSchema: () => Promise<XansqlDialectSchemaType | void>;
 }
 
 // FETCH TYPE
@@ -88,7 +101,7 @@ export type XansqlConfigType = {
    socket?: XansqlSocket;
    cache?: XansqlCache;
 
-   file?: XansqlFileConfig
+   file?: XansqlFileConfig;
 
    maxLimit?: {
       find?: number;
