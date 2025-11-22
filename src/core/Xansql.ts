@@ -78,7 +78,10 @@ class Xansql {
       }
       model.alias = this.makeAlias(model.table);
       model.xansql = this;
-      model.options = options || {};
+      model.options = {
+         hooks: {},
+         ...options
+      };
       this.ModelFactory.set(model.table, model);
 
       // this will delay the model formatting to allow multiple models to be added before formatting

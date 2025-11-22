@@ -11,8 +11,15 @@ export type XansqlConnectionOptions = {
    port: number;
 }
 
-export type ExecuterResult<Row = object> = {
-   results: Row[];
+
+export type RowObject = {
+   [key: string]: any;
+}
+
+export type ResultData = RowObject[]
+
+export type ExecuterResult<Row = RowObject> = {
+   results: ResultData;
    affectedRows: number;
    insertId: number | null;
 }
@@ -74,12 +81,6 @@ export type XansqlCache<Row = object> = {
 
 export type XansqlFileMeta = UploadFileMeta
 
-// export type XansqlFile = {
-//    upload: (chunk: Uint8Array, filemeta: XansqlFileMeta, model?: Model) => Promise<void>;
-//    delete: (filename: string, model?: Model) => Promise<boolean>
-// }
-
-
 export type XansqlFetchUrl = string
 
 export type XansqlFetchConfig = {
@@ -95,6 +96,7 @@ export type XansqlFileConfig = {
    delete: (filename: string) => Promise<void>;
 }
 
+
 export type XansqlConfigType = {
    dialect: XansqlDialect;
    fetch?: XansqlFetchUrl | XansqlFetchConfig
@@ -109,6 +111,21 @@ export type XansqlConfigType = {
       update?: number;
       delete?: number;
    },
+
+   hooks?: {
+      beforeFind?: (model: Model, args: FindArgsType) => Promise<FindArgsType>;
+      afterFind?: (model: Model, result: ResultData, args: FindArgsType) => Promise<ResultData>;
+      beforeCreate?: (model: Model, args: CreateArgsType) => Promise<CreateArgsType>
+      afterCreate?: (model: Model, result: ResultData, args: CreateArgsType) => Promise<ResultData>;
+      beforeUpdate?: (model: Model, args: UpdateArgsType) => Promise<UpdateArgsType>;
+      afterUpdate?: (model: Model, result: ResultData, args: UpdateArgsType) => Promise<ResultData>;
+      beforeDelete?: (model: Model, args: DeleteArgsType) => Promise<DeleteArgsType>;
+      afterDelete?: (model: Model, result: ResultData, args: DeleteArgsType) => Promise<ResultData>;
+      beforeAggregate?: (model: Model, args: AggregateArgsType) => Promise<AggregateArgsType>;
+      afterAggregate?: (model: Model, result: ResultData, args: AggregateArgsType) => Promise<ResultData>;
+
+      transform?: (model: Model, row: RowObject) => Promise<RowObject>
+   }
 }
 
 export type XansqlConfigTypeRequired = Required<XansqlConfigType> & {
@@ -117,15 +134,17 @@ export type XansqlConfigTypeRequired = Required<XansqlConfigType> & {
 
 export type XansqlModelOptions = {
    hooks?: {
-      beforeFind?: (args: FindArgsType) => Promise<FindArgsType> | FindArgsType;
-      afterFind?: (result: any, args: FindArgsType) => Promise<any> | any;
-      beforeCreate?: (args: CreateArgsType) => Promise<CreateArgsType> | (CreateArgsType);
-      afterCreate?: (result: any, args: CreateArgsType) => Promise<any> | any;
-      beforeUpdate?: (args: UpdateArgsType) => Promise<UpdateArgsType> | UpdateArgsType;
-      afterUpdate?: (result: any, args: UpdateArgsType) => Promise<any> | any;
-      beforeDelete?: (args: DeleteArgsType) => Promise<DeleteArgsType> | DeleteArgsType;
-      afterDelete?: (result: any, args: DeleteArgsType) => Promise<any> | any;
-      beforeAggregate?: (args: AggregateArgsType) => Promise<AggregateArgsType> | AggregateArgsType;
-      afterAggregate?: (result: any, args: AggregateArgsType) => Promise<any> | any;
+      beforeFind?: (args: FindArgsType) => Promise<FindArgsType>
+      afterFind?: (result: ResultData, args: FindArgsType) => Promise<ResultData>
+      beforeCreate?: (args: CreateArgsType) => Promise<CreateArgsType> | void
+      afterCreate?: (result: ResultData, args: CreateArgsType) => Promise<ResultData>
+      beforeUpdate?: (args: UpdateArgsType) => Promise<UpdateArgsType>
+      afterUpdate?: (result: ResultData, args: UpdateArgsType) => Promise<ResultData>
+      beforeDelete?: (args: DeleteArgsType) => Promise<DeleteArgsType>
+      afterDelete?: (result: ResultData, args: DeleteArgsType) => Promise<ResultData>
+      beforeAggregate?: (args: AggregateArgsType) => Promise<AggregateArgsType>
+      afterAggregate?: (result: ResultData, args: AggregateArgsType) => Promise<ResultData>
+      transform?: (row: RowObject) => Promise<RowObject>
+
    }
 }

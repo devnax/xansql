@@ -1,10 +1,26 @@
 import { EventHandler, EventNames } from "../core/classes/EventManager";
 import Foreign from "../core/classes/ForeignInfo";
-import ExecuteMeta from "../core/ExcuteMeta";
+import { XansqlModelOptions } from "../core/type";
 import Xansql from "../core/Xansql";
 import XqlIDField from "../Types/fields/IDField";
 import { XansqlSchemaObject } from "../Types/types";
 import { ErrorWhene } from "../utils";
+type Hooks =
+   | 'beforeFind'
+   | 'afterFind'
+   | 'beforeCreate'
+   | 'afterCreate'
+   | 'beforeUpdate'
+   | 'afterUpdate'
+   | 'beforeDelete'
+   | 'afterDelete'
+   | 'beforeAggregate'
+   | 'afterAggregate'
+   | 'beforeExecute'
+   | 'afterExecute'
+   | 'beforeMigrate'
+   | 'afterMigrate'
+   | 'transform';
 
 type Relation = {
    type: "array" | "schema",
@@ -17,7 +33,9 @@ abstract class ModelBase {
    readonly IDColumn: string = '';
    readonly columns: string[] = [];
    readonly relations: Relation[] = [];
-
+   options: Required<XansqlModelOptions> = {
+      hooks: {}
+   }
    xansql: Xansql = null as any;
    alias: string = '';
 
@@ -47,18 +65,23 @@ abstract class ModelBase {
       return column === this.IDColumn;
    }
 
-   async drop() {
-      ErrorWhene(typeof window !== "undefined", "This method can only be used on the server side.");
-      let executeId = undefined;
-      if (typeof window !== "undefined") {
-         executeId = ExecuteMeta.set({
-            model: this as any,
-            action: "DROP_TABLE",
-            modelType: "main",
-            args: {}
-         });
+   protected async callHook(hook: Hooks, ...args: any): Promise<any> {
+      const xansql = this.xansql;
+      const config = xansql.config;
+
+      const modelHooks: any = this.options.hooks || {}
+      const configHooks: any = config.hooks || {}
+      let returnValue = null;
+
+      if (hook in modelHooks!) {
+         returnValue = await modelHooks[hook].apply(this, args);
       }
-      await this.xansql.execute(`DROP TABLE IF EXISTS ${this.table}`, executeId);
+
+      if (hook in configHooks!) {
+         returnValue = await configHooks[hook].apply(null, [this, ...args]);
+      }
+
+      return returnValue;
    }
 
    on<K extends EventNames>(event: K, handler: EventHandler<K>) {
@@ -66,6 +89,7 @@ abstract class ModelBase {
          handler.apply(this, rest as any);
       });
    }
+
 }
 
 export default ModelBase;

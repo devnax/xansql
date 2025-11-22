@@ -46,7 +46,7 @@ const App = () => {
               }
             },
             where: {
-              name: "John Doe"
+              // name: "John Doe"
             },
             select: {
               name: true,
@@ -119,7 +119,12 @@ const App = () => {
 
         }} />
         <Button label="Delete" onClick={async () => {
-
+          const result = await UserModel.delete({
+            where: {
+              uid: 1
+            }
+          })
+          console.log(result);
         }} />
       </div>
     </div>

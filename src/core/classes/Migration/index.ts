@@ -72,9 +72,7 @@ class XansqlMigration {
             });
          }
 
-         await xansql.EventManager.emit("BEFORE_MIGRATE", { info: { table, sql } });
          await xansql.execute(sql, executeId);
-         await xansql.EventManager.emit("MIGRATE", { info: { table, sql } });
       }
 
       for (let { sql, table } of indexes) {

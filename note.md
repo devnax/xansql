@@ -1,2 +1,1 @@
--> need to remove hooks and add Event like: model.on("migrate"), db.on("find")
 -> route middleware for ExpressMiddlware, BunMiddleware, etc.

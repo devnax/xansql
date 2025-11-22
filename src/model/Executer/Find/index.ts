@@ -1,6 +1,7 @@
 import Model from "../..";
 import Foreign, { ForeignInfoType } from "../../../core/classes/ForeignInfo";
 import ExecuteMeta from "../../../core/ExcuteMeta";
+import { RowObject } from "../../../core/type";
 import { chunkArray, chunkNumbers } from "../../../utils/chunker";
 import RelationExecuteArgs from "../../Args/RelationExcuteArgs";
 import WhereArgs from "../../Args/WhereArgs";
@@ -13,8 +14,10 @@ import SelectArgs, { SelectArgsRelationInfo } from "./SelectArgs";
 
 class FindExecuter {
    model: Model
-   constructor(model: Model) {
+   transformer: ((row: RowObject) => Promise<RowObject>) | null = null
+   constructor(model: Model, transformer: ((row: RowObject) => Promise<RowObject>) | null = null) {
       this.model = model
+      this.transformer = transformer
    }
 
    async execute(args: FindArgsType) {
@@ -110,6 +113,7 @@ class FindExecuter {
             for (let row of chunk) {
                // handle formattable columns
                this.formatFormadableColumns(row, Select.formatable_columns)
+               row = this?.transformer ? await this.transformer(row) : row
 
                // handle aggregate
                if (Object.keys(agg_reses).length) {
@@ -262,7 +266,7 @@ class FindExecuter {
             for (let row of chunk) {
                // handle formattable columns
                this.formatFormadableColumns(row, args.select.formatable_columns)
-
+               row = this?.transformer ? await this.transformer(row) : row
                // handle aggregate
                if (Object.keys(agg_reses).length) {
                   for (let col in agg_reses) {

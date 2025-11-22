@@ -7,14 +7,12 @@ export type EventNames =
    | "DELETE"
    | "FIND"
    | "AGGREGATE"
-   | "MIGRATE"
 
    | "BEFORE_CREATE"
    | "BEFORE_UPDATE"
    | "BEFORE_DELETE"
    | "BEFORE_FIND"
    | "BEFORE_AGGREGATE"
-   | "BEFORE_MIGRATE"
 
    | "BEFORE_FETCH"
    | "FETCH";
@@ -28,14 +26,12 @@ export type EventPayloads = {
    DELETE: { model: Model; results: Result[], args: DeleteArgsType };
    FIND: { model: Model; results: Result[], args: FindArgsType };
    AGGREGATE: { model: Model; results: any; args: any };
-   MIGRATE: { info: any };
 
    BEFORE_CREATE: { model: Model; args: CreateArgsType };
    BEFORE_UPDATE: { model: Model; args: UpdateArgsType };
    BEFORE_DELETE: { model: Model; args: DeleteArgsType };
    BEFORE_FIND: { model: Model; args: FindArgsType };
    BEFORE_AGGREGATE: { model: Model; args: any };
-   BEFORE_MIGRATE: { info: any };
 
    BEFORE_FETCH: { url: string; info: any };
    FETCH: { url: string; info: any; response: any };
