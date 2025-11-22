@@ -14,8 +14,7 @@
    },
    "dependencies": {
       "securequ": "^1.1.6",
-      "xanv": "^1.1.2",
-      "youid": "^1.0.13"
+      "xanv": "^1.1.2"
    },
    "devDependencies": {
       "@faker-js/faker": "^9.7.0",

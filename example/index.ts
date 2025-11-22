@@ -106,15 +106,8 @@ export const UserModel = db.model("users", {
    metas: xt.array(xt.schema("user_metas", "user")),
    created_at: xt.createdAt(),
    updated_at: xt.updatedAt(),
-}, {
-   hooks: {
-      beforeCreate: async (args) => {
-         return args;
-      },
-      afterCreate: async (data, args) => {
-      }
-   }
 })
+
 export const ProductModel = db.model("products", {
    pid: xt.id(),
    name: xt.string().index(),
@@ -125,7 +118,3 @@ export const ProductModel = db.model("products", {
    user: xt.schema("users", "products").optional(),
 })
 
-
-
-db.on("BEFORE_CREATE", async ({ model, args }) => {
-});
