@@ -94,22 +94,15 @@ const App = () => {
               }
             },
             data: {
-              name: "John Doe",
-              email: `john${Math.floor(Math.random() * 10000)}@doe.com`,
-              password: "password",
+              name: "Jane Doe",
+              // username: "jane.doe",
               photo: file,
-              // created_at: new Date(),
-              products: {
-                name: "Hello World",
-                description: "This is my first post",
-                price: "19.99",
-                // user: 3,
-                categories: [
-                  {
-                    name: "Tech",
-                  },
-                  { name: "News" },
-                ],
+              password: "securepassword",
+              email: "",
+              uid: 1,
+              created_at: new Date(),
+              updated_at: new Date(),
+              metas: {
               }
             }
           })

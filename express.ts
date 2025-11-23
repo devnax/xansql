@@ -427,6 +427,11 @@ const server = async (app: Express) => {
       res.json({ status });
    });
 
+   app.get('/types', async (req: any, res: any) => {
+      const status = await db.TypesGenerator.generate()
+      res.json({ status });
+   });
+
    app.get('/faker', async (req: any, res: any) => {
       const d = await fakeData(1)
       const start = Date.now()

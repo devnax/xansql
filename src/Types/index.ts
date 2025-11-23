@@ -15,7 +15,7 @@ import XqlSchema from "./fields/Schema";
 import { XqlFields } from "./types";
 import sha256 from "../utils/sha256";
 
-export const x = {
+export const xt = {
    id: () => new XqlIDField(),
    array: (type: XqlFields, length?: number) => new XqlArray(type as any, length),
    boolean: () => new XqlBoolean(),
@@ -30,11 +30,11 @@ export const x = {
    file: (size?: number) => new XqlFile(size),
    schema: (table: string, column: string) => new XqlSchema(table, column),
 
-   createdAt: () => x.date().create(),
-   updatedAt: () => x.date().update(),
+   createdAt: () => xt.date().create(),
+   updatedAt: () => xt.date().update(),
    // Custom Types
    name: () => {
-      const inst = x.string().min(1).max(100)
+      const inst = xt.string().min(1).max(100)
       inst.set("name" as any, (v: any) => {
          const nameRegex = /^[a-zA-Z\s'-]+$/;
          if (!nameRegex.test(v)) {
@@ -44,7 +44,7 @@ export const x = {
       return inst;
    },
    password: () => {
-      const inst = x.string().min(8).max(32).index().transform(v => sha256(v).slice(0, 32));
+      const inst = xt.string().min(8).max(32).index().transform(v => sha256(v).slice(0, 32));
       (inst as any).strong = function () {
          inst.set("strong" as any, (v: any) => {
             const hasUpperCase = /[A-Z]/.test(v);
@@ -60,12 +60,12 @@ export const x = {
       }
       return inst;
    },
-   email: () => x.string().email(),
-   status: (statuses: string[]) => x.enum(statuses).index(),
-   gender: () => x.enum(['male', 'female', 'other']).index(),
-   role: (roles: string[]) => x.enum(roles).index(),
+   email: () => xt.string().email(),
+   status: (statuses: string[]) => xt.enum(statuses).index(),
+   gender: () => xt.enum(['male', 'female', 'other']).index(),
+   role: (roles: string[]) => xt.enum(roles).index(),
    username: () => {
-      const inst = x.string().index().min(3).max(30).index().unique()
+      const inst = xt.string().index().min(3).max(30).index().unique()
       inst.set("username" as any, (v: any) => {
          const usernameRegex = /^[a-zA-Z0-9._-]{3,30}$/;
          if (!usernameRegex.test(v)) {
@@ -75,7 +75,7 @@ export const x = {
       return inst;
    },
    slug: () => {
-      const inst = x.string().index().min(3).max(100)
+      const inst = xt.string().index().min(3).max(100)
       inst.set("slug" as any, (v: any) => {
          const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
          if (!slugRegex.test(v)) {
@@ -85,7 +85,7 @@ export const x = {
       return inst;
    },
    url: () => {
-      const inst = x.string().max(2048).min(10)
+      const inst = xt.string().max(2048).min(10)
       inst.set("url" as any, (v: any) => {
          try {
             new URL(v);
@@ -96,7 +96,7 @@ export const x = {
       return inst;
    },
    photo: () => {
-      const inst = x.file().maxSize(2 * 1024 * 1024); // 2 MB
+      const inst = xt.file().maxSize(2 * 1024 * 1024); // 2 MB
       inst.set("photo" as any, (v: any) => {
          const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
          if (!allowedTypes.includes(v.type)) {
@@ -106,7 +106,7 @@ export const x = {
       return inst;
    },
    avatar: () => {
-      const inst = x.file().maxSize(2 * 1024 * 1024); // 1 MB
+      const inst = xt.file().maxSize(2 * 1024 * 1024); // 1 MB
       inst.set("avatar" as any, (v: any) => {
          const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
          if (!allowedTypes.includes(v.type)) {
@@ -115,9 +115,9 @@ export const x = {
       });
       return inst;
    },
-   amount: () => x.number().float().min(0).max(1000000000),
+   amount: () => xt.number().float().min(0).max(1000000000),
    phone: () => {
-      const inst = x.string().min(7).max(15)
+      const inst = xt.string().min(7).max(15)
       inst.set("phone" as any, (v: any) => {
          const phoneRegex = /^\+?[1-9]\d{1,14}$/;
          if (!phoneRegex.test(v)) {
@@ -126,12 +126,12 @@ export const x = {
       });
       return inst;
    },
-   title: () => x.string().min(1).max(200),
-   description: () => x.string().max(1000),
-   type: (types: string[]) => x.enum(types).index(),
-   metadata: () => x.record(x.string(), x.union([x.string(), x.number(), x.boolean(), x.date()])),
+   title: () => xt.string().min(1).max(200),
+   description: () => xt.string().max(1000),
+   type: (types: string[]) => xt.enum(types).index(),
+   metadata: () => xt.record(xt.string(), xt.union([xt.string(), xt.number(), xt.boolean(), xt.date()])),
    ip: () => {
-      const inst = x.string().index()
+      const inst = xt.string().index()
       inst.set("ip" as any, (v: any) => {
          const ipv4Regex = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
          const ipv6Regex = /^(([0-9a-fA-F]{1,4}:){7}([0-9a-fA-F]{1,4}|:)|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]|)[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]|)[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]|)[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]|)[0-9]))$/;
@@ -142,9 +142,9 @@ export const x = {
       return inst;
    },
 
-   key: () => x.string().max(100).index().unique(),
-   value: () => x.string().max(1000),
-   token: () => x.string(64).index().unique(),
+   key: () => xt.string().max(100).index().unique(),
+   value: () => xt.string().max(1000),
+   token: () => xt.string(64).index().unique(),
 }
 
-export default x;
+export default xt;

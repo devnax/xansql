@@ -8,6 +8,7 @@ import ExecuteMeta from "./ExcuteMeta";
 import XansqlMigration from "./classes/Migration";
 import { XansqlSchemaObject } from "../Types/types";
 import EventManager, { EventHandler, EventNames } from "./classes/EventManager";
+import TypesGenerator from "./classes/TypesGenerator";
 
 class Xansql {
    readonly config: XansqlConfigTypeRequired;
@@ -19,6 +20,7 @@ class Xansql {
    readonly XansqlTransaction: XansqlTransaction;
    private XansqlFetch: XansqlFetch
    readonly EventManager: EventManager
+   readonly TypesGenerator: TypesGenerator
 
    // SQL Generator Instances can be added here
    readonly XansqlMigration: XansqlMigration
@@ -32,7 +34,7 @@ class Xansql {
       this.XansqlMigration = new XansqlMigration(this);
       this.XansqlFetch = new XansqlFetch(this);
       this.EventManager = new EventManager();
-
+      this.TypesGenerator = new TypesGenerator(this);
    }
 
    get dialect() {

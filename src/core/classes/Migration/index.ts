@@ -162,8 +162,6 @@ class XansqlMigration {
          }
       }
 
-
-
       return true;
    }
 
