@@ -429,7 +429,7 @@ const server = async (app: Express) => {
 
    app.get('/types', async (req: any, res: any) => {
       const status = await db.TypesGenerator.generate()
-      res.json({ status });
+      res.end(status)
    });
 
    app.get('/faker', async (req: any, res: any) => {
