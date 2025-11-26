@@ -14,7 +14,7 @@ class CreateExecuter {
    async execute(args: CreateArgsType) {
       const xansql = this.model.xansql
       const model = this.model
-      const dataArgs = (new CreateDataArgs(model, args.data)).values
+      const createArgs = new CreateDataArgs(model, args.data)
       const isRelation = args instanceof RelationExecuteArgs
 
       // only for validation
@@ -23,7 +23,7 @@ class CreateExecuter {
       const insertIds = []
       let results = []
 
-      for (let { chunk } of chunkArray(dataArgs)) {
+      for (let { chunk } of chunkArray(createArgs.values)) {
          for (let arg of chunk) {
             let insertId
             const fileColumns = Object.keys(arg.files)
@@ -76,7 +76,7 @@ class CreateExecuter {
                      } catch (error) {
                      }
                   }
-                  throw new Error(`Error inserting into table ${model.table}: ${error.message}`);
+                  throw error
                }
             }
             if (insertId) {

@@ -1,4 +1,5 @@
 import Model from "../..";
+import XansqlError from "../../../core/XansqlError";
 import { LimitArgsType } from "../../type";
 
 class LimitArgs {
@@ -22,10 +23,16 @@ class LimitArgs {
          let take = args.take ?? maxLimit
          let skip = args.skip ?? 0
          if (take < 0 || !Number.isInteger(take)) {
-            throw new Error(`Invalid take value in limit clause in model ${model.table}`)
+            throw new XansqlError({
+               message: `Invalid take value in limit clause for model ${model.table}`,
+               model: model.table
+            })
          }
          if (skip < 0 || !Number.isInteger(skip)) {
-            throw new Error(`Invalid skip value in limit clause in model ${model.table}`)
+            throw new XansqlError({
+               message: `Invalid skip value in limit clause for model ${model.table}`,
+               model: model.table
+            })
          }
 
          this.take = take

@@ -2,9 +2,10 @@ import { EventHandler, EventNames } from "../core/classes/EventManager";
 import Foreign from "../core/classes/ForeignInfo";
 import { XansqlModelOptions } from "../core/type";
 import Xansql from "../core/Xansql";
+import XansqlError from "../core/XansqlError";
 import XqlIDField from "../Types/fields/IDField";
 import { XansqlSchemaObject } from "../Types/types";
-import { ErrorWhene } from "../utils";
+
 type Hooks =
    | 'beforeFind'
    | 'afterFind'
@@ -45,7 +46,12 @@ abstract class ModelBase {
       for (let column in schema) {
          const field = schema[column];
          if (field instanceof XqlIDField) {
-            ErrorWhene(this.IDColumn, `Schema ${this.table} can only have one ID column`);
+            if (this.IDColumn) {
+               throw new XansqlError({
+                  message: `Model ${this.table} has multiple ID columns (${this.IDColumn} and ${column})`,
+                  model: this.table,
+               });
+            }
             this.IDColumn = column;
          }
 
@@ -58,7 +64,12 @@ abstract class ModelBase {
             this.columns.push(column);
          }
       }
-      ErrorWhene(!this.IDColumn, `Schema ${this.table} must have an id column`);
+      if (!this.IDColumn) {
+         throw new XansqlError({
+            message: `Schema ${this.table} must have an id column`,
+            model: this.table,
+         });
+      }
    }
 
    isIDColumn(column: string): boolean {

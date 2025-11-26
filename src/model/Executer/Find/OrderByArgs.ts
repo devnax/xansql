@@ -1,4 +1,5 @@
 import Model from "../.."
+import XansqlError from "../../../core/XansqlError"
 import { OrderByArgsType } from "../../type"
 
 class OrderByArgs {
@@ -13,10 +14,18 @@ class OrderByArgs {
       for (let column in args) {
          const val = args[column]
          if (!(column in model.schema)) {
-            throw new Error(`Invalid column in orderBy clause: ${column} in model ${model.table}`)
+            throw new XansqlError({
+               message: `Column ${column} not found in model ${model.table} for order by`,
+               model: model.table,
+               column: column
+            })
          };
          if (['asc', 'desc'].includes(val) === false) {
-            throw new Error(`Invalid orderBy value for column ${column} in model ${model.table}`)
+            throw new XansqlError({
+               message: `Invalid order by direction for column ${column} in model ${model.table}. Expected 'asc' or 'desc', got '${val}'`,
+               model: model.table,
+               column: column
+            })
          }
          items.push(`${model.table}.${column} ${val.toUpperCase()}`)
       }

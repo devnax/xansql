@@ -3,6 +3,7 @@ import Model from "../../model";
 import XqlSchema from "../../Types/fields/Schema";
 import Xansql from "../Xansql";
 import Foreign from "./ForeignInfo";
+import XansqlError from "../XansqlError";
 
 /**
  * this class will format the models and assign relationships
@@ -86,7 +87,13 @@ class ModelFormatter {
 
       for (let model of models.values()) {
          for (let column in model.schema) {
-            if (this.restrictedColumn(column)) throw new Error(`Column ${column} in model ${model.table} is restricted and cannot be used as a foreign key`);
+            if (this.restrictedColumn(column)) {
+               throw new XansqlError({
+                  message: `Column name "${column}" in model "${model.table}" is restricted and cannot be used.`,
+                  model: model.table,
+                  column,
+               });
+            }
             let field: any = model.schema[column]
             if (Foreign.isSchema(field)) {
                this.formatIsSchema(model, column)
@@ -104,7 +111,11 @@ class ModelFormatter {
       let field: any = model.schema[column]
       const FModel = models.get(field.table);
       if (!FModel) {
-         throw new Error(`Foreign model ${field.table} not found for ${model.table}.${column}`);
+         throw new XansqlError({
+            message: `Foreign model ${field.table} not found for ${model.table}.${column}`,
+            model: model.table,
+            column
+         });
       }
 
       if (field.column in FModel.schema) {
@@ -112,10 +123,18 @@ class ModelFormatter {
          if (Foreign.isArray(foreignCol)) {
             const foreignType = (foreignCol as any).type as XqlSchema;
             if (foreignType.table !== model.table || foreignType.column !== column) {
-               throw new Error(`Foreign column ${field.table}.${field.column} does not reference back to ${model.table}.${column}`);
+               throw new XansqlError({
+                  message: `Foreign column ${field.table}.${field.column} does not reference back to ${model.table}.${column}`,
+                  model: model.table,
+                  column
+               });
             }
          } else {
-            throw new Error(`Foreign column ${field.table}.${field.column} is not an array of schemas`);
+            throw new XansqlError({
+               message: `Foreign column ${field.table}.${field.column} is not an array referencing back to ${model.table}.${column}`,
+               model: model.table,
+               column
+            });
          }
       } else {
          const n = xt.schema(model.table, column).nullable()
@@ -131,13 +150,21 @@ class ModelFormatter {
       const FSchemaField = (field as any).type as XqlSchema;
       const FModel = models.get(FSchemaField.table);
       if (!FModel) {
-         throw new Error(`Foreign model ${FSchemaField.table} not found for ${model.table}.${column}`);
+         throw new XansqlError({
+            message: `Foreign model ${FSchemaField.table} not found for ${model.table}.${column}`,
+            model: model.table,
+            column
+         });
       }
 
       if (FSchemaField.column in FModel.schema) {
          const foreignCol = FModel.schema[FSchemaField.column] as XqlSchema;
          if (!Foreign.isSchema(foreignCol) || foreignCol.table !== model.table || foreignCol.column !== column) {
-            throw new Error(`Foreign column ${FSchemaField.table}.${FSchemaField.column} does not reference back to ${model.table}.${column}`);
+            throw new XansqlError({
+               message: `Foreign column ${FSchemaField.table}.${FSchemaField.column} does not reference back to ${model.table}.${column}`,
+               model: model.table,
+               column
+            });
          }
       } else {
          const n = xt.schema(model.table, column)

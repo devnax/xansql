@@ -1,5 +1,6 @@
 import Model from "../.."
 import Foreign, { ForeignInfoType } from "../../../core/classes/ForeignInfo"
+import XansqlError from "../../../core/XansqlError"
 import XqlDate from "../../../Types/fields/Date"
 import { isArray, isNumber, isObject } from "../../../utils"
 import ValueFormatter from "../../include/ValueFormatter"
@@ -19,10 +20,6 @@ type Files = {
    [column: string]: File
 }
 
-type DataValue = {
-   relations: RelationObject
-   sql: string
-}
 
 class UpdateDataArgs {
 
@@ -40,63 +37,104 @@ class UpdateDataArgs {
    */
    readonly relations: RelationObject = {}
 
+   private errors: XansqlError[] = []
+
    constructor(model: Model, data: DataArgsType) {
 
       for (let column in data) {
          const field = model.schema[column]
          let value: any = data[column]
+         try {
 
-         if (Foreign.is(field)) {
-            if (Foreign.isSchema(field)) {
-               if (isNumber(value)) {
-                  this.data[column] = value
+            if (Foreign.is(field)) {
+               if (Foreign.isSchema(field)) {
+                  if (isNumber(value)) {
+                     this.data[column] = value
+                  } else {
+                     throw new XansqlError({
+                        message: `Invalid value for foreign key column ${model.table}.${column}. Expected number (ID), got ${typeof value}`,
+                        model: model.table,
+                        column: column
+                     });
+                  }
                } else {
-                  throw new Error(`Invalid value for foreign key column ${model.table}.${column}. Expected number, got ${typeof value}`);
+                  // relation operation
+                  if (!isObject(value)) {
+                     throw new XansqlError({
+                        message: `Invalid value for relation column ${model.table}.${column}. Expected object for relation operations, got ${typeof value}`,
+                        model: model.table,
+                        column: column
+                     });
+                  }
+
+                  if (value.delete && !isObject(value.delete.where)) {
+                     throw new XansqlError({
+                        message: `Invalid value for relation delete operation in column ${model.table}.${column}. 'where' field is required and must be an object.`,
+                        model: model.table,
+                        column: column
+                     });
+                  }
+
+                  if (value.update && (!isObject(value.update.where) || !isObject(value.update.data))) {
+                     throw new XansqlError({
+                        message: `Invalid value for relation update operation in column ${model.table}.${column}. 'where' and 'data' fields are required and must be objects.`,
+                        model: model.table,
+                        column: column
+                     });
+                  }
+
+                  if (value.create && (!isObject(value.create.data) && !isArray(value.create.data))) {
+                     throw new XansqlError({
+                        message: `Invalid value for relation create operation in column ${model.table}.${column}. 'data' field is required and must be an object or array.`,
+                        model: model.table,
+                        column: column
+                     });
+                  }
+
+                  if (value.upsert && (!isObject(value.upsert.where) || !isObject(value.upsert.create) || !isObject(value.upsert.update))) {
+                     throw new XansqlError({
+                        message: `Invalid value for relation upsert operation in column ${model.table}.${column}. 'where', 'create', and 'update' fields are required and must be objects.`,
+                        model: model.table,
+                        column: column
+                     });
+                  }
+
+                  const foreign = Foreign.get(model, column)
+                  this.relations[column] = {
+                     args: value,
+                     foreign
+                  }
                }
             } else {
-               // relation operation
-               if (!isObject(value)) {
-                  throw new Error(`Invalid value for relation column ${model.table}.${column}. Expected object, got ${typeof value}`);
+               // check is the field is IDField or created_at or updated_at
+               if (model.IDColumn === column || field instanceof XqlDate && (field.meta.update || field.meta.create)) {
+                  throw new XansqlError({
+                     message: `Cannot set value for ${model.table}.${column}. It is automatically managed.`,
+                     model: model.table,
+                     column: column
+                  });
                }
 
-               if (value.delete && !isObject(value.delete.where)) {
-                  throw new Error(`Invalid value for relation delete operation 'where' field in column ${model.table}.${column}. Expected object, got ${typeof value.delete.where}`);
-               }
-
-               if (value.update && (!isObject(value.update.where) || !isObject(value.update.data))) {
-                  throw new Error(`Invalid value for relation update operation in column ${model.table}.${column}. 'where' and 'data' fields are required and must be objects.`);
-               }
-
-               if (value.create && (!isObject(value.create.data) && !isArray(value.create.data))) {
-                  throw new Error(`Invalid value for relation create operation 'data' field in column ${model.table}.${column}. Expected object or array, got ${typeof value.create.data}`);
-               }
-
-               if (value.upsert && (!isObject(value.upsert.where) || !isObject(value.upsert.create) || !isObject(value.upsert.update))) {
-                  throw new Error(`Invalid value for relation upsert operation in column ${model.table}.${column}. 'where', 'create' and 'update' fields are required and must be objects.`);
-               }
-
-               const foreign = Foreign.get(model, column)
-               this.relations[column] = {
-                  args: value,
-                  foreign
+               if (value instanceof File) {
+                  this.files[column] = value
+                  this.data[column] = ""
+                  ValueFormatter.toSql(model, column, value) // for validation
+               } else {
+                  this.data[column] = ValueFormatter.toSql(model, column, value)
                }
             }
-         } else {
-            // check is the field is IDField or created_at or updated_at
-            if (model.IDColumn === column || field instanceof XqlDate && (field.meta.update || field.meta.create)) {
-               throw new Error(`Cannot set value for ${model.table}.${column}. It is automatically managed.`);
-            }
-
-            if (value instanceof File) {
-               this.files[column] = value
-               this.data[column] = ""
-               ValueFormatter.toSql(model, column, value) // for validation
+         } catch (error) {
+            if (error instanceof XansqlError) {
+               this.errors.push(error);
             } else {
-               this.data[column] = ValueFormatter.toSql(model, column, value)
+               throw error
             }
          }
       }
 
+      if (this.errors.length > 0) {
+         throw this.errors
+      }
 
       /**
        * Auto add missing columns with null value for create mode

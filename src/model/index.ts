@@ -1,3 +1,5 @@
+import XansqlError from "../core/XansqlError";
+import { XansqlResult, XansqlResultArray } from "../core/XansqlResult";
 import RelationExecuteArgs from "./Args/RelationExcuteArgs";
 import ModelBase from "./Base";
 import AggregateExecuter from "./Executer/Aggregate";
@@ -9,7 +11,7 @@ import { AggregateArgsType, CreateArgsType, DeleteArgsType, FindArgsType, Update
 
 class Model extends ModelBase {
 
-   async create(args: CreateArgsType) {
+   async create(args: CreateArgsType): Promise<XansqlResultArray<any>> {
       const xansql = this.xansql;
       const isRelArgs = args instanceof RelationExecuteArgs
       if (isRelArgs) args = (args as any).args
@@ -21,19 +23,27 @@ class Model extends ModelBase {
          // event emit BEFORE_CREATE
          const executer = new CreateExecuter(this);
          await xansql.EventManager.emit("BEFORE_CREATE", { model: this, args });
-         let results = await executer.execute(args);
+         let results: any = await executer.execute(args);
          await xansql.EventManager.emit("CREATE", { model: this, results, args });
 
          results = await this.callHook("afterCreate", results, args) || results
          if (!isRelArgs) await xansql.XansqlTransaction.commit()
-         return results
-      } catch (error) {
+         return XansqlResult(results)
+      } catch (error: any) {
          if (!isRelArgs) await xansql.XansqlTransaction.rollback()
-         throw error;
+         const r = XansqlResult([])
+         if (error instanceof Array && error[0] instanceof XansqlError) {
+            for (let err of error) {
+               r.setError(err.column, err.message);
+            }
+         } else {
+            r.setError("create", error.message);
+         }
+         return r
       }
    }
 
-   async update(args: UpdateArgsType) {
+   async update(args: UpdateArgsType): Promise<XansqlResultArray<any>> {
       const xansql = this.xansql;
       const isRelArgs = args instanceof RelationExecuteArgs
       if (isRelArgs) args = (args as any).args
@@ -44,20 +54,27 @@ class Model extends ModelBase {
          args = await this.callHook("beforeUpdate", args) || args
          const executer = new UpdateExecuter(this);
          await xansql.EventManager.emit("BEFORE_UPDATE", { model: this, args });
-         let result = await executer.execute(args);
+         let result: any = await executer.execute(args);
          await xansql.EventManager.emit("UPDATE", { model: this, results: result, args });
          result = await this.callHook("afterUpdate", result, args) || result
 
          if (!isRelArgs) await xansql.XansqlTransaction.commit()
-         return result
-      } catch (error) {
+         return XansqlResult(result)
+      } catch (error: any) {
          if (!isRelArgs) await xansql.XansqlTransaction.rollback()
-         throw error;
+         const r = XansqlResult([])
+         if (error instanceof Array && error[0] instanceof XansqlError) {
+            for (let err of error) {
+               r.setError(err.column, err.message);
+            }
+         } else {
+            r.setError("create", error.message);
+         }
+         return r
       }
-
    }
 
-   async delete(args: DeleteArgsType) {
+   async delete(args: DeleteArgsType): Promise<XansqlResultArray<any>> {
       const xansql = this.xansql;
       const isRelArgs = args instanceof RelationExecuteArgs
       if (isRelArgs) args = (args as any).args
@@ -68,40 +85,58 @@ class Model extends ModelBase {
          args = await this.callHook("beforeDelete", args) || args
          const executer = new DeleteExecuter(this);
          await xansql.EventManager.emit("BEFORE_DELETE", { model: this, args });
-         let result = await executer.execute(args);
+         let result: any = await executer.execute(args);
          await xansql.EventManager.emit("DELETE", { model: this, results: result, args });
          result = await this.callHook("afterDelete", result, args) || result
 
          if (!isRelArgs) await xansql.XansqlTransaction.commit()
-         return result
+         return XansqlResult(result)
       } catch (error) {
          if (!isRelArgs) await xansql.XansqlTransaction.rollback()
-         throw error;
+         const r = XansqlResult([])
+         r.setError("delete", (error as Error).message);
+         return r
       }
    }
 
-   async find(args: FindArgsType) {
+   async find(args: FindArgsType): Promise<XansqlResultArray<any>> {
+      const isRelArgs = args instanceof RelationExecuteArgs
+      if (isRelArgs) args = (args as any).args
 
-      args = await this.callHook("beforeFind", args) || args
-      const executer = new FindExecuter(this, async (row: any) => {
-         return await this.callHook('transform', row) || row
-      });
-      await this.xansql.EventManager.emit("BEFORE_FIND", { model: this, args });
-      let result = await executer.execute(args);
-      await this.xansql.EventManager.emit("FIND", { model: this, results: result, args });
-      result = await this.callHook("afterFind", result, args) || result
-      return result
+      try {
+         args = await this.callHook("beforeFind", args) || args
+         const executer = new FindExecuter(this, async (row: any) => {
+            return await this.callHook('transform', row) || row
+         });
+         await this.xansql.EventManager.emit("BEFORE_FIND", { model: this, args });
+         let result = await executer.execute(args);
+         await this.xansql.EventManager.emit("FIND", { model: this, results: result, args });
+         result = await this.callHook("afterFind", result, args) || result
+         return XansqlResult(result)
+      } catch (error) {
+         const r = XansqlResult([])
+         r.setError("find", (error as Error).message);
+         return r
+      }
    }
 
-   async aggregate(args: AggregateArgsType) {
-      args = await this.callHook("beforeAggregate", args) || args
-      const executer = new AggregateExecuter(this);
-      await this.xansql.EventManager.emit("BEFORE_AGGREGATE", { model: this, args });
-      let result = await executer.execute(args);
-      await this.xansql.EventManager.emit("AGGREGATE", { model: this, results: result, args });
+   async aggregate(args: AggregateArgsType): Promise<XansqlResultArray<any>> {
+      const isRelArgs = args instanceof RelationExecuteArgs
+      if (isRelArgs) args = (args as any).args
+      try {
+         args = await this.callHook("beforeAggregate", args) || args
+         const executer = new AggregateExecuter(this);
+         await this.xansql.EventManager.emit("BEFORE_AGGREGATE", { model: this, args });
+         let result = await executer.execute(args);
+         await this.xansql.EventManager.emit("AGGREGATE", { model: this, results: result, args });
 
-      result = await this.callHook("afterAggregate", result, args) || result
-      return result;
+         result = await this.callHook("afterAggregate", result, args) || result
+         return XansqlResult(result)
+      } catch (error) {
+         const r = XansqlResult([])
+         r.setError("aggregate", (error as Error).message);
+         return r
+      }
    }
 
    async truncate() {
@@ -118,7 +153,15 @@ class Model extends ModelBase {
             skip: 0
          }
       })
-      return res?.[0];
+
+      if (res.hasError()) {
+         return res
+      }
+      if (res.count() === 0) {
+         return null
+      }
+
+      return res.first()
    }
 
    async findById(id: any, args?: Omit<FindArgsType, "where">) {
@@ -163,7 +206,12 @@ class Model extends ModelBase {
    }
 
    async min(column: string, where: WhereArgsType): Promise<number> {
-      if (!(column in this.schema)) throw new Error(`Column "${column}" does not exist in table "${this.table}"`);
+      if (!(column in this.schema)) {
+         throw new XansqlError({
+            message: `Column "${column}" does not exist in table "${this.table}"`,
+            model: this.table,
+         });
+      }
       const res: any[] = await this.aggregate({
          where,
          select: {
@@ -176,7 +224,12 @@ class Model extends ModelBase {
    }
 
    async max(column: string, where: WhereArgsType): Promise<number> {
-      if (!(column in this.schema)) throw new Error(`Column "${column}" does not exist in table "${this.table}"`);
+      if (!(column in this.schema)) {
+         throw new XansqlError({
+            message: `Column "${column}" does not exist in table "${this.table}"`,
+            model: this.table,
+         });
+      }
       const res: any[] = await this.aggregate({
          where,
          select: {
@@ -189,7 +242,12 @@ class Model extends ModelBase {
    }
 
    async sum(column: string, where: WhereArgsType): Promise<number> {
-      if (!(column in this.schema)) throw new Error(`Column "${column}" does not exist in table "${this.table}"`);
+      if (!(column in this.schema)) {
+         throw new XansqlError({
+            message: `Column "${column}" does not exist in table "${this.table}"`,
+            model: this.table,
+         });
+      }
       const res: any[] = await this.aggregate({
          where,
          select: {
@@ -202,7 +260,12 @@ class Model extends ModelBase {
    }
 
    async avg(column: string, where: WhereArgsType): Promise<number> {
-      if (!(column in this.schema)) throw new Error(`Column "${column}" does not exist in table "${this.table}"`);
+      if (!(column in this.schema)) {
+         throw new XansqlError({
+            message: `Column "${column}" does not exist in table "${this.table}"`,
+            model: this.table,
+         });
+      }
       const res: any[] = await this.aggregate({
          where,
          select: {

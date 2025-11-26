@@ -47,11 +47,11 @@ export const freezeObject = (obj: any) => {
 
 
 
-export const ErrorWhene = (_if: any, message: string) => {
-   if (_if) {
-      throw new Error(message);
-   }
-}
+// export const ErrorWhene = (_if: any, message: string) => {
+//    if (_if) {
+//       throw new Error(message);
+//    }
+// }
 
 export const quote = (engine: XansqlDialectEngine, identifier: string) => {
    if (engine === 'mysql') return `\`${identifier}\``;

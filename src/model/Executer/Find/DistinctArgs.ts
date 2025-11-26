@@ -1,4 +1,5 @@
 import Model from "../.."
+import XansqlError from "../../../core/XansqlError"
 import WhereArgs from "../../Args/WhereArgs"
 import { DistinctArgsType, OrderByArgsType } from "../../type"
 
@@ -15,7 +16,11 @@ class DistinctArgs {
          let dcols: string[] = []
          for (let col of distinct) {
             if (!(col in model.schema)) {
-               throw new Error("Invalid column in distinct clause: " + col)
+               throw new XansqlError({
+                  message: `Column ${col} not found in model ${model.table} for distinct`,
+                  model: model.table,
+                  column: col
+               })
             };
             let MX = orderBy && orderBy[col] === "desc" ? "MAX" : "min"
             dcols.push(`${model.table}.${model.IDColumn} IN (

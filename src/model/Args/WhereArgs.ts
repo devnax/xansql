@@ -1,5 +1,6 @@
 import Model from "..";
 import Foreign from "../../core/classes/ForeignInfo";
+import XansqlError from "../../core/XansqlError";
 import XqlArray from "../../Types/fields/Array";
 import XqlObject from "../../Types/fields/Object";
 import XqlRecord from "../../Types/fields/Record";
@@ -50,7 +51,11 @@ class WhereArgs {
 
             if (Foreign.is(field)) {
                if (!isArray(value) && !isObject(value)) {
-                  throw new Error(`${column} must be an object or array in the WHERE clause, but received ${typeof value} in table ${model.table}`);
+                  throw new XansqlError({
+                     message: `${column} must be an object or array in the WHERE clause, but received ${typeof value} in table ${model.table}`,
+                     model: model.table,
+                     column
+                  });
                } else if (isObject(value) && Object.keys(value).length === 0 || isArray(value) && value.length === 0) {
                   // skip empty object
                   continue;
@@ -65,7 +70,11 @@ class WhereArgs {
                let foreign = Foreign.get(model, column)
                let FModel = model.xansql.getModel(foreign.table)
                if (meta && meta.parentTable === foreign.table) {
-                  throw new Error(`Circular reference detected in where clause for ${model.table}.${column}`);
+                  throw new XansqlError({
+                     message: `Circular reference detected in WHERE clause for table ${model.table} on column ${column}`,
+                     model: model.table,
+                     column
+                  });
                }
                let _sql = ''
                if (Array.isArray(value) || isObject(value)) {
@@ -74,7 +83,11 @@ class WhereArgs {
                      _sql = where.wheres.join(" AND ")
                   }
                } else {
-                  throw new Error(`${column} must be an object or array in the WHERE clause, but received ${typeof value} in table ${model.table}`);
+                  throw new XansqlError({
+                     message: `Invalid value for foreign key ${column} in WHERE clause of table ${model.table}`,
+                     model: model.table,
+                     column
+                  });
                }
 
                wheres.push(`EXISTS (SELECT 1 FROM ${foreign.table} WHERE ${foreign.sql} ${_sql ? ` AND ${_sql}` : ""})`)
@@ -110,7 +123,11 @@ class WhereArgs {
       const generate = Object.keys(conditions).map((subKey) => {
          let value = (conditions as any)[subKey];
          if (isObject(value)) {
-            throw new Error(`Invalid value ${value} for ${model.table}.${column}`);
+            throw new XansqlError({
+               message: `Invalid value for where condition ${subKey} on column ${column} in table ${model.table}`,
+               model: model.table,
+               column
+            });
          }
          let val: string = value;
          if (Array.isArray(val)) {
@@ -118,11 +135,19 @@ class WhereArgs {
                val = val.map((item) => ValueFormatter.toSql(model, column, item)).join(", ");
             } else if (['between', 'notBetween'].includes(subKey)) {
                if (val.length !== 2) {
-                  throw new Error(`Invalid value ${val} for ${model.table}.${column}. Between requires an array of two values.`);
+                  throw new XansqlError({
+                     message: `The 'between' and 'notBetween' operators require an array of exactly two values for column ${column} in table ${model.table}.`,
+                     model: model.table,
+                     column
+                  });
                }
                val = val.map((item) => ValueFormatter.toSql(model, column, item)).join(" AND ");
             } else {
-               throw new Error(`Invalid array value ${val} for ${model.table}.${column} with operator ${subKey}`);
+               throw new XansqlError({
+                  message: `Array value is not supported for operator ${subKey} on column ${column} in table ${model.table}.`,
+                  model: model.table,
+                  column
+               });
             }
          } else if (typeof val === 'boolean') {
             val = val ? "1" : "0";
@@ -186,7 +211,11 @@ class WhereArgs {
             case 'isFalse':
                return `${col} = FALSE`;
             default:
-               throw new Error(`Invalid operator in where clause: ${subKey} for ${model.table}.${column}`);
+               throw new XansqlError({
+                  message: `Unknown where condition ${subKey} on column ${column} in table ${model.table}`,
+                  model: model.table,
+                  column
+               });
          }
       });
 
@@ -203,7 +232,11 @@ class WhereArgs {
       // || xanv instanceof XqlFile
 
       if (isNotAllowed) {
-         throw new Error(`${column} is not allowed in where clause in table ${this.model.table}`);
+         throw new XansqlError({
+            message: `Field ${column} of type ${xanv.constructor.name} is not allowed in WHERE clause in table ${this.model.table}`,
+            model: this.model.table,
+            column
+         });
       }
    }
 }

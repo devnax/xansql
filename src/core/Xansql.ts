@@ -9,6 +9,7 @@ import XansqlMigration from "./classes/Migration";
 import { XansqlSchemaObject } from "../Types/types";
 import EventManager, { EventHandler, EventNames } from "./classes/EventManager";
 import TypesGenerator from "./classes/TypesGenerator";
+import XansqlError from "./XansqlError";
 
 class Xansql {
    readonly config: XansqlConfigTypeRequired;
@@ -63,7 +64,10 @@ class Xansql {
          alias = table.slice(0, wordLength);
       }
       if (this._aliases.has(alias)) {
-         throw new Error(`Alias ${alias} already exists for table ${table}`);
+         throw new XansqlError({
+            message: `Cannot create alias for table ${table}, please rename the table to avoid conflicts.`,
+            model: table,
+         });
       }
       this._aliases.set(table, alias);
       return alias;
@@ -73,10 +77,16 @@ class Xansql {
    model(table: string, schema: XansqlSchemaObject, options?: Partial<XansqlModelOptions>): Model {
       const model = new Model(table, schema);
       if (!model.IDColumn) {
-         throw new Error("Schema must have an ID column");
+         throw new XansqlError({
+            message: `Model ${table} must have an ID column.`,
+            model: table,
+         });
       }
       if (this.ModelFactory.has(model.table)) {
-         throw new Error(`Model already exists for this table ${model.table}`);
+         throw new XansqlError({
+            message: `Model for table ${table} already exists.`,
+            model: table,
+         });
       }
       model.alias = this.makeAlias(model.table);
       model.xansql = this;
@@ -96,21 +106,28 @@ class Xansql {
 
    getModel(table: string): Model {
       if (!this.ModelFactory.has(table)) {
-         throw new Error(`Model for table ${table} does not exist`);
+         throw new XansqlError({
+            message: `Model for table ${table} does not exist.`,
+            model: table,
+         });
       }
       return this.ModelFactory.get(table) as Model;
    }
 
    async execute(sql: string, executeId?: string): Promise<ExecuterResult> {
       if (typeof window !== "undefined" && !this.config.fetch) {
-         throw new Error("Xansql fetch configuration is required in client side.");
+         throw new XansqlError({
+            message: `In browser environment, fetch implementation is required in config.`,
+         });
       }
 
       sql = sql.trim().replace(/\s+/g, ' ');
 
       if (typeof window !== "undefined") {
          if (!executeId || !ExecuteMeta.has(executeId)) {
-            throw new Error(`from client side raw query is not supported.`)
+            throw new XansqlError({
+               message: `Execute ID is required for browser execution.`,
+            })
          }
          const res = await this.XansqlFetch.execute(sql, executeId);
          ExecuteMeta.delete(executeId);

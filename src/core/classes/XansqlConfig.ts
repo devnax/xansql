@@ -1,5 +1,6 @@
 import { XansqlConfigTypeRequired, XansqlConfigType, XansqlDialectEngine } from "../type";
 import Xansql from "../Xansql";
+import XansqlError from "../XansqlError";
 
 class XansqlConfig {
    readonly xansql: Xansql;
@@ -9,10 +10,18 @@ class XansqlConfig {
       this.xansql = xansql;
       this.config = config;
 
-      if (!config.dialect) throw new Error("Dialect is required in Xansql config")
-      if (!config.dialect.engine && !config.dialect.execute) throw new Error("Dialect execute function is required in Xansql config")
-      if (this.engins.indexOf(config.dialect.engine) === -1) throw new Error(`Dialect engine must be one of ${this.engins.join(', ')}`)
-      if (typeof config.dialect.execute !== 'function') throw new Error("Dialect execute must be a function")
+      if (!config.dialect) throw new XansqlError({
+         message: `Dialect configuration is required in Xansql config.`,
+      })
+      if (!config.dialect.engine && !config.dialect.execute) throw new XansqlError({
+         message: `Dialect engine and execute function are required in Xansql config.`,
+      })
+      if (this.engins.indexOf(config.dialect.engine) === -1) throw new XansqlError({
+         message: `Dialect engine must be one of ${this.engins.join(', ')}`,
+      })
+      if (typeof config.dialect.execute !== 'function') throw new XansqlError({
+         message: `Dialect execute must be a function.`,
+      })
    }
 
    parse() {

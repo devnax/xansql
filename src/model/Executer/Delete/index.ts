@@ -7,6 +7,7 @@ import XqlFile from "../../../Types/fields/File"
 import { XqlFields } from "../../../Types/types"
 import { chunkArray } from "../../../utils/chunker"
 import ExecuteMeta from "../../../core/ExcuteMeta"
+import XansqlError from "../../../core/XansqlError"
 
 
 class DeleteExecuter {
@@ -20,7 +21,10 @@ class DeleteExecuter {
       const model = this.model
       const isRelation = args instanceof RelationExecuteArgs
       if (!args.where || Object.keys(args.where).length === 0) {
-         throw new Error(`Where args is required for delete operation in model ${model.table}`)
+         throw new XansqlError({
+            message: `Delete operation on model ${model.table} requires a WHERE clause to prevent accidental deletion of all records.`,
+            model: model.table
+         })
       }
 
       let fileColumns: string[] = []

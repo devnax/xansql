@@ -1,8 +1,9 @@
 import { crypto, SecurequClient, SecurequServer } from "securequ";
 import Xansql from "../Xansql"
-import { XansqlFetchConfig, XansqlFileMeta, XansqlOnFetchInfo } from "../type";
+import { ExecuterResult, XansqlFetchConfig, XansqlFileMeta, XansqlOnFetchInfo } from "../type";
 import ExecuteMeta, { ExecuteMetaData } from "../ExcuteMeta";
 import Model from "../../model";
+import XansqlError from "../XansqlError";
 
 let clientModule: typeof import("securequ/client").default | null = null;
 let serverModule: typeof import("securequ/server").default | null = null;
@@ -64,7 +65,7 @@ class XansqlFetch {
       return this._server;
    }
 
-   async execute(sql: string, executeId: string): Promise<any> {
+   async execute(sql: string, executeId: string): Promise<ExecuterResult> {
 
       const client = await this.client()
       const meta = ExecuteMeta.get(executeId) as ExecuteMetaData
@@ -103,7 +104,9 @@ class XansqlFetch {
       const client = await this.client()
       const res = await client.get(await this.makePath('raw_schema'))
       if (!res.success) {
-         throw new Error("Failed to fetch raw schema from server.")
+         throw new XansqlError({
+            message: `Failed to fetch schema: ${res.message || 'Unknown error'}`
+         })
       }
       return res.data
    }
@@ -113,9 +116,13 @@ class XansqlFetch {
       const xansql = this.xansql
       const config = xansql.config
 
-      if (typeof window !== "undefined") throw new Error("Xansql onFetch method is not available in client side.")
+      if (typeof window !== "undefined") throw new XansqlError({
+         message: `XansqlFetch.onFetch cannot be called in browser environment.`,
+      })
       const hasUrl = typeof config.fetch === "string" || typeof config.fetch.url === "string"
-      if (!config.fetch || !hasUrl) throw new Error("Xansql fetch configuration does not have a valid url.")
+      if (!config.fetch || !hasUrl) throw new XansqlError({
+         message: `Xansql fetch configuration is not provided.`,
+      })
 
       let server = await this.server()
 
@@ -131,7 +138,10 @@ class XansqlFetch {
                   modelType: params.modelType,
                   args: params.args
                })
-               if (!isPermit) throw new Error("isAuthorized denied for fetch request.")
+               if (!isPermit) throw new XansqlError({
+                  message: "isAuthorized denied for fetch request.",
+                  model: params.table,
+               })
             }
             throw await xansql.execute(params.sql);
          })
@@ -145,7 +155,10 @@ class XansqlFetch {
                   modelType: params.modelType,
                   args: params.args,
                })
-               if (!isPermit) throw new Error("isAuthorized denied for fetch request.")
+               if (!isPermit) throw new XansqlError({
+                  message: "isAuthorized denied for fetch request.",
+                  model: params.table,
+               })
             }
             throw await xansql.execute(params.sql);
          })
@@ -159,7 +172,10 @@ class XansqlFetch {
                   modelType: params.modelType,
                   args: params.args,
                })
-               if (!isPermit) throw new Error("isAuthorized denied for fetch request.")
+               if (!isPermit) throw new XansqlError({
+                  message: "isAuthorized denied for fetch request.",
+                  model: params.table,
+               })
             }
             throw await xansql.execute(params.sql);
          })
@@ -173,7 +189,10 @@ class XansqlFetch {
                   modelType: params.modelType,
                   args: params.args,
                })
-               if (!isPermit) throw new Error("isAuthorized denied for fetch request.")
+               if (!isPermit) throw new XansqlError({
+                  message: "isAuthorized denied for fetch request.",
+                  model: params.table,
+               })
             }
             throw await xansql.execute(params.sql);
          })
@@ -187,7 +206,10 @@ class XansqlFetch {
                   modelType: params.modelType,
                   args: params.args,
                })
-               if (!isPermit) throw new Error("isAuthorized denied for fetch request.")
+               if (!isPermit) throw new XansqlError({
+                  message: "isAuthorized denied for fetch request.",
+                  model: params.table,
+               })
             }
             throw await xansql.execute(params.sql);
          })
@@ -200,7 +222,9 @@ class XansqlFetch {
                   modelType: "main",
                   args: {},
                })
-               if (!isPermit) throw new Error("isAuthorized denied for fetch request.")
+               if (!isPermit) throw new XansqlError({
+                  message: "isAuthorized denied for fetch request.",
+               })
             }
             throw await xansql.dialect.getSchema();
          })
@@ -231,11 +255,11 @@ class XansqlFetch {
    async uploadFile(file: File, executeId?: string): Promise<XansqlFileMeta> {
       const xansql = this.xansql;
       if (!xansql.config.file || !xansql.config.file.upload) {
-         throw new Error("Xansql file upload configuration is not provided.");
+         throw new XansqlError("Xansql file upload configuration is not provided.");
       }
 
       if (typeof window !== "undefined" && !xansql.config.fetch) {
-         throw new Error("Xansql fetch configuration is required in client side.");
+         throw new XansqlError("Xansql fetch configuration is required in client side.");
       }
 
       if (typeof window !== "undefined") {
@@ -252,10 +276,10 @@ class XansqlFetch {
    async deleteFile(fileId: string, executeId?: string) {
       const xansql = this.xansql;
       if (!xansql.config.file || !xansql.config.file.delete) {
-         throw new Error("Xansql file delete configuration is not provided.");
+         throw new XansqlError("Xansql file delete configuration is not provided.");
       }
       if (typeof window !== "undefined" && !xansql.config.fetch) {
-         throw new Error("Xansql fetch configuration is required in client side.");
+         throw new XansqlError("Xansql fetch configuration is required in client side.");
       }
       if (typeof window !== "undefined") {
          const client = await this.client();
@@ -293,54 +317,6 @@ class XansqlFetch {
       return gen;
    }
 
-   getTableName(sql: string): { table: string | null, type: string | "unknown" } | null {
-      sql = sql.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
-
-      const lower = sql.toLowerCase();
-
-      // keyword → type map
-      const keywordMap: any = {
-         'create table': 'CREATE_TABLE',
-         'alter table': 'ALTER_TABLE',
-         'drop table': 'DROP_TABLE',
-         'truncate table': 'TRUNCATE',
-         'insert into': 'INSERT',
-         'update': 'UPDATE',
-         'delete from': 'DELETE',
-         'merge into': 'MERGE',
-         'select': 'SELECT'
-      };
-
-      // detect query type
-      let foundType = null;
-      for (const keyword in keywordMap) {
-         if (lower.startsWith(keyword)) {
-            foundType = keywordMap[keyword];
-            break;
-         }
-      }
-      if (!foundType && lower.startsWith('select')) foundType = 'SELECT';
-
-      let match = null;
-
-      // 1️⃣ Direct table references (CREATE, INSERT, UPDATE, DELETE, etc.)
-      for (const keyword in keywordMap) {
-         const regex = new RegExp(`${keyword}\\s+([\\w\`"\\.]+)`, 'i');
-         match = sql.match(regex);
-         if (match) {
-            return { table: match[1].replace(/[`"'[\]]/g, ''), type: keywordMap[keyword] };
-         }
-      }
-
-      // 2️⃣ For SELECT with subqueries — find the last FROM target
-      const fromMatches = [...sql.matchAll(/from\s+([^\s(;\)]+)/gi)];
-      if (fromMatches.length > 0) {
-         const last = fromMatches[fromMatches.length - 1][1];
-         return { table: last.replace(/[`"'[\]]/g, ''), type: foundType || 'SELECT' };
-      }
-
-      return { table: null, type: foundType || 'UNKNOWN' };
-   }
 }
 
 export default XansqlFetch

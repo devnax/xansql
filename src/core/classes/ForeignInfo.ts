@@ -2,6 +2,7 @@ import Model from "../../model";
 import XqlArray from "../../Types/fields/Array";
 import XqlSchema from "../../Types/fields/Schema";
 import { XqlFields } from "../../Types/types";
+import XansqlError from "../XansqlError";
 
 
 export type ForeignInfoType = {
@@ -62,7 +63,10 @@ class Foreign {
             sql: `${field.table}.${FModel.IDColumn} = ${model.table}.${column}`
          }
       }
-      throw new Error(`Unknown foreign key type for ${table}.${column}`);
+      throw new XansqlError({
+         message: `Field ${column} in model ${model.table} is not a foreign key.`,
+         model: model.table,
+      });
    }
 
 }

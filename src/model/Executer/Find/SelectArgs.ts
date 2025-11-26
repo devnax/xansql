@@ -13,6 +13,7 @@ import XqlTuple from "../../../Types/fields/Tuple";
 import XqlUnion from "../../../Types/fields/Union";
 import Foreign, { ForeignInfoType } from "../../../core/classes/ForeignInfo";
 import XqlFile from "../../../Types/fields/File";
+import XansqlError from "../../../core/XansqlError";
 
 export type SelectArgsRelationInfo = {
    args: {
@@ -75,7 +76,11 @@ class SelectArgs {
 
       for (let column in args) {
          if (!(column in this.model.schema)) {
-            throw new Error(`Column ${column} does not exist in model ${this.model.table}`);
+            throw new XansqlError({
+               message: `Column ${column} not found in model ${model.table} for select`,
+               model: model.table,
+               column: column
+            });
          }
 
          let field = model.schema[column]
@@ -100,7 +105,11 @@ class SelectArgs {
             // ====== Prevent circular reference ======
             for (let rcol in Select.relations) {
                if (Select.relations[rcol].foreign.table === model.table) {
-                  throw new Error(`Circular reference detected in select args for model ${model.table} and foreign key ${foreign.table}.${rcol}`);
+                  throw new XansqlError({
+                     message: `Circular reference detected in relation ${column} of model ${model.table}`,
+                     model: model.table,
+                     column: column
+                  });
                }
             }
 

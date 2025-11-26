@@ -14,6 +14,7 @@ import XqlTuple from "../../../Types/fields/Tuple";
 import XqlUnion from "../../../Types/fields/Union";
 import { quote } from "../../../utils";
 import Xansql from "../../Xansql";
+import XansqlError from "../../XansqlError";
 import Foreign from "../ForeignInfo";
 import ForeignKeyMigration from "./ForeingMigration";
 import IndexMigration from "./IndexMigration";
@@ -209,7 +210,11 @@ class Migration {
             sql += col(column, "TEXT")
          }
       } else {
-         throw new Error(`Unsupported field type for column ${column}`);
+         throw new XansqlError({
+            message: `Unsupported field type for column "${column}" in table "${table}".`,
+            model: table,
+            column
+         });
       }
       return sql;
    }

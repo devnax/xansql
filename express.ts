@@ -102,7 +102,6 @@ const server = async (app: Express) => {
             // take: 1000,
          },
          where: {
-
          },
          select: {
             name: true,
@@ -197,43 +196,52 @@ const server = async (app: Express) => {
       let longText = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.".repeat(1000); // ~5MB
       const file = new File([longText], 'hello.txt', { type: 'text/plain' });
 
-      const result = await UserModel.create({
-         select: {
-            name: true,
-            email: true,
-            photo: true,
-            products: {
-               select: {
-                  description: true,
-                  name: true,
-                  categories: {
-                     select: {
-                        name: true,
-                     },
+      try {
+         const result = await UserModel.create({
+            select: {
+               name: true,
+               email: true,
+               photo: true,
+               products: {
+                  select: {
+                     description: true,
+                     name: true,
+                     categories: {
+                        select: {
+                           name: true,
+                        },
+                     }
                   }
                }
+            },
+            data: {
+               names: "John Doe",
+               email: `john${Math.floor(Math.random() * 10000)}@doe.com`,
+               password: "password",
+               // photo: file,
+               // created_at: new Date(),
+               products: {
+                  name: "Hello World",
+                  description: "This is my first post",
+                  price: "19.99",
+                  // user: 3,
+                  categories: [
+                     {
+                        name: "Tech",
+                     },
+                     { name: "News" },
+                  ],
+               }
             }
-         },
-         data: {
-            name: "John Doe",
-            email: `john${Math.floor(Math.random() * 10000)}@doe.com`,
-            password: "password",
-            photo: file,
-            // created_at: new Date(),
-            products: {
-               name: "Hello World",
-               description: "This is my first post",
-               price: "19.99",
-               // user: 3,
-               categories: [
-                  {
-                     name: "Tech",
-                  },
-                  { name: "News" },
-               ],
-            }
-         }
-      })
+         })
+
+         console.log(result);
+
+         res.json(result)
+
+      } catch (error: any) {
+         res.json({ error: error.message })
+      }
 
       // const result = await ProductModel.create({
       //    // select: {
@@ -260,7 +268,6 @@ const server = async (app: Express) => {
       //       ],
       //    }
       // })
-      res.json(result)
    });
 
    app.get('/delete', async (req: any, res: any) => {

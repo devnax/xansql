@@ -1,5 +1,6 @@
 import Model from "../.."
 import Foreign, { ForeignInfoType } from "../../../core/classes/ForeignInfo"
+import XansqlError from "../../../core/XansqlError"
 import XqlDate from "../../../Types/fields/Date"
 import { isArray, isNumber, isObject } from "../../../utils"
 import ValueFormatter from "../../include/ValueFormatter"
@@ -46,13 +47,18 @@ class CreateDataArgs {
     */
    readonly values: DataValue[] = []
 
+   private errors: XansqlError[] = []
+
 
    constructor(model: Model, data: DataArgsType | DataArgsType[]) {
 
       if (Array.isArray(data)) {
          for (let item of data) {
             if (!isObject(item)) {
-               throw new Error(`Invalid data item in array for model ${model.table}. Expected object, got ${typeof item}`);
+               throw new XansqlError({
+                  message: `Invalid data item for model ${model.table}. Expected object, got ${typeof item}`,
+                  model: model.table
+               });
             }
             const dataArgs = new CreateDataArgs(model, item)
             this.values.push(...dataArgs.values)
@@ -62,57 +68,74 @@ class CreateDataArgs {
             const field = model.schema[column]
             let value: any = data[column]
 
-            if (Foreign.is(field)) {
-               if (Foreign.isSchema(field)) {
-                  if (isNumber(value)) {
-                     this.data[column] = value
-                  } else {
-                     throw new Error(`Invalid value for foreign key column ${model.table}.${column}. Expected number, got ${typeof value}`);
-                  }
-               } else {
-                  // array of foreign keys
-                  if (isObject(value) || isArray(value)) {
-                     const foreign = Foreign.get(model, column)
-                     let rdatas = isObject(value) ? [value] : value
+            try {
 
-                     // Rollback will be handled this validation in executer
-                     // for (let rdata of rdatas) {
-                     //    if (foreign.column in rdata) {
-                     //       throw new Error(`Cannot set foreign key column ${foreign.column} in relation data for model ${FModel.table}. It is automatically managed.`);
-                     //    }
-                     //    new CreateDataArgs(FModel, {
-                     //       ...rdata,
-                     //       [foreign.column]: 1
-                     //    })
-                     // }
-
-                     if (rdatas.length === 0) {
-                        throw new Error(`Relation data for foreign key column ${model.table}.${column} cannot be empty.`);
-                     }
-
-                     this.relations[column] = {
-                        data: rdatas,
-                        foreign
+               if (Foreign.is(field)) {
+                  if (Foreign.isSchema(field)) {
+                     if (isNumber(value)) {
+                        this.data[column] = value
+                     } else {
+                        throw new XansqlError({
+                           message: `Invalid value for foreign key column ${model.table}.${column}. Expected number, got ${typeof value}`,
+                           model: model.table,
+                           column: column
+                        });
                      }
                   } else {
-                     throw new Error(`Invalid value for foreign key column ${model.table}.${column}. Expected object or array, got ${typeof value}`);
+                     // array of foreign keys
+                     if (isObject(value) || isArray(value)) {
+                        const foreign = Foreign.get(model, column)
+                        let rdatas = isObject(value) ? [value] : value
+
+                        if (rdatas.length === 0) {
+                           throw new XansqlError({
+                              message: `Relation data array for column ${model.table}.${column} cannot be empty.`,
+                              model: model.table,
+                              column: column
+                           });
+                        }
+
+                        this.relations[column] = {
+                           data: rdatas,
+                           foreign
+                        }
+                     } else {
+                        throw new XansqlError({
+                           message: `Invalid value for relation column ${model.table}.${column}. Expected object or array, got ${typeof value}`,
+                           model: model.table,
+                           column: column
+                        });
+                     }
+                  }
+               } else {
+                  // check is the field is IDField or created_at or updated_at
+                  if (model.IDColumn === column || field instanceof XqlDate && (field.meta.update || field.meta.create)) {
+                     throw new XansqlError({
+                        message: `Cannot set value for ${model.table}.${column}. It is automatically managed.`,
+                        model: model.table,
+                        column: column
+                     });
+                  }
+                  if (value instanceof File) {
+                     this.files[column] = value
+                     this.data[column] = ''
+                     ValueFormatter.toSql(model, column, value) // for validation
+                  } else {
+                     this.data[column] = ValueFormatter.toSql(model, column, value)
                   }
                }
-            } else {
-               // check is the field is IDField or created_at or updated_at
-               if (model.IDColumn === column || field instanceof XqlDate && (field.meta.update || field.meta.create)) {
-                  throw new Error(`Cannot set value for ${model.table}.${column}. It is automatically managed.`);
-               }
-               if (value instanceof File) {
-                  this.files[column] = value
-                  this.data[column] = ''
-                  ValueFormatter.toSql(model, column, value) // for validation
+            } catch (error) {
+               if (error instanceof XansqlError) {
+                  this.errors.push(error);
                } else {
-                  this.data[column] = ValueFormatter.toSql(model, column, value)
+                  throw error
                }
             }
          }
 
+         if (this.errors.length > 0) {
+            throw this.errors
+         }
 
          /**
           * Auto add missing columns with null value for create mode
@@ -128,10 +151,13 @@ class CreateDataArgs {
 
             const field = model.schema[column]
             if (Foreign.is(field)) {
-
                // if foreign key is not optional or nullable, throw error
                if (Foreign.isSchema(field) && !(field.meta.optional || field.meta.nullable)) {
-                  throw new Error(`Foreign key column ${model.table}.${column} is required in create data.`);
+                  this.errors.push(new XansqlError({
+                     message: `Foreign key column ${model.table}.${column} is required. Cannot create record without it.`,
+                     model: model.table,
+                     column: column
+                  }))
                }
                continue
             }
@@ -150,7 +176,6 @@ class CreateDataArgs {
          })
       }
    }
-
 }
 
 export default CreateDataArgs

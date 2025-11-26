@@ -1,4 +1,5 @@
 import Model from "..";
+import XansqlError from "../../core/XansqlError";
 import XqlArray from "../../Types/fields/Array";
 import XqlBoolean from "../../Types/fields/Boolean";
 import XqlDate from "../../Types/fields/Date";
@@ -41,7 +42,11 @@ class ValueFormatter {
 
    static toSql(model: Model, column: string, value: any) {
       const field = model.schema[column];
-      if (!field) throw new Error(`Column ${column} does not exist in schema ${model.table}`);
+      if (!field) throw new XansqlError({
+         message: `Column ${column} does not exist in model ${model.table}`,
+         model: model.table,
+         column: column
+      });
       try {
          value = field.parse(value);
          if (value === undefined || value === null) {
@@ -60,7 +65,7 @@ class ValueFormatter {
                value = new Date(value as any)
             }
             if (!(value instanceof Date) || isNaN(value.getTime())) {
-               throw new Error(`Invalid date value for column ${column}`);
+               throw new Error(`Invalid date value for column ${column}: ${value}`);
             }
 
             const pad = (n: number) => n.toString().padStart(2, '0');
@@ -77,13 +82,17 @@ class ValueFormatter {
             return value ? 1 : 0;
          }
       } catch (error: any) {
-         throw new Error(`Field ${column} is invalid. ${error.message}`);
+         throw new XansqlError({
+            message: `${error.message} (in column ${model.table}.${column})`,
+            model: model.table,
+            column: column
+         });
       }
    }
 
    static fromSql(model: Model, column: string, value: any) {
       const field = model.schema[column];
-      if (!field) throw new Error(`Column ${column} does not exist in schema ${model.table}`);
+      if (!field) throw new Error(`Column ${column} does not exist in model ${model.table}`);
       if (value === null || value === undefined) return null
 
       if (this.iof(model, column, XqlIDField, XqlNumber, XqlString, XqlFile, XqlEnum)) {

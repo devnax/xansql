@@ -1,5 +1,6 @@
 import Model from "../..";
 import Foreign from "../../../core/classes/ForeignInfo";
+import XansqlError from "../../../core/XansqlError";
 import XqlIDField from "../../../Types/fields/IDField";
 import XqlNumber from "../../../Types/fields/Number";
 import { AggregateSelectArgsColumnType, AggregateSelectArgsType } from "../../type";
@@ -16,10 +17,18 @@ class SelectArgs {
       for (let column in args) {
          const field = model.schema[column];
          if (!field) {
-            throw new Error(`Column ${column} not found in model ${model.table} for aggregate select`)
+            throw new XansqlError({
+               message: `Column ${column} not found in model ${model.table} for aggregate select`,
+               model: model.table,
+               column: column
+            });
          }
          if (Foreign.is(field)) {
-            throw new Error(`Column ${column} in model ${model.table} is a relation column, cannot be used in aggregate select`)
+            throw new XansqlError({
+               message: `Cannot perform aggregate functions on foreign key column ${column} in model ${model.table}`,
+               model: model.table,
+               column: column
+            });
          } else {
             const columnArg = args[column] as AggregateSelectArgsColumnType
             sqls.push(this.columnFormat(column, columnArg))

@@ -2,6 +2,7 @@ import Model from "../..";
 import Foreign, { ForeignInfoType } from "../../../core/classes/ForeignInfo";
 import ExecuteMeta from "../../../core/ExcuteMeta";
 import { RowObject } from "../../../core/type";
+import XansqlError from "../../../core/XansqlError";
 import { chunkArray, chunkNumbers } from "../../../utils/chunker";
 import RelationExecuteArgs from "../../Args/RelationExcuteArgs";
 import WhereArgs from "../../Args/WhereArgs";
@@ -326,14 +327,26 @@ class FindExecuter {
       } = {}
       for (let col in aggregate) {
          if (!(col in model.schema)) {
-            throw new Error(`Invalid column in aggregate clause: ${col} in model ${model.table}`)
+            throw new XansqlError({
+               message: `Column ${col} not found in model ${model.table} for aggregate`,
+               model: model.table,
+               column: col
+            })
          }
          const foreign = Foreign.get(model, col)
          if (!foreign) {
-            throw new Error(`Column ${col} is not a foreign column in ${model.table}, cannot aggregate on it.`)
+            throw new XansqlError({
+               message: `Column ${col} is not a foreign column in ${model.table}, cannot aggregate on it.`,
+               model: model.table,
+               column: col
+            })
          }
          if (!Foreign.isArray(model.schema[col])) {
-            throw new Error(`Column ${col} is not a foreign array column in ${model.table}, cannot aggregate on it.`)
+            throw new XansqlError({
+               message: `Column ${col} is not a relation column in ${model.table}, cannot aggregate on it.`,
+               model: model.table,
+               column: col
+            })
          }
 
          const FModel = xansql.getModel(foreign.table)

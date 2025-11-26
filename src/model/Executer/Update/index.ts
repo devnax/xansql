@@ -5,6 +5,7 @@ import RelationExecuteArgs from "../../Args/RelationExcuteArgs"
 import UpdateDataArgs from "./UpdateDataArgs"
 import { chunkArray } from "../../../utils/chunker"
 import ExecuteMeta from "../../../core/ExcuteMeta"
+import XansqlError from "../../../core/XansqlError"
 
 
 class UpdateExecuter {
@@ -20,7 +21,10 @@ class UpdateExecuter {
       const isRelation = args instanceof RelationExecuteArgs
 
       if (Object.keys(args.where).length === 0) {
-         throw new Error(`Where args is required for update operation in model ${model.table}`)
+         throw new XansqlError({
+            message: `Update operation on model ${model.table} requires a WHERE clause to prevent accidental update of all records.`,
+            model: model.table
+         })
       }
 
       const Where = new WhereArgs(model, args.where)
@@ -94,7 +98,7 @@ class UpdateExecuter {
          if (!update.affectedRows) {
             return []
          }
-      } catch (error) {
+      } catch (error: any) {
          // rollback uploaded files
          let executeId = undefined;
          if (typeof window !== "undefined") {
@@ -108,7 +112,7 @@ class UpdateExecuter {
          for (let fileId of uploadedFileIds) {
             await xansql.deleteFile(fileId, executeId)
          }
-         throw new Error("Error executing update: " + (error as Error).message);
+         throw error
       }
 
 

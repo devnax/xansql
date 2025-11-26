@@ -1,5 +1,6 @@
 import Model from "../..";
 import ExecuteMeta from "../../../core/ExcuteMeta";
+import XansqlError from "../../../core/XansqlError";
 import { chunkArray } from "../../../utils/chunker";
 import WhereArgs from "../../Args/WhereArgs";
 import { AggregateArgsType } from "../../type";
@@ -40,7 +41,11 @@ class AggregateExecuter {
          // check column is exists
          for (let column of args.groupBy) {
             if (!model.schema[column]) {
-               throw new Error(`Column ${column} not found in model ${model.table} for aggregate groupBy`)
+               throw new XansqlError({
+                  message: `Column ${column} not found in model ${model.table} for groupBy`,
+                  model: model.table,
+                  column: column
+               });
             }
          }
          sql += args.groupBy.join(", ") + ", "
