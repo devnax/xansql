@@ -143,36 +143,6 @@ class Model extends ModelBase {
       await this.xansql.execute(`TRUNCATE TABLE ${this.table}`);
    }
 
-   // Helpers Methods
-
-   async findOne(args: FindArgsType) {
-      const res = await this.find({
-         ...args,
-         limit: {
-            take: 1,
-            skip: 0
-         }
-      })
-
-      if (res.hasError()) {
-         return res
-      }
-      if (res.count() === 0) {
-         return null
-      }
-
-      return res.first()
-   }
-
-   async findById(id: any, args?: Omit<FindArgsType, "where">) {
-      return await this.findOne({
-         ...args,
-         where: {
-            [this.IDColumn]: id
-         }
-      })
-   }
-
    async paginate(page: number, args?: Omit<FindArgsType, "limit"> & { perpage?: number }) {
       const perpage = args?.perpage || 20;
       const skip = (page - 1) * perpage;

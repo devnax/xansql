@@ -73,8 +73,7 @@ class CreateExecuter {
                   for (let fileId of uploadedFileIds) {
                      try {
                         await xansql.deleteFile(fileId, executeId)
-                     } catch (error) {
-                     }
+                     } catch (error) { }
                   }
                   throw error
                }

@@ -9,6 +9,10 @@ export class XansqlResultArray<T> extends Array<T> {
       this.errors.set(key, error);
    }
 
+   getErrors() {
+      return this.errors
+   }
+
    first(): T | null {
       return this.length > 0 ? this[0] : null;
    }
@@ -19,6 +23,10 @@ export class XansqlResultArray<T> extends Array<T> {
 
    count(): number {
       return this.length;
+   }
+
+   isEmpty(): boolean {
+      return this.length === 0;
    }
 }
 
