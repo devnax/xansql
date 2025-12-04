@@ -1,6 +1,6 @@
 {
    "name": "xansql",
-   "version": "1.0.1",
+   "version": "1.0.2",
    "main": "./index.js",
    "module": "./index.js",
    "types": "./index.d.ts",
@@ -34,22 +34,5 @@
       "react-dom": "^19.1.0",
       "tslib": "^2.8.1",
       "typescript": "^5.9.3"
-   },
-   "exports": {
-      ".": {
-         "import": "./index.js",
-         "require": "./index.js",
-         "types": "./index.d.ts"
-      },
-      "./Dialect/*": {
-         "import": "./Dialect/*.js",
-         "require": "./Dialect/*.js",
-         "types": "./Dialect/*.d.ts"
-      },
-      "./FileHandler/*": {
-         "import": "./FileHandler/*.js",
-         "require": "./FileHandler/*.js",
-         "types": "./FileHandler/*.d.ts"
-      }
    }
 }

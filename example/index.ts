@@ -1,7 +1,7 @@
 import dotenv from 'dotenv'
 import { Xansql, xt } from '../src'
-import SqliteDialect from '../src/libs/SqliteDialect'
-import FileInDirectory from '../src/libs/FileInDirectory';
+import SqliteDialect from '../src/dialect/SqliteDialect'
+import FileInDirectory from '../src/file/FileInDirectory';
 
 if (typeof process !== 'undefined' && process?.env) {
    try {
