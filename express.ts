@@ -2,11 +2,39 @@ import dotenv from 'dotenv'
 dotenv.config()
 import fakeData from './faker'
 import express, { Express } from 'express';
-import { db, ProductModel, UserModel } from './example'
+import { db, ProductModel, UserModel } from './example/DBServer'
 import WhereArgsQuery from './src/model/Args/WhereArgs';
 import SelectArgs from './src/model/Executer/Find/SelectArgs';
 import UpdateDataArgs from './src/model/Executer/Update/UpdateDataArgs';
+import XansqlBridgeServer from './src/dialect/xansql-bridge/XansqlBridgeServer';
+import { XansqlFileMeta } from './src';
+import fs from 'fs'
+import path from 'path'
 
+let dir = 'uploads';
+
+const bridge = new XansqlBridgeServer(db, {
+   basePath: "/data",
+   file: {
+      upload: async (chunk: Uint8Array, filemeta: XansqlFileMeta) => {
+         const uploadDir = path.join(process.cwd(), dir);
+         if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
+         const filePath = path.join(uploadDir, filemeta.fileId);
+         fs.appendFileSync(filePath, Buffer.from(chunk));
+      },
+      delete: async (fileId: string) => {
+         const fs = await import('fs');
+         const path = await import('path');
+         const filePath = path.join(process.cwd(), dir, fileId);
+         if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+         }
+      }
+   },
+   isAuthorized: async (info) => {
+      return true;
+   }
+})
 
 const server = async (app: Express) => {
    app.use('/static', express.static('public'));
@@ -16,15 +44,10 @@ const server = async (app: Express) => {
 
    app.use('/data/*', express.raw({ type: db.XANFETCH_CONTENT_TYPE, limit: "10mb" }), async (req: any, res: any) => {
 
-      const response = await db.onFetch(req.originalUrl, {
+      const response = await bridge.listen(req.originalUrl, {
          body: req.body,
          headers: req.headers,
-         cookies: req.cookies,
-         isAuthorized: async (info) => {
-            return true;
-         }
       })
-
       res.status(response.status).end(response.body);
    })
 

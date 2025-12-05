@@ -1,6 +1,6 @@
 import Model from "../..";
 import XansqlError from "../../../core/XansqlError";
-import { LimitArgsType } from "../../type";
+import { LimitArgsType } from "../../types";
 
 class LimitArgs {
    readonly take: number;

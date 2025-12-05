@@ -1,5 +1,4 @@
 import { Xansql } from "../..";
-import ExecuteMeta from "../ExcuteMeta";
 
 export type XansqlTransactionKey = string
 export type XansqlTransactionValue = boolean

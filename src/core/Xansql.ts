@@ -1,15 +1,15 @@
 import Model from "../model";
-import { ExecuterResult, XansqlConfigType, XansqlConfigTypeRequired, XansqlModelOptions, XansqlOnFetchInfo } from "./type";
+import { ExecuterResult, XansqlConfigType, XansqlConfigTypeRequired } from "./types";
 import XansqlTransaction from "./classes/XansqlTransaction";
 import XansqlConfig from "./classes/XansqlConfig";
 import ModelFormatter from "./classes/ModelFormatter";
-import XansqlFetch from "./classes/XansqlFetch";
-import ExecuteMeta from "./ExcuteMeta";
 import XansqlMigration from "./classes/Migration";
 import { XansqlSchemaObject } from "../Types/types";
 import EventManager, { EventHandler, EventNames } from "./classes/EventManager";
 import TypesGenerator from "./classes/TypesGenerator";
 import XansqlError from "./XansqlError";
+import Schema from "../model/Schema";
+import { XansqlModelHooks } from "../model/types";
 
 class Xansql {
    readonly config: XansqlConfigTypeRequired;
@@ -19,7 +19,6 @@ class Xansql {
    private ModelFormatter: ModelFormatter;
    private XansqlConfig: XansqlConfig;
    readonly XansqlTransaction: XansqlTransaction;
-   private XansqlFetch: XansqlFetch
    readonly EventManager: EventManager
    readonly TypesGenerator: TypesGenerator
 
@@ -33,7 +32,6 @@ class Xansql {
       this.ModelFormatter = new ModelFormatter(this);
 
       this.XansqlMigration = new XansqlMigration(this);
-      this.XansqlFetch = new XansqlFetch(this);
       this.EventManager = new EventManager();
       this.TypesGenerator = new TypesGenerator(this);
    }
@@ -49,7 +47,11 @@ class Xansql {
    clone(config?: Partial<XansqlConfigType>) {
       const self = new XansqlClone({ ...this.config, ...(config || {}) });
       for (let [table, model] of this.ModelFactory) {
-         self.model(table, model.schema, model.options);
+         const schema = new Schema(table, model.schema)
+         for (let hook in model.hooks) {
+            schema.addHook(hook as any, model.hooks[hook as keyof XansqlModelHooks] as any)
+         }
+         self.model(schema);
       }
       return self;
    }
@@ -74,27 +76,24 @@ class Xansql {
    }
 
    _timer: any = null;
-   model(table: string, schema: XansqlSchemaObject, options?: Partial<XansqlModelOptions>): Model {
-      const model = new Model(table, schema);
+   model(schema: Schema): Model {
+      const model = new Model(schema.table, schema.schema);
       if (!model.IDColumn) {
          throw new XansqlError({
-            message: `Model ${table} must have an ID column.`,
-            model: table,
+            message: `Model ${schema.table} must have an ID column.`,
+            model: schema.table,
          });
       }
-      if (this.ModelFactory.has(model.table)) {
+      if (this.ModelFactory.has(schema.table)) {
          throw new XansqlError({
-            message: `Model for table ${table} already exists.`,
-            model: table,
+            message: `Model for table ${schema.table} already exists.`,
+            model: schema.table,
          });
       }
-      model.alias = this.makeAlias(model.table);
+      model.alias = this.makeAlias(schema.table);
       model.xansql = this;
-      model.options = {
-         hooks: {},
-         ...options
-      };
-      this.ModelFactory.set(model.table, model);
+      model.hooks = schema.hooks;
+      this.ModelFactory.set(schema.table, model);
 
       // this will delay the model formatting to allow multiple models to be added before formatting
       clearTimeout(this._timer);
@@ -114,42 +113,27 @@ class Xansql {
       return this.ModelFactory.get(table) as Model;
    }
 
-   async execute(sql: string, executeId?: string): Promise<ExecuterResult> {
-      if (typeof window !== "undefined" && !this.config.fetch) {
-         throw new XansqlError({
-            message: `In browser environment, fetch implementation is required in config.`,
-         });
-      }
-
+   async execute(sql: string): Promise<ExecuterResult> {
       sql = sql.trim().replace(/\s+/g, ' ');
-
-      if (typeof window !== "undefined") {
-         if (!executeId || !ExecuteMeta.has(executeId)) {
-            throw new XansqlError({
-               message: `Execute ID is required for browser execution.`,
-            })
-         }
-         const res = await this.XansqlFetch.execute(sql, executeId);
-         ExecuteMeta.delete(executeId);
-         return res
-      } else {
-         return await this.dialect.execute(sql) as any
-      }
+      return await this.dialect.execute(sql, this) as any
    }
 
    async getRawSchema() {
-      if (typeof window !== "undefined") {
-         return await this.XansqlFetch.getSchema();
+      return await this.dialect.getSchema(this);
+   }
+
+   async uploadFile(file: File) {
+      if (!this.dialect.file?.upload) {
+         throw new XansqlError(`File upload is not supported by the current dialect.`);
       }
-      return await this.dialect.getSchema();
+      return await this.dialect.file.upload(file, this);
    }
 
-   async uploadFile(file: File, executeId?: string) {
-      return await this.XansqlFetch.uploadFile(file, executeId);
-   }
-
-   async deleteFile(filename: string, executeId?: string) {
-      return await this.XansqlFetch.deleteFile(filename, executeId);
+   async deleteFile(filename: string) {
+      if (!this.dialect.file?.delete) {
+         throw new XansqlError(`File delete is not supported by the current dialect.`);
+      }
+      return await this.dialect.file.delete(filename, this);
    }
 
    async transaction(callback: () => Promise<any>) {
@@ -162,10 +146,6 @@ class Xansql {
 
    async generateMigration() {
       return await this.XansqlMigration.generate();
-   }
-
-   async onFetch(url: string, info: XansqlOnFetchInfo) {
-      return await this.XansqlFetch.onFetch(url, info);
    }
 
    on<K extends EventNames>(event: K, handler: EventHandler<K>) {

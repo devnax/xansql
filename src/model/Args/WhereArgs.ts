@@ -7,7 +7,7 @@ import XqlRecord from "../../Types/fields/Record";
 import XqlTuple from "../../Types/fields/Tuple";
 import { escapeSqlValue, isArray, isObject } from "../../utils";
 import ValueFormatter from "../include/ValueFormatter";
-import { WhereArgsType, WhereSubCondition } from "../type";
+import { WhereArgsType, WhereSubCondition } from "../types";
 
 type Meta = {
    parentTable: string

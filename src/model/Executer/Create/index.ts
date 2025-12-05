@@ -1,10 +1,9 @@
 import Model from "../.."
 import CreateDataArgs from "./CreateDataArgs"
-import { CreateArgsType } from "../../type"
+import { CreateArgsType } from "../../types"
 import SelectArgs from "../Find/SelectArgs"
 import { chunkArray } from "../../../utils/chunker"
 import RelationExecuteArgs from "../../Args/RelationExcuteArgs"
-import ExecuteMeta from "../../../core/ExcuteMeta"
 
 class CreateExecuter {
    model: Model
@@ -31,48 +30,21 @@ class CreateExecuter {
             try {
 
                if (fileColumns.length > 0) {
-                  let executeId = undefined;
-                  if (typeof window !== "undefined") {
-                     executeId = ExecuteMeta.set({
-                        model,
-                        action: "UPLOAD_FILE",
-                        modelType: isRelation ? "child" : "main",
-                        args: arg
-                     });
-                  }
                   for (let file_col of fileColumns) {
-                     const filemeta = await xansql.uploadFile(arg.files[file_col], executeId)
+                     const filemeta = await xansql.uploadFile(arg.files[file_col])
                      uploadedFileIds.push(filemeta.fileId)
                      arg.data[file_col] = `'${JSON.stringify(filemeta)}'`
                   }
                }
-               let executeId = undefined;
-               if (typeof window !== "undefined") {
-                  executeId = ExecuteMeta.set({
-                     model,
-                     action: "INSERT",
-                     modelType: isRelation ? "child" : "main",
-                     args: arg
-                  });
-               }
                const keys = Object.keys(arg.data)
                const sql = `INSERT INTO ${model.table} (${keys.join(", ")}) VALUES (${keys.map(k => arg.data[k]).join(", ")})`
-               const created = await xansql.execute(sql, executeId)
+               const created = await model.execute(sql)
                insertId = created.insertId
             } catch (error: any) {
                if (fileColumns.length > 0) {
-                  let executeId = undefined;
-                  if (typeof window !== "undefined") {
-                     executeId = ExecuteMeta.set({
-                        model,
-                        action: "DELETE_FILE",
-                        modelType: isRelation ? "child" : "main",
-                        args: arg
-                     });
-                  }
                   for (let fileId of uploadedFileIds) {
                      try {
-                        await xansql.deleteFile(fileId, executeId)
+                        await xansql.deleteFile(fileId)
                      } catch (error) { }
                   }
                   throw error

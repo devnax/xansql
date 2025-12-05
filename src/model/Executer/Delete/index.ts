@@ -1,12 +1,11 @@
 import Model from "../.."
 import WhereArgs from "../../Args/WhereArgs"
-import { DeleteArgsType, WhereArgsType } from "../../type"
+import { DeleteArgsType, WhereArgsType } from "../../types"
 import RelationExecuteArgs from "../../Args/RelationExcuteArgs"
 import Foreign from "../../../core/classes/ForeignInfo"
 import XqlFile from "../../../Types/fields/File"
 import { XqlFields } from "../../../Types/types"
 import { chunkArray } from "../../../utils/chunker"
-import ExecuteMeta from "../../../core/ExcuteMeta"
 import XansqlError from "../../../core/XansqlError"
 
 
@@ -94,40 +93,21 @@ class DeleteExecuter {
          })
       }
 
-      let executeId = undefined;
-      if (typeof window !== "undefined") {
-         executeId = ExecuteMeta.set({
-            model,
-            action: "DELETE",
-            modelType: isRelation ? "child" : "main",
-            args
-         });
-      }
-
       const Where = new WhereArgs(model, args.where)
       const sql = `DELETE FROM ${model.table} ${Where.sql}`.trim()
-      const { affectedRows } = await xansql.execute(sql, executeId)
+      const { affectedRows } = await model.execute(sql)
       if (!affectedRows || affectedRows === 0) {
          return []
       }
 
       // delete files
       if (fileColumns.length && fileRows.length) {
-         let executeId = undefined;
-         if (typeof window !== "undefined") {
-            executeId = ExecuteMeta.set({
-               model,
-               action: "DELETE_FILE",
-               modelType: isRelation ? "child" : "main",
-               args
-            });
-         }
          for (let { chunk } of chunkArray(fileRows)) {
             for (let row of chunk) {
                for (let file_col of fileColumns) {
                   const filemeta = row[file_col]
                   if (filemeta) {
-                     await xansql.deleteFile(filemeta.fileId, executeId)
+                     await xansql.deleteFile(filemeta.fileId)
                   }
                }
             }

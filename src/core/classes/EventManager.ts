@@ -1,5 +1,5 @@
 import Model from "../../model";
-import { CreateArgsType, DeleteArgsType, FindArgsType, UpdateArgsType } from "../../model/type";
+import { CreateArgsType, DeleteArgsType, FindArgsType, UpdateArgsType } from "../../model/types";
 
 export type EventNames =
    | "CREATE"

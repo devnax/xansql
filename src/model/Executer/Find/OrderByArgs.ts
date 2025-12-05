@@ -1,6 +1,6 @@
 import Model from "../.."
 import XansqlError from "../../../core/XansqlError"
-import { OrderByArgsType } from "../../type"
+import { OrderByArgsType } from "../../types"
 
 class OrderByArgs {
    /**

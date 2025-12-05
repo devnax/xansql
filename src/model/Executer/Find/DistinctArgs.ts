@@ -1,7 +1,7 @@
 import Model from "../.."
 import XansqlError from "../../../core/XansqlError"
 import WhereArgs from "../../Args/WhereArgs"
-import { DistinctArgsType, OrderByArgsType } from "../../type"
+import { DistinctArgsType, OrderByArgsType } from "../../types"
 
 class DistinctArgs {
    /**

@@ -1,0 +1,18 @@
+import dotenv from 'dotenv'
+import { Xansql } from '../src'
+import SqliteDialect from '../src/dialect/SqliteDialect'
+import { ProductCategorySchema, ProductModelSchema, UserModelMetaSchema, UserModelSchema } from './Schema';
+
+dotenv.config()
+
+const mysqlConn: string = (typeof process !== 'undefined' ? process.env.MYSQL_DB : 'mysql://root:root1234@localhost:3306/xansql') as string
+const sqliteConn: string = 'db.sqlite'
+
+export const db = new Xansql({
+   dialect: SqliteDialect(sqliteConn),
+})
+
+export const UserModel = db.model(UserModelSchema)
+export const ProductModel = db.model(ProductModelSchema)
+export const ProductCategory = db.model(ProductCategorySchema)
+export const UserModelMeta = db.model(UserModelMetaSchema)

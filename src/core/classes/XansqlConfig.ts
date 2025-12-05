@@ -1,4 +1,4 @@
-import { XansqlConfigTypeRequired, XansqlConfigType, XansqlDialectEngine } from "../type";
+import { XansqlConfigTypeRequired, XansqlConfigType, XansqlDialectEngine } from "../types";
 import Xansql from "../Xansql";
 import XansqlError from "../XansqlError";
 

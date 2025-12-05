@@ -9,7 +9,6 @@ import XqlIDField from "../../Types/fields/IDField";
 import XqlNumber from "../../Types/fields/Number";
 import XqlObject from "../../Types/fields/Object";
 import XqlRecord from "../../Types/fields/Record";
-import XqlSchema from "../../Types/fields/Schema";
 import XqlString from "../../Types/fields/String";
 import XqlTuple from "../../Types/fields/Tuple";
 import XqlUnion from "../../Types/fields/Union";

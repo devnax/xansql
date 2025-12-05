@@ -1,9 +1,8 @@
 import Model from "../..";
-import ExecuteMeta from "../../../core/ExcuteMeta";
 import XansqlError from "../../../core/XansqlError";
 import { chunkArray } from "../../../utils/chunker";
 import WhereArgs from "../../Args/WhereArgs";
-import { AggregateArgsType } from "../../type";
+import { AggregateArgsType } from "../../types";
 import LimitArgs from "../Find/LimitArgs";
 import OrderByArgs from "../Find/OrderByArgs";
 import SelectArgs from "./SelectArgs";
@@ -24,8 +23,6 @@ class AggregateExecuter {
       const Where = new WhereArgs(model, args.where || {})
       const OrderBy = new OrderByArgs(model, args.orderBy || {})
       let LimitSql = ""
-
-
 
       if (args.groupBy && args.groupBy.length) {
          LimitSql = (new LimitArgs(model, args.limit || {})).sql
@@ -52,17 +49,7 @@ class AggregateExecuter {
          groupBySql = ` GROUP BY ${args.groupBy.join(", ")} `
       }
       sql += `${select.sql} FROM ${model.table} ${Where.sql}${groupBySql}${OrderBy.sql}${LimitSql}`.trim()
-
-      let executeId = undefined;
-      if (typeof window !== "undefined") {
-         executeId = ExecuteMeta.set({
-            model,
-            action: "AGGREGATE",
-            modelType: "main",
-            args
-         });
-      }
-      const { results } = await xansql.execute(sql, executeId)
+      const { results } = await model.execute(sql)
 
       // remove groupBy columns from results
       if (this.removeGroupByColumns && results.length && args.groupBy && args.groupBy.length) {

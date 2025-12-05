@@ -1,27 +1,10 @@
 import { EventHandler, EventNames } from "../core/classes/EventManager";
 import Foreign from "../core/classes/ForeignInfo";
-import { XansqlModelOptions } from "../core/type";
 import Xansql from "../core/Xansql";
 import XansqlError from "../core/XansqlError";
 import XqlIDField from "../Types/fields/IDField";
 import { XansqlSchemaObject } from "../Types/types";
-
-type Hooks =
-   | 'beforeFind'
-   | 'afterFind'
-   | 'beforeCreate'
-   | 'afterCreate'
-   | 'beforeUpdate'
-   | 'afterUpdate'
-   | 'beforeDelete'
-   | 'afterDelete'
-   | 'beforeAggregate'
-   | 'afterAggregate'
-   | 'beforeExecute'
-   | 'afterExecute'
-   | 'beforeMigrate'
-   | 'afterMigrate'
-   | 'transform';
+import { XansqlModelHookNames, XansqlModelHooks } from "./types";
 
 type Relation = {
    type: "array" | "schema",
@@ -34,9 +17,7 @@ abstract class ModelBase {
    readonly IDColumn: string = '';
    readonly columns: string[] = [];
    readonly relations: Relation[] = [];
-   options: Required<XansqlModelOptions> = {
-      hooks: {}
-   }
+   hooks: XansqlModelHooks = {};
    xansql: Xansql = null as any;
    alias: string = '';
 
@@ -72,15 +53,20 @@ abstract class ModelBase {
       }
    }
 
+   async execute(sql: string) {
+      const xansql = this.xansql;
+      return await xansql.execute(sql) as any
+   }
+
    isIDColumn(column: string): boolean {
       return column === this.IDColumn;
    }
 
-   protected async callHook(hook: Hooks, ...args: any): Promise<any> {
+   protected async callHook(hook: XansqlModelHookNames, ...args: any): Promise<any> {
       const xansql = this.xansql;
       const config = xansql.config;
 
-      const modelHooks: any = this.options.hooks || {}
+      const modelHooks: any = this.hooks || {}
       const configHooks: any = config.hooks || {}
       let returnValue = null;
 

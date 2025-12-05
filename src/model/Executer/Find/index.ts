@@ -1,12 +1,11 @@
 import Model from "../..";
 import Foreign, { ForeignInfoType } from "../../../core/classes/ForeignInfo";
-import ExecuteMeta from "../../../core/ExcuteMeta";
-import { RowObject } from "../../../core/type";
+import { RowObject } from "../../../core/types";
 import XansqlError from "../../../core/XansqlError";
 import { chunkArray, chunkNumbers } from "../../../utils/chunker";
 import RelationExecuteArgs from "../../Args/RelationExcuteArgs";
 import WhereArgs from "../../Args/WhereArgs";
-import { FindArgsAggregate, FindArgsType } from "../../type";
+import { FindArgsAggregate, FindArgsType } from "../../types";
 import AggregateExecuter from "../Aggregate";
 import DistinctArgs from "./DistinctArgs";
 import LimitArgs from "./LimitArgs";
@@ -40,34 +39,16 @@ class FindExecuter {
       let results: any[] = []
 
       if (!Limit.sql) {
-         let executeId = undefined;
-         if (typeof window !== "undefined") {
-            executeId = ExecuteMeta.set({
-               model,
-               action: "SELECT",
-               modelType: isRelation ? "child" : "main",
-               args
-            });
-         }
          const sql = `SELECT ${Select.sql} FROM ${model.table} ${where_sql}${OrderBy.sql}`.trim()
-         const executed = await xansql.execute(sql, executeId)
+         const executed = await model.execute(sql)
          if (executed?.results) {
             results = results.concat(executed.results)
          }
       } else {
          for (let { take, skip } of chunkNumbers(Limit.take)) {
-            let executeId = undefined;
-            if (typeof window !== "undefined") {
-               executeId = ExecuteMeta.set({
-                  model,
-                  action: "SELECT",
-                  modelType: isRelation ? "child" : "main",
-                  args
-               });
-            }
             const batchLimitArgs = new LimitArgs(model, { take, skip: Limit.skip + skip })
             const sql = `SELECT ${Select.sql} FROM ${model.table} ${where_sql}${OrderBy.sql}${batchLimitArgs.sql}`.trim()
-            const executed = await xansql.execute(sql, executeId)
+            const executed = await model.execute(sql)
             if (executed?.results) {
                results = results.concat(executed.results)
             }
@@ -192,16 +173,7 @@ class FindExecuter {
          `
             }
          }
-         let executeId = undefined;
-         if (typeof window !== "undefined") {
-            executeId = ExecuteMeta.set({
-               model: FModel,
-               action: "SELECT",
-               modelType: "child",
-               args
-            });
-         }
-         const res = (await xansql.execute(sql, executeId)).results
+         const res = (await FModel.execute(sql)).results
          if (res) {
             fres = fres.concat(res)
          }

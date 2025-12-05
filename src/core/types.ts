@@ -1,7 +1,6 @@
-import { UploadFileMeta } from "securequ";
 import Model from "../model";
-import { AggregateArgsType, CreateArgsType, DeleteArgsType, FindArgsType, UpdateArgsType } from "../model/type";
-import { ExecuteMetaData } from "./ExcuteMeta";
+import { AggregateArgsType, CreateArgsType, DeleteArgsType, FindArgsType, UpdateArgsType } from "../model/types";
+import Xansql from "./Xansql";
 
 export type XansqlConnectionOptions = {
    host: string,
@@ -37,32 +36,32 @@ export type XansqlDialectSchemaColumn = {
 export type XansqlDialectSchemaType = {
    [table: string]: XansqlDialectSchemaColumn[]
 }
-export type XansqlDialect = {
-   engine: XansqlDialectEngine;
-   execute: (sql: string) => Promise<ExecuterResult | null>;
-   getSchema: () => Promise<XansqlDialectSchemaType | void>;
-}
 
-// FETCH TYPE
-export type XansqlFetchMethod = "GET" | "POST" | "PUT" | "DELETE"
-
-export type XansqlFetchPermissionInfo = ExecuteMetaData & {
-   method: XansqlFetchMethod;
-}
-export type XansqlOnFetchInfo = {
-   body: any;
-   headers: { [key: string]: string };
-   cookies: { [key: string]: string };
-   isAuthorized?: (info: XansqlFetchPermissionInfo) => Promise<boolean>;
-}
-
-export type XansqlOnFetchResponse = {
-   status: number;
-   body: any;
-   headers?: { [key: string]: string };
-   cookies?: { [key: string]: string };
+export type XansqlFileMeta = {
+   fileId: string;
+   name: string;
+   size: number;
+   type: string;
+   chunkIndex: number;
+   totalChunks: number;
+   isFinish: boolean;
 };
 
+export type XansqlFileConfig = {
+   maxFilesize?: number; // in KB
+   checkFileType?: boolean;
+   chunkSize?: number; // in KB
+   upload: (file: File, xansql: Xansql) => Promise<XansqlFileMeta>;
+   delete: (filename: string, xansql: Xansql) => Promise<void>;
+}
+
+
+export type XansqlDialect = {
+   engine: XansqlDialectEngine;
+   execute: (sql: string, xansql: Xansql) => Promise<ExecuterResult | null>;
+   getSchema: (xansql: Xansql) => Promise<XansqlDialectSchemaType | void>;
+   file?: XansqlFileConfig
+}
 
 export type XansqlSocket = {
    open: (socket: WebSocket) => Promise<void>;
@@ -79,31 +78,10 @@ export type XansqlCache<Row = object> = {
    onDelete: (model: Model, rows: Row[]) => Promise<void>;
 }
 
-export type XansqlFileMeta = UploadFileMeta
-
-export type XansqlFetchUrl = string
-
-export type XansqlFetchConfig = {
-   url: XansqlFetchUrl;
-   mode?: "production" | "development";
-}
-
-export type XansqlFileConfig = {
-   maxFilesize?: number; // in KB
-   checkFileType?: boolean;
-   chunkSize?: number; // in KB
-   upload: (chunk: Uint8Array, filemeta: UploadFileMeta) => Promise<void>;
-   delete: (filename: string) => Promise<void>;
-}
-
-
 export type XansqlConfigType = {
    dialect: XansqlDialect;
-   fetch?: XansqlFetchUrl | XansqlFetchConfig
    socket?: XansqlSocket;
    cache?: XansqlCache;
-
-   file?: XansqlFileConfig;
 
    maxLimit?: {
       find?: number;
@@ -130,21 +108,4 @@ export type XansqlConfigType = {
 
 export type XansqlConfigTypeRequired = Required<XansqlConfigType> & {
    maxLimit: Required<XansqlConfigType['maxLimit']>;
-}
-
-export type XansqlModelOptions = {
-   hooks?: {
-      beforeFind?: (args: FindArgsType) => Promise<FindArgsType>
-      afterFind?: (result: ResultData, args: FindArgsType) => Promise<ResultData>
-      beforeCreate?: (args: CreateArgsType) => Promise<CreateArgsType> | void
-      afterCreate?: (result: ResultData, args: CreateArgsType) => Promise<ResultData>
-      beforeUpdate?: (args: UpdateArgsType) => Promise<UpdateArgsType>
-      afterUpdate?: (result: ResultData, args: UpdateArgsType) => Promise<ResultData>
-      beforeDelete?: (args: DeleteArgsType) => Promise<DeleteArgsType>
-      afterDelete?: (result: ResultData, args: DeleteArgsType) => Promise<ResultData>
-      beforeAggregate?: (args: AggregateArgsType) => Promise<AggregateArgsType>
-      afterAggregate?: (result: ResultData, args: AggregateArgsType) => Promise<ResultData>
-      transform?: (row: RowObject) => Promise<RowObject>
-
-   }
 }

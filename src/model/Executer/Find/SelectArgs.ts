@@ -1,5 +1,5 @@
 import Model from "../..";
-import { FindArgsAggregate, FindArgsType, SelectArgsType } from "../../type";
+import { FindArgsAggregate, FindArgsType, SelectArgsType } from "../../types";
 import DistinctArgs from "./DistinctArgs";
 import LimitArgs from "./LimitArgs";
 import OrderByArgs from "./OrderByArgs";

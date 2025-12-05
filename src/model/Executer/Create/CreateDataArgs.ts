@@ -4,7 +4,7 @@ import XansqlError from "../../../core/XansqlError"
 import XqlDate from "../../../Types/fields/Date"
 import { isArray, isNumber, isObject } from "../../../utils"
 import ValueFormatter from "../../include/ValueFormatter"
-import { DataArgsType } from "../../type"
+import { DataArgsType } from "../../types"
 
 
 type DataObject = { [column: string]: any }

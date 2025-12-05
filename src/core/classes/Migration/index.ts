@@ -1,9 +1,8 @@
 import XqlFile from "../../../Types/fields/File";
-import ExecuteMeta from "../../ExcuteMeta";
 import Xansql from "../../Xansql";
 import TableMigration from "./TableMigration";
 import Foreign from "../ForeignInfo";
-import { XansqlDialectSchemaType } from "../../type";
+import { XansqlDialectSchemaType } from "../../types";
 import { quote } from "../../../utils";
 import XqlIDField from "../../../Types/fields/IDField";
 
@@ -44,49 +43,21 @@ class XansqlMigration {
 
          for (let model of models) {
             const dsql = this.TableMigration.buildDrop(model);
-            let executeId = undefined;
-            if (typeof window !== "undefined") {
-               executeId = ExecuteMeta.set({
-                  model,
-                  action: "DROP_TABLE",
-                  modelType: "main",
-                  args: {}
-               });
-            }
-            await xansql.execute(dsql, executeId);
+            await xansql.execute(dsql);
          }
       }
 
       for (let option of options) {
-         await xansql.dialect.execute(option);
+         await xansql.execute(option);
       }
 
       for (let { table, sql } of tables) {
-         let executeId = undefined;
-         if (typeof window !== "undefined") {
-            executeId = ExecuteMeta.set({
-               model: xansql.getModel(table),
-               action: "CREATE_TABLE",
-               modelType: "main",
-               args: {}
-            });
-         }
-
-         await xansql.execute(sql, executeId);
+         await xansql.execute(sql);
       }
 
       for (let { sql, table } of indexes) {
          try {
-            let executeId = undefined;
-            if (typeof window !== "undefined") {
-               executeId = ExecuteMeta.set({
-                  model: xansql.getModel(table),
-                  action: "CREATE_INDEX",
-                  modelType: "main",
-                  args: {}
-               });
-            }
-            await xansql.execute(sql, executeId);
+            await xansql.execute(sql);
          } catch (error) { }
       }
 
@@ -102,36 +73,16 @@ class XansqlMigration {
                if (model_columns[column] instanceof XqlIDField) continue;
                const has_column = raw_columns.find((rc: any) => rc.name === column);
                if (!has_column && !Foreign.isArray(model_columns[column])) {
-                  let executeId = undefined;
-                  if (typeof window !== "undefined") {
-                     executeId = ExecuteMeta.set({
-                        model,
-                        action: "ADD_COLUMN",
-                        modelType: "main",
-                        args: { column }
-                     });
-                  }
-
                   const buildColumn = this.TableMigration.buildColumn(table, column);
                   const sql = `ALTER TABLE ${quote(engine, table)} ADD COLUMN ${buildColumn};`;
-                  await xansql.execute(sql, executeId);
+                  await xansql.execute(sql);
                }
             }
 
             for (let rc of raw_columns) {
                if (!(rc.name in model_columns)) {
-                  let executeId = undefined;
-                  if (typeof window !== "undefined") {
-                     executeId = ExecuteMeta.set({
-                        model,
-                        action: "DROP_COLUMN",
-                        modelType: "main",
-                        args: { column: rc.name }
-                     });
-                  }
-
                   const sql = `ALTER TABLE ${quote(engine, table)} DROP COLUMN ${quote(engine, rc.name)};`;
-                  await xansql.execute(sql, executeId);
+                  await xansql.execute(sql);
                }
             }
 
@@ -143,19 +94,10 @@ class XansqlMigration {
                   const buildColumnSql = this.TableMigration.buildColumn(table, column).split(' ').slice(1).join(' ');
                   const raw_column_sql = `${has_column.type.toUpperCase()} ${has_column.notnull ? 'NOT NULL' : 'NULL'}${has_column.default_value ? ' DEFAULT ' + has_column.default_value : ''}${has_column.unique ? " UNIQUE" : ""}`.trim();
                   if (buildColumnSql !== raw_column_sql) {
-                     let executeId = undefined;
-                     if (typeof window !== "undefined") {
-                        executeId = ExecuteMeta.set({
-                           model,
-                           action: "MODIFY_COLUMN",
-                           modelType: "main",
-                           args: { column }
-                        });
-                     }
 
                      const buildColumn = this.TableMigration.buildColumn(table, column);
                      const sql = `ALTER TABLE ${quote(engine, table)} ALTER COLUMN ${buildColumn};`;
-                     await xansql.execute(sql, executeId);
+                     await xansql.execute(sql);
                   }
                }
             }

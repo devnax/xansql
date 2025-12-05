@@ -1,6 +1,6 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { db, ProductModel, UserModel } from './example'
+import { db, ProductModel, UserModel } from './example/DBClient'
 
 
 const Button = ({ label, onClick }: any) => {
@@ -76,39 +76,37 @@ const App = () => {
           let longText = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.".repeat(1000); // ~5MB
           // const file = new File([longText], 'hello.txt', { type: 'text/plain' });
 
-          const result = await UserModel.create({
-            select: {
-              name: true,
-              email: true,
-              photo: true,
-              products: {
-                select: {
-                  description: true,
-                  name: true,
-                  categories: {
-                    select: {
-                      name: true,
-                    },
+          try {
+            const result = await UserModel.create({
+              select: {
+                name: true,
+                email: true,
+                photo: true,
+                products: {
+                  select: {
+                    description: true,
+                    name: true,
+                    categories: {
+                      select: {
+                        name: true,
+                      },
+                    }
                   }
                 }
+              },
+              data: {
+                name: "Jane Doe",
+                // username: "jane.doe",
+                photo: file,
+                password: "",
+                email: "",
               }
-            },
-            data: {
-              name: "Jane Doe",
-              // username: "jane.doe",
-              photo: file,
-              password: "securepassword",
-              email: "",
-              uid: 1,
-              created_at: new Date(),
-              updated_at: new Date(),
-              metas: {
-              }
-            }
-          })
+            })
+            console.log(result);
 
-          console.log(result);
-
+          } catch (error) {
+            console.log(error);
+          }
 
         }} />
         <Button label="Delete" onClick={async () => {

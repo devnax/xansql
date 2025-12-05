@@ -1,10 +1,9 @@
 import Model from "../.."
 import WhereArgs from "../../Args/WhereArgs"
-import { UpdateArgsType } from "../../type"
+import { UpdateArgsType } from "../../types"
 import RelationExecuteArgs from "../../Args/RelationExcuteArgs"
 import UpdateDataArgs from "./UpdateDataArgs"
 import { chunkArray } from "../../../utils/chunker"
-import ExecuteMeta from "../../../core/ExcuteMeta"
 import XansqlError from "../../../core/XansqlError"
 
 
@@ -46,50 +45,23 @@ class UpdateExecuter {
       try {
 
          if (existing_file_rows.length > 0) {
-            let executeId = undefined;
-            if (typeof window !== "undefined") {
-               executeId = ExecuteMeta.set({
-                  model,
-                  action: "UPLOAD_FILE",
-                  modelType: isRelation ? "child" : "main",
-                  args
-               });
-            }
             for (let file_col of fileColumns) {
-               const filemeta = await xansql.uploadFile(upArgs.files[file_col], executeId)
+               const filemeta = await xansql.uploadFile(upArgs.files[file_col])
                uploadedFileIds.push(filemeta.fileId)
                upArgs.data[file_col] = `'${JSON.stringify(filemeta)}'`
             }
          }
-         let executeId = undefined;
-         if (typeof window !== "undefined") {
-            executeId = ExecuteMeta.set({
-               model,
-               action: "UPDATE",
-               modelType: isRelation ? "child" : "main",
-               args
-            });
-         }
          const keys = Object.keys(upArgs.data)
          let upsql = keys.map(col => `${col} = ${upArgs.data[col]}`).join(", ")
          let sql = `UPDATE ${model.table} SET ${upsql} ${Where.sql}`.trim()
-         let update = await xansql.execute(sql, executeId)
+         let update = await model.execute(sql)
 
          if (existing_file_rows.length > 0) {
-            let executeId = undefined;
-            if (typeof window !== "undefined") {
-               executeId = ExecuteMeta.set({
-                  model,
-                  action: "DELETE_FILE",
-                  modelType: isRelation ? "child" : "main",
-                  args
-               });
-            }
             for (let row of existing_file_rows) {
                for (let file_col of fileColumns) {
                   const oldFileMeta = row[file_col]
                   if (oldFileMeta) {
-                     await xansql.deleteFile(oldFileMeta.fileId, executeId)
+                     await xansql.deleteFile(oldFileMeta.fileId)
                   }
                }
             }
@@ -100,17 +72,8 @@ class UpdateExecuter {
          }
       } catch (error: any) {
          // rollback uploaded files
-         let executeId = undefined;
-         if (typeof window !== "undefined") {
-            executeId = ExecuteMeta.set({
-               model,
-               action: "UPDATE",
-               modelType: isRelation ? "child" : "main",
-               args
-            });
-         }
          for (let fileId of uploadedFileIds) {
-            await xansql.deleteFile(fileId, executeId)
+            await xansql.deleteFile(fileId)
          }
          throw error
       }
