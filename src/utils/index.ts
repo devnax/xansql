@@ -1,5 +1,5 @@
 import XanvType from "xanv/XanvType"
-import { XansqlDialectEngine } from "../core/type";
+import { XansqlDialectEngine } from "../core/types";
 
 
 export const isServer = () => typeof window === 'undefined'
