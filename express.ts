@@ -6,7 +6,7 @@ import { db, ProductModel, UserModel } from './example/DBServer'
 import WhereArgsQuery from './src/model/Args/WhereArgs';
 import SelectArgs from './src/model/Executer/Find/SelectArgs';
 import UpdateDataArgs from './src/model/Executer/Update/UpdateDataArgs';
-import XansqlBridgeServer from './src/dialect/xansql-bridge/XansqlBridgeServer';
+import XansqlBridgeServer from './src/dialect/XansqlBridge/XansqlBridgeServer';
 import { XansqlFileMeta } from './src';
 import fs from 'fs'
 import path from 'path'
@@ -455,11 +455,6 @@ const server = async (app: Express) => {
    app.get('/migrate', async (req: any, res: any) => {
       const status = await db.migrate()
       res.json({ status });
-   });
-
-   app.get('/types', async (req: any, res: any) => {
-      const status = await db.TypesGenerator.generate()
-      res.end(status)
    });
 
    app.get('/faker', async (req: any, res: any) => {

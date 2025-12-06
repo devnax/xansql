@@ -1,8 +1,8 @@
 import Model from "../..";
 import Foreign from "../../../core/classes/ForeignInfo";
 import XansqlError from "../../../core/XansqlError";
-import XqlIDField from "../../../Types/fields/IDField";
-import XqlNumber from "../../../Types/fields/Number";
+import XqlIDField from "../../../xt/fields/IDField";
+import XqlNumber from "../../../xt/fields/Number";
 import { AggregateSelectArgsColumnType, AggregateSelectArgsType } from "../../types";
 
 class SelectArgs {

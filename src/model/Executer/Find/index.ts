@@ -21,14 +21,12 @@ class FindExecuter {
    }
 
    async execute(args: FindArgsType) {
-      const xansql = this.model.xansql
       const model = this.model
       const Select = new SelectArgs(model, args.select || {})
       const Where = new WhereArgs(model, args.where || {})
       const Limit = new LimitArgs(model, args.limit || {})
       const OrderBy = new OrderByArgs(model, args.orderBy || {})
       const Distinct = new DistinctArgs(model, args.distinct || [], Where, args.orderBy)
-      const isRelation = args instanceof RelationExecuteArgs
 
       let where_sql = Where.sql
       if (Distinct.sql) {

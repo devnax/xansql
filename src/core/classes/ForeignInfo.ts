@@ -1,7 +1,7 @@
 import Model from "../../model";
-import XqlArray from "../../Types/fields/Array";
-import XqlSchema from "../../Types/fields/Schema";
-import { XqlFields } from "../../Types/types";
+import XqlArray from "../../xt/fields/Array";
+import XqlSchema from "../../xt/fields/Schema";
+import { XqlFields } from "../../xt/types";
 import XansqlError from "../XansqlError";
 
 

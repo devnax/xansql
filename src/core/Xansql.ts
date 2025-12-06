@@ -4,9 +4,7 @@ import XansqlTransaction from "./classes/XansqlTransaction";
 import XansqlConfig from "./classes/XansqlConfig";
 import ModelFormatter from "./classes/ModelFormatter";
 import XansqlMigration from "./classes/Migration";
-import { XansqlSchemaObject } from "../Types/types";
-import EventManager, { EventHandler, EventNames } from "./classes/EventManager";
-import TypesGenerator from "./classes/TypesGenerator";
+import EventManager, { EventHandler, EventPayloads } from "./classes/EventManager";
 import XansqlError from "./XansqlError";
 import Schema from "../model/Schema";
 import { XansqlModelHooks } from "../model/types";
@@ -20,7 +18,6 @@ class Xansql {
    private XansqlConfig: XansqlConfig;
    readonly XansqlTransaction: XansqlTransaction;
    readonly EventManager: EventManager
-   readonly TypesGenerator: TypesGenerator
 
    // SQL Generator Instances can be added here
    readonly XansqlMigration: XansqlMigration
@@ -33,7 +30,6 @@ class Xansql {
 
       this.XansqlMigration = new XansqlMigration(this);
       this.EventManager = new EventManager();
-      this.TypesGenerator = new TypesGenerator(this);
    }
 
    get dialect() {
@@ -104,13 +100,13 @@ class Xansql {
    }
 
    getModel(table: string): Model {
-      if (!this.ModelFactory.has(table)) {
+      if (!this.models.has(table)) {
          throw new XansqlError({
             message: `Model for table ${table} does not exist.`,
             model: table,
          });
       }
-      return this.ModelFactory.get(table) as Model;
+      return this.models.get(table) as Model;
    }
 
    async execute(sql: string): Promise<ExecuterResult> {
@@ -148,7 +144,7 @@ class Xansql {
       return await this.XansqlMigration.generate();
    }
 
-   on<K extends EventNames>(event: K, handler: EventHandler<K>) {
+   on<K extends keyof EventPayloads>(event: K, handler: EventHandler<K>) {
       this.EventManager.on(event, handler);
    }
 

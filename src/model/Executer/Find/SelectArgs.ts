@@ -5,14 +5,14 @@ import LimitArgs from "./LimitArgs";
 import OrderByArgs from "./OrderByArgs";
 import WhereArgs from "../../Args/WhereArgs";
 import ValueFormatter from "../../include/ValueFormatter";
-import XqlEnum from "../../../Types/fields/Enum";
-import XqlArray from "../../../Types/fields/Array";
-import XqlObject from "../../../Types/fields/Object";
-import XqlRecord from "../../../Types/fields/Record";
-import XqlTuple from "../../../Types/fields/Tuple";
-import XqlUnion from "../../../Types/fields/Union";
+import XqlEnum from "../../../xt/fields/Enum";
+import XqlArray from "../../../xt/fields/Array";
+import XqlObject from "../../../xt/fields/Object";
+import XqlRecord from "../../../xt/fields/Record";
+import XqlTuple from "../../../xt/fields/Tuple";
+import XqlUnion from "../../../xt/fields/Union";
 import Foreign, { ForeignInfoType } from "../../../core/classes/ForeignInfo";
-import XqlFile from "../../../Types/fields/File";
+import XqlFile from "../../../xt/fields/File";
 import XansqlError from "../../../core/XansqlError";
 
 export type SelectArgsRelationInfo = {

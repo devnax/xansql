@@ -1,4 +1,4 @@
-import { XansqlSchemaObject } from "../Types/types";
+import { XansqlSchemaObject } from "../xt/types";
 import { XansqlModelHooks } from "./types";
 
 class Schema {

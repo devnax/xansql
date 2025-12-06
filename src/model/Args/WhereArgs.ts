@@ -1,10 +1,10 @@
 import Model from "..";
 import Foreign from "../../core/classes/ForeignInfo";
 import XansqlError from "../../core/XansqlError";
-import XqlArray from "../../Types/fields/Array";
-import XqlObject from "../../Types/fields/Object";
-import XqlRecord from "../../Types/fields/Record";
-import XqlTuple from "../../Types/fields/Tuple";
+import XqlArray from "../../xt/fields/Array";
+import XqlObject from "../../xt/fields/Object";
+import XqlRecord from "../../xt/fields/Record";
+import XqlTuple from "../../xt/fields/Tuple";
 import { escapeSqlValue, isArray, isObject } from "../../utils";
 import ValueFormatter from "../include/ValueFormatter";
 import { WhereArgsType, WhereSubCondition } from "../types";

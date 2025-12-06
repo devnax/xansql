@@ -1,7 +1,7 @@
 import Model from "../.."
 import Foreign, { ForeignInfoType } from "../../../core/classes/ForeignInfo"
 import XansqlError from "../../../core/XansqlError"
-import XqlDate from "../../../Types/fields/Date"
+import XqlDate from "../../../xt/fields/Date"
 import { isArray, isNumber, isObject } from "../../../utils"
 import ValueFormatter from "../../include/ValueFormatter"
 import { DataArgsType } from "../../types"

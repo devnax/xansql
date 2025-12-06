@@ -1,9 +1,9 @@
-import { EventHandler, EventNames } from "../core/classes/EventManager";
+import { EventHandler, EventPayloads } from "../core/classes/EventManager";
 import Foreign from "../core/classes/ForeignInfo";
 import Xansql from "../core/Xansql";
 import XansqlError from "../core/XansqlError";
-import XqlIDField from "../Types/fields/IDField";
-import { XansqlSchemaObject } from "../Types/types";
+import XqlIDField from "../xt/fields/IDField";
+import { XansqlSchemaObject } from "../xt/types";
 import { XansqlModelHookNames, XansqlModelHooks } from "./types";
 
 type Relation = {
@@ -81,7 +81,7 @@ abstract class ModelBase {
       return returnValue;
    }
 
-   on<K extends EventNames>(event: K, handler: EventHandler<K>) {
+   on<K extends keyof EventPayloads>(event: K, handler: EventHandler<K>) {
       this.xansql.EventManager.on(event, ({ model, ...rest }: any) => {
          handler.apply(this, rest as any);
       });

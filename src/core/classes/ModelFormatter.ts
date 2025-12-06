@@ -1,6 +1,6 @@
-import xt from "../../Types";
+import xt from "../../xt";
 import Model from "../../model";
-import XqlSchema from "../../Types/fields/Schema";
+import XqlSchema from "../../xt/fields/Schema";
 import Xansql from "../Xansql";
 import Foreign from "./ForeignInfo";
 import XansqlError from "../XansqlError";
@@ -12,22 +12,11 @@ import XansqlError from "../XansqlError";
 class ModelFormatter {
    private xansql: Xansql
    private isFormated: boolean = false;
-   private restricted_columns = [
-      "ADD", "ALL", "ALTER", "AND", "ANY", "AS", "ASC", "BETWEEN", "BY",
-      "CASE", "CAST", "CHECK", "COLUMN", "CONSTRAINT", "CREATE", "CROSS",
-      "CURRENT", "CURRENT_DATE", "CURRENT_TIME", "CURRENT_TIMESTAMP",
-      "DEFAULT", "DELETE", "DESC", "DISTINCT", "DROP", "ELSE", "EXISTS",
-      "FALSE", "FETCH", "FOR", "FOREIGN", "FROM", "FULL", "GRANT", "GROUP",
-      "HAVING", "INNER", "INSERT", "INTERSECT", "INTO", "IS", "JOIN",
-      "KEY", "LEFT", "LIKE", "LIMIT", "NOT", "NULL", "ON", "OR", "ORDER",
-      "OUTER", "PRIMARY", "REFERENCES", "RIGHT", "ROLLBACK", "SELECT", "SET",
-      "TABLE", "THEN", "TO", "TRUE", "UNION", "UNIQUE", "UPDATE",
-      "USING", "VALUES", "VIEW", "WHEN", "WHERE", "WITH", "SECTION",
-
+   private restricted_columns: string[] = [
       // custom
-      "INDEX", "OPTIONAL", "NULLABLE", "META", "METAARRAY", "SCHEMA", "ARRAY",
-      "EQUALS", "NOT", "LT", "LTE", "GT", "GTE", "IN", "NOTIN", "BETWEEN", "NOTBETWEEN", "CONTAINS", "NOTCONTAINS", "STARTSWITH", "ENDSWITH", "ISNULL", "ISNOTNULL", "ISEMPTY", "ISNOTEMPTY", "ISTRUE", "ISFALSE",
-      "AGGREGATE",
+      // "OPTIONAL", "NULLABLE", "META", "METAARRAY", "SCHEMA", "ARRAY",
+      // "EQUALS", "NOT", "LT", "LTE", "GT", "GTE", "IN", "NOTIN", "BETWEEN", "NOTBETWEEN", "CONTAINS", "NOTCONTAINS", "STARTSWITH", "ENDSWITH", "ISNULL", "ISNOTNULL", "ISEMPTY", "ISNOTEMPTY", "ISTRUE", "ISFALSE",
+      // "AGGREGATE",
    ];
 
 

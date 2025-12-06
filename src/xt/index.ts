@@ -15,7 +15,7 @@ import XqlSchema from "./fields/Schema";
 import { XqlFields } from "./types";
 import sha256 from "../utils/sha256";
 
-export const xt = {
+const xt = {
    id: () => new XqlIDField(),
    array: (type: XqlFields, length?: number) => new XqlArray(type as any, length),
    boolean: () => new XqlBoolean(),

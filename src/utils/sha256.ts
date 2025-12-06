@@ -1,7 +1,7 @@
 // -----------------------------
 // SHA-256 Pure JS
 // -----------------------------
-export const sha256 = (str: string): string => {
+const sha256 = (str: string): string => {
    function rightRot(n: number, x: number) {
       return (x >>> n) | (x << (32 - n));
    }

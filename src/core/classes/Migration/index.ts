@@ -1,10 +1,10 @@
-import XqlFile from "../../../Types/fields/File";
+import XqlFile from "../../../xt/fields/File";
 import Xansql from "../../Xansql";
 import TableMigration from "./TableMigration";
 import Foreign from "../ForeignInfo";
 import { XansqlDialectSchemaType } from "../../types";
 import { quote } from "../../../utils";
-import XqlIDField from "../../../Types/fields/IDField";
+import XqlIDField from "../../../xt/fields/IDField";
 
 class XansqlMigration {
    readonly xansql: Xansql
