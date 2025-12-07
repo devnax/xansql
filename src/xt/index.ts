@@ -44,7 +44,7 @@ const xt = {
       return inst;
    },
    password: () => {
-      const inst = xt.string().min(8).max(32).index().transform(v => sha256(v).slice(0, 32));
+      const inst = xt.string().min(8).max(64).index().transform(v => sha256(v).slice(0, 64));
       (inst as any).strong = function () {
          inst.set("strong" as any, (v: any) => {
             const hasUpperCase = /[A-Z]/.test(v);
@@ -60,7 +60,7 @@ const xt = {
       }
       return inst;
    },
-   email: () => xt.string().email(),
+   email: () => xt.string().email().index().unique(),
    status: (statuses: string[]) => xt.enum(statuses).index(),
    gender: () => xt.enum(['male', 'female', 'other']).index(),
    role: (roles: string[]) => xt.enum(roles).index(),
