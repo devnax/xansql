@@ -1,6 +1,6 @@
 {
    "name": "xansql",
-   "version": "1.0.5",
+   "version": "1.0.6",
    "main": "./index.js",
    "module": "./index.js",
    "types": "./index.d.ts",
@@ -38,12 +38,12 @@
    },
    "exports": {
       ".": {
-         "import": "./index.js",
+         "import": "./index.mjs",
          "require": "./index.js",
          "types": "./index.d.ts"
       },
       "./dialect/*": {
-         "import": "./dialect/*.js",
+         "import": "./dialect/*.mjs",
          "require": "./dialect/*.js",
          "types": "./dialect/*.d.ts"
       }
