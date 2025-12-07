@@ -453,7 +453,7 @@ const server = async (app: Express) => {
    });
 
    app.get('/migrate', async (req: any, res: any) => {
-      const status = await db.migrate()
+      const status = await db.migrate(true)
       res.json({ status });
    });
 

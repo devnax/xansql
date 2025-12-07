@@ -12,7 +12,7 @@ import XqlSchema from "../../../xt/fields/Schema";
 import XqlString from "../../../xt/fields/String";
 import XqlTuple from "../../../xt/fields/Tuple";
 import XqlUnion from "../../../xt/fields/Union";
-import { quote } from "../../../utils";
+import { escapeSqlValue, quote } from "../../../utils";
 import Xansql from "../../Xansql";
 import XansqlError from "../../XansqlError";
 import Foreign from "../ForeignInfo";
@@ -133,8 +133,6 @@ class Migration {
             sql += col(column, "SERIAL PRIMARY KEY")
          } else if (engine === 'sqlite') {
             sql += col(column, "INTEGER PRIMARY KEY AUTOINCREMENT")
-         } else if (engine === 'mssql') {
-            sql += col(column, "INT IDENTITY(1,1) PRIMARY KEY")
          }
       } else if (field instanceof XqlSchema) {
          if (engine === 'mysql') {
@@ -174,8 +172,6 @@ class Migration {
             sql += col(column, "BOOLEAN")
          } else if (engine === "sqlite") {
             sql += col(column, "INTEGER") // SQLite has no BOOLEAN → use INTEGER (0/1)
-         } else if (engine === "mssql") {
-            sql += col(column, "BIT") // MSSQL uses BIT for boolean
          }
       } else if (field instanceof XqlDate) {
          if (engine === "mysql") {
@@ -184,22 +180,17 @@ class Migration {
             sql += col(column, "TIMESTAMP")
          } else if (engine === "sqlite") {
             sql += col(column, "TEXT") // store ISO string (SQLite has no native DATETIME)
-         } else if (engine === "mssql") {
-            sql += col(column, "DATETIME2")
          }
       } else if (field instanceof XqlEnum) {
          if (engine === "mysql") {
-            sql += col(column, `ENUM(${(field as any).values.map((v: any) => quote(engine, v)).join(', ')})`)
+            sql += col(column, `ENUM(${(field as any).values.map((v: any) => `'${escapeSqlValue(v)}'`).join(', ')})`)
          } else if (engine === "postgresql") {
-            const enumName = `${column}_enum`;
-            sql += `CREATE TYPE ${enumName} AS ENUM (${(field as any).values.map((v: any) => quote(engine, v)).join(', ')}); `
+            const enumName = `${table}_${column}_enum`;
+            sql += `CREATE TYPE ${enumName} AS ENUM (${(field as any).values.map((v: any) => `'${escapeSqlValue(v)}'`).join(', ')}); `
             sql += col(column, enumName)
          } else if (engine === "sqlite") {
-            const values = (field as any).values.map((v: any) => quote(engine, v)).join(", ");
+            const values = (field as any).values.map((v: any) => `'${escapeSqlValue(v)}'`).join(", ");
             sql += `"${column}" TEXT CHECK("${column}" IN (${values})) ${nullable} ${unique}, `
-         } else if (engine === "mssql") {
-            const values = (field as any).values.map((v: any) => quote(engine, v)).join(", ");
-            sql += `"${column}" NVARCHAR(255) CHECK("${column}" IN (${values})) ${nullable} ${unique}, `
          }
       } else if (field instanceof XqlObject || field instanceof XqlRecord || field instanceof XqlTuple || field instanceof XqlUnion) {
          sql += col(column, "TEXT")
