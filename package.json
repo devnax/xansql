@@ -1,6 +1,6 @@
 {
    "name": "xansql",
-   "version": "1.0.3",
+   "version": "1.0.4",
    "main": "./index.js",
    "module": "./index.js",
    "types": "./index.d.ts",
@@ -14,7 +14,6 @@
       "release": "makepack release"
    },
    "dependencies": {
-      "securequ": "^1.1.6",
       "xanv": "^1.1.2"
    },
    "devDependencies": {
@@ -33,7 +32,20 @@
       "pg": "^8.16.3",
       "react": "^19.1.0",
       "react-dom": "^19.1.0",
+      "securequ": "^1.1.7",
       "tslib": "^2.8.1",
       "typescript": "^5.9.3"
+   },
+   "exports": {
+      ".": {
+         "import": "./index.js",
+         "require": "./index.js",
+         "types": "./index.d.ts"
+      },
+      "./dialects/*": {
+         "import": "./dialects/*.js",
+         "require": "./dialects/*.js",
+         "types": "./dialects/*.d.ts"
+      }
    }
 }

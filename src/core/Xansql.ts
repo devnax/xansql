@@ -12,7 +12,7 @@ import { XansqlModelHooks } from "../model/types";
 class Xansql {
    readonly config: XansqlConfigTypeRequired;
    readonly ModelFactory = new Map<string, Model>()
-   readonly XANFETCH_CONTENT_TYPE = 'application/octet-stream';
+
    private _aliases = new Map<string, string>();
    private ModelFormatter: ModelFormatter;
    private XansqlConfig: XansqlConfig;

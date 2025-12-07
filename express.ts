@@ -14,7 +14,7 @@ import path from 'path'
 let dir = 'uploads';
 
 const bridge = new XansqlBridgeServer(db, {
-   basePath: "/data",
+   basepath: "/data",
    file: {
       upload: async (chunk: Uint8Array, filemeta: XansqlFileMeta) => {
          const uploadDir = path.join(process.cwd(), dir);
@@ -42,13 +42,13 @@ const server = async (app: Express) => {
    app.use(express.urlencoded({ extended: true }));
    app.disable('etag');
 
-   app.use('/data/*', express.raw({ type: db.XANFETCH_CONTENT_TYPE, limit: "10mb" }), async (req: any, res: any) => {
+   app.use('/data/*', express.raw({ type: bridge.XANFETCH_CONTENT_TYPE, limit: "10mb" }), async (req: any, res: any) => {
 
       const response = await bridge.listen(req.originalUrl, {
          body: req.body,
          headers: req.headers,
       })
-      res.status(response.status).end(response.body);
+      res.status(response.status).end(response.value);
    })
 
 

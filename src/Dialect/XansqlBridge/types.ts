@@ -14,13 +14,12 @@ export type XansqlBridgeInfo = {
 
 export type XansqlBridgeResponse = {
    status: number;
-   body: any;
-   headers?: { [key: string]: string };
+   value: any;
 };
 
 export type XansqlBridgeServerConfig = {
-   basePath: string;
-   model?: "production" | "development";
+   basepath: string;
+   mode?: "production" | "development";
    isAuthorized?: (info: XansqlBridgeAuthorizedInfo) => Promise<boolean>;
    file?: SecurequServerConfig["file"];
 };

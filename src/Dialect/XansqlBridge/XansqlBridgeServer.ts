@@ -8,6 +8,7 @@ import { ListenOptions, XansqlBridgeAuthorizedInfo, XansqlBridgeServerConfig } f
 
 
 class XansqlBridgeServer {
+   readonly XANFETCH_CONTENT_TYPE = 'application/octet-stream';
    xansql: Xansql;
    config: XansqlBridgeServerConfig;
    private server: SecurequServer | null = null;
@@ -36,7 +37,6 @@ class XansqlBridgeServer {
       const secret = await makeSecret(this.xansql);
 
       const server = new SecurequServer({
-         basepath: "/data",
          ...(config || {}),
          clients: [
             {
@@ -113,14 +113,14 @@ class XansqlBridgeServer {
          const res = await server.listen(url, options)
          return {
             status: res.status,
-            body: res.content,
+            value: res.value,
          }
       } catch (error: any) {
 
          const secret = await makeSecret(this.xansql)
          return {
             status: 500,
-            body: await crypto.encryptBuffer({
+            value: await crypto.encryptBuffer({
                success: false,
                message: error.message || 'Internal Server Error'
             }, secret)
