@@ -1,4 +1,5 @@
 import XansqlError from "../core/XansqlError";
+import { iof } from "../utils";
 import RelationExecuteArgs from "./Args/RelationExcuteArgs";
 import ModelBase from "./Base";
 import AggregateExecuter from "./Executer/Aggregate";
@@ -12,7 +13,7 @@ class Model extends ModelBase {
 
    async create(args: CreateArgsType): Promise<any[]> {
       const xansql = this.xansql;
-      const isRelArgs = args instanceof RelationExecuteArgs
+      const isRelArgs = iof(args, RelationExecuteArgs)
       if (isRelArgs) args = (args as any).args
 
       try {
@@ -31,7 +32,7 @@ class Model extends ModelBase {
       } catch (error: any) {
          if (!isRelArgs) await xansql.XansqlTransaction.rollback()
          let errors: { [key: string]: string } = {}
-         if (error instanceof Array && error[0] instanceof XansqlError) {
+         if (iof(error, Array) && iof(error[0], XansqlError)) {
             for (let err of error) {
                errors[err.column] = err.message;
             }
@@ -44,7 +45,7 @@ class Model extends ModelBase {
 
    async update(args: UpdateArgsType): Promise<any[]> {
       const xansql = this.xansql;
-      const isRelArgs = args instanceof RelationExecuteArgs
+      const isRelArgs = iof(args, RelationExecuteArgs)
       if (isRelArgs) args = (args as any).args
 
       try {
@@ -62,7 +63,7 @@ class Model extends ModelBase {
       } catch (error: any) {
          if (!isRelArgs) await xansql.XansqlTransaction.rollback()
          let errors: { [key: string]: string } = {}
-         if (error instanceof Array && error[0] instanceof XansqlError) {
+         if (iof(error, Array) && iof(error[0], XansqlError)) {
             for (let err of error) {
                errors[err.column] = err.message;
             }
@@ -75,7 +76,7 @@ class Model extends ModelBase {
 
    async delete(args: DeleteArgsType): Promise<any[]> {
       const xansql = this.xansql;
-      const isRelArgs = args instanceof RelationExecuteArgs
+      const isRelArgs = iof(args, RelationExecuteArgs)
       if (isRelArgs) args = (args as any).args
 
       try {
@@ -97,7 +98,7 @@ class Model extends ModelBase {
    }
 
    async find(args: FindArgsType): Promise<any[]> {
-      const isRelArgs = args instanceof RelationExecuteArgs
+      const isRelArgs = iof(args, RelationExecuteArgs)
       if (isRelArgs) args = (args as any).args
 
       args = await this.callHook("beforeFind", args) || args
@@ -138,7 +139,7 @@ class Model extends ModelBase {
    // Helpers Methods
 
    async aggregate(args: AggregateArgsType): Promise<any[]> {
-      const isRelArgs = args instanceof RelationExecuteArgs
+      const isRelArgs = iof(args, RelationExecuteArgs)
       if (isRelArgs) args = (args as any).args
       args = await this.callHook("beforeAggregate", args) || args
       const executer = new AggregateExecuter(this);

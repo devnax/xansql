@@ -2,6 +2,7 @@ import { EventHandler, EventPayloads } from "../core/classes/EventManager";
 import Foreign from "../core/classes/ForeignInfo";
 import Xansql from "../core/Xansql";
 import XansqlError from "../core/XansqlError";
+import { iof } from "../utils";
 import XqlIDField from "../xt/fields/IDField";
 import { XansqlSchemaObject } from "../xt/types";
 import { XansqlModelHookNames, XansqlModelHooks } from "./types";
@@ -26,7 +27,7 @@ abstract class ModelBase {
       this.schema = schema;
       for (let column in schema) {
          const field = schema[column];
-         if (field instanceof XqlIDField) {
+         if (iof(field, XqlIDField)) {
             if (this.IDColumn) {
                throw new XansqlError({
                   message: `Model ${this.table} has multiple ID columns (${this.IDColumn} and ${column})`,

@@ -1,6 +1,7 @@
 import Model from "../..";
 import Foreign from "../../../core/classes/ForeignInfo";
 import XansqlError from "../../../core/XansqlError";
+import { iof } from "../../../utils";
 import XqlIDField from "../../../xt/fields/IDField";
 import XqlNumber from "../../../xt/fields/Number";
 import { AggregateSelectArgsColumnType, AggregateSelectArgsType } from "../../types";
@@ -41,7 +42,7 @@ class SelectArgs {
    columnFormat(column: string, columnArg: AggregateSelectArgsColumnType) {
       let model = this.model
       const field = model.schema[column];
-      const isNumber = field instanceof XqlNumber || field instanceof XqlIDField
+      const isNumber = iof(field, XqlNumber, XqlIDField)
       let sql = []
       for (let func in columnArg) {
          const funcArg = columnArg[func as keyof AggregateSelectArgsColumnType]

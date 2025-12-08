@@ -1,14 +1,17 @@
 import { XVString } from "xanv"
 
 class XqlString extends XVString {
-
+   optional() {
+      super.optional();
+      super.nullable();
+      return this;
+   }
    index() {
       return this.set("index", () => { }, true)
    }
 
    text() {
-      this.meta.text = true
-      return this
+      return this.set("text", () => { }, true)
    }
 
    unique() {

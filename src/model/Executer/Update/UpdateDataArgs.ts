@@ -2,7 +2,7 @@ import Model from "../.."
 import Foreign, { ForeignInfoType } from "../../../core/classes/ForeignInfo"
 import XansqlError from "../../../core/XansqlError"
 import XqlDate from "../../../xt/fields/Date"
-import { isArray, isNumber, isObject } from "../../../utils"
+import { iof, isArray, isNumber, isObject } from "../../../utils"
 import ValueFormatter from "../../include/ValueFormatter"
 import { DataArgsType, UpdateDataRelationArgs } from "../../types"
 
@@ -107,7 +107,7 @@ class UpdateDataArgs {
                }
             } else {
                // check is the field is IDField or created_at or updated_at
-               if (model.IDColumn === column || field instanceof XqlDate && (field.meta.update || field.meta.create)) {
+               if (model.IDColumn === column || iof(field, XqlDate) && (field.meta.update || field.meta.create)) {
                   throw new XansqlError({
                      message: `Cannot set value for ${model.table}.${column}. It is automatically managed.`,
                      model: model.table,
@@ -115,7 +115,7 @@ class UpdateDataArgs {
                   });
                }
 
-               if (value instanceof File) {
+               if (iof(value, File)) {
                   this.files[column] = value
                   this.data[column] = ""
                   ValueFormatter.toSql(model, column, value) // for validation
@@ -123,8 +123,8 @@ class UpdateDataArgs {
                   this.data[column] = ValueFormatter.toSql(model, column, value)
                }
             }
-         } catch (error) {
-            if (error instanceof XansqlError) {
+         } catch (error: any) {
+            if (iof(error, XansqlError)) {
                this.errors.push(error);
             } else {
                throw error
@@ -147,7 +147,7 @@ class UpdateDataArgs {
        */
       for (let column in model.schema) {
          const field = model.schema[column]
-         if (field instanceof XqlDate && field.meta.update) {
+         if (iof(field, XqlDate) && field.meta.update) {
             this.data[column] = ValueFormatter.toSql(model, column, new Date())
          }
       }

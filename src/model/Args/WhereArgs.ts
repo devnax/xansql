@@ -5,9 +5,10 @@ import XqlArray from "../../xt/fields/Array";
 import XqlObject from "../../xt/fields/Object";
 import XqlRecord from "../../xt/fields/Record";
 import XqlTuple from "../../xt/fields/Tuple";
-import { escapeSqlValue, isArray, isObject } from "../../utils";
+import { escapeSqlValue, iof, isArray, isObject } from "../../utils";
 import ValueFormatter from "../include/ValueFormatter";
 import { WhereArgsType, WhereSubCondition } from "../types";
+import XqlFile from "../../xt/fields/File";
 
 type Meta = {
    parentTable: string
@@ -223,17 +224,13 @@ class WhereArgs {
    }
 
    private checkIsAllowed(column: string) {
-      const xanv = this.model.schema[column]
-      if (Foreign.isArray(xanv)) return true
-      const isNotAllowed = xanv instanceof XqlArray
-         || xanv instanceof XqlObject
-         || xanv instanceof XqlRecord
-         || xanv instanceof XqlTuple
-      // || xanv instanceof XqlFile
+      const field = this.model.schema[column]
+      if (Foreign.isArray(field)) return true
+      const isNotAllowed = iof(field, XqlArray, XqlObject, XqlRecord, XqlTuple, XqlFile)
 
       if (isNotAllowed) {
          throw new XansqlError({
-            message: `Field ${column} of type ${xanv.constructor.name} is not allowed in WHERE clause in table ${this.model.table}`,
+            message: `Field ${column} of type ${field.constructor.name} is not allowed in WHERE clause in table ${this.model.table}`,
             model: this.model.table,
             column
          });

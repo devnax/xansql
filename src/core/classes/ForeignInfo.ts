@@ -1,4 +1,5 @@
 import Model from "../../model";
+import { iof } from "../../utils";
 import XqlArray from "../../xt/fields/Array";
 import XqlSchema from "../../xt/fields/Schema";
 import { XqlFields } from "../../xt/types";
@@ -28,11 +29,11 @@ class Foreign {
    }
 
    static isArray(field: XqlFields) {
-      return field instanceof XqlArray && this.isSchema((field as any).type)
+      return iof(field, XqlArray) && this.isSchema((field as any).type)
    }
 
    static isSchema(field: XqlFields) {
-      return field instanceof XqlSchema
+      return iof(field, XqlSchema)
    }
 
    static get(model: Model, column: string): ForeignInfoType {

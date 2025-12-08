@@ -7,6 +7,7 @@ import XqlFile from "../../../xt/fields/File"
 import { XqlFields } from "../../../xt/types"
 import { chunkArray } from "../../../utils/chunker"
 import XansqlError from "../../../core/XansqlError"
+import { iof } from "../../../utils"
 
 
 class DeleteExecuter {
@@ -18,7 +19,6 @@ class DeleteExecuter {
    async execute(args: DeleteArgsType) {
       const xansql = this.model.xansql
       const model = this.model
-      const isRelation = args instanceof RelationExecuteArgs
       if (!args.where || Object.keys(args.where).length === 0) {
          throw new XansqlError({
             message: `Delete operation on model ${model.table} requires a WHERE clause to prevent accidental deletion of all records.`,
@@ -31,7 +31,7 @@ class DeleteExecuter {
 
       for (let column in model.schema) {
          const field = model.schema[column]
-         if (field instanceof XqlFile) {
+         if (iof(field, XqlFile)) {
             fileColumns.push(column)
          }
 

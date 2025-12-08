@@ -14,7 +14,6 @@ class CreateExecuter {
       const xansql = this.model.xansql
       const model = this.model
       const createArgs = new CreateDataArgs(model, args.data)
-      const isRelation = args instanceof RelationExecuteArgs
 
       // only for validation
       if (args.select) new SelectArgs(model, args.select || {})

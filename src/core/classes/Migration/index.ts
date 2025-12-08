@@ -3,7 +3,7 @@ import Xansql from "../../Xansql";
 import TableMigration from "./TableMigration";
 import Foreign from "../ForeignInfo";
 import { XansqlDialectSchemaType } from "../../types";
-import { quote } from "../../../utils";
+import { iof, quote } from "../../../utils";
 import XqlIDField from "../../../xt/fields/IDField";
 
 class XansqlMigration {
@@ -26,7 +26,7 @@ class XansqlMigration {
             const fileWhere: any[] = [];
             for (let column in model.schema) {
                const field = model.schema[column];
-               if (field instanceof XqlFile) {
+               if (iof(field, XqlFile)) {
                   fileWhere.push({ [column]: { isNotNull: true } });
                }
             }
@@ -72,7 +72,7 @@ class XansqlMigration {
             const raw_columns = raw_schema[table] || [];
 
             for (let column in model_columns) {
-               if (model_columns[column] instanceof XqlIDField) continue;
+               if (iof(model_columns[column], XqlIDField)) continue;
                const has_column = raw_columns.find((rc: any) => rc.name === column);
                if (!has_column && !Foreign.isArray(model_columns[column])) {
                   const buildColumn = this.TableMigration.buildColumn(table, column);
@@ -89,7 +89,7 @@ class XansqlMigration {
             }
 
             for (let column in model_columns) {
-               if (model_columns[column] instanceof XqlIDField || Foreign.isArray(model_columns[column])) continue;
+               if (iof(model_columns[column], XqlIDField) || Foreign.isArray(model_columns[column])) continue;
 
                const has_column = raw_columns.find((rc: any) => rc.name === column);
                if (has_column) {
@@ -125,7 +125,7 @@ class XansqlMigration {
             const raw_columns = raw_schema[model.table] || [];
 
             for (let column in model_columns) {
-               if (model_columns[column] instanceof XqlIDField) continue;
+               if (iof(model_columns[column], XqlIDField)) continue;
                const has_column = raw_columns.find((rc: any) => rc.name === column);
                if (!has_column && !Foreign.isArray(model_columns[column])) {
                   const buildColumn = this.TableMigration.buildColumn(model.table, column);
@@ -142,7 +142,7 @@ class XansqlMigration {
             }
 
             for (let column in model_columns) {
-               if (model_columns[column] instanceof XqlIDField || Foreign.isArray(model_columns[column])) continue;
+               if (iof(model_columns[column], XqlIDField) || Foreign.isArray(model_columns[column])) continue;
 
                const has_column = raw_columns.find((rc: any) => rc.name === column);
                if (has_column) {

@@ -18,7 +18,7 @@ export const UserModelSchema = new Schema("users", {
    uid: xt.id(),
    name: xt.string(),
    username: xt.username().optional(),
-   photo: xt.avatar().optional(),
+   photo: xt.photo().optional(),
    email: xt.email(),
    password: xt.password(),
    metas: xt.array(xt.schema("user_metas", "user")),

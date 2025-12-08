@@ -12,7 +12,7 @@ import XqlSchema from "../../../xt/fields/Schema";
 import XqlString from "../../../xt/fields/String";
 import XqlTuple from "../../../xt/fields/Tuple";
 import XqlUnion from "../../../xt/fields/Union";
-import { escapeSqlValue, quote } from "../../../utils";
+import { escapeSqlValue, iof, quote } from "../../../utils";
 import Xansql from "../../Xansql";
 import XansqlError from "../../XansqlError";
 import Foreign from "../ForeignInfo";
@@ -117,16 +117,16 @@ class Migration {
 
    buildColumn(table: string, column: string) {
       const engine = this.xansql.config.dialect.engine;
-      const model = this.xansql.models.get(table);
-      const field = model?.schema[column];
-      const meta = field?.meta || {};
+      const model = this.xansql.models.get(table) as Model;
+      const field = model.schema[column];
+      const meta = field.meta || {};
       const nullable = meta.nullable || meta.optional ? 'NULL' : 'NOT NULL';
       const unique = meta.unique ? 'UNIQUE' : '';
       const col = (column: string, sqlType: string) => {
          return `  ${quote(engine, column)} ${sqlType} ${nullable} ${unique}`.trim()
       };
       let sql = ''
-      if (field instanceof XqlIDField) {
+      if (iof(field, XqlIDField)) {
          if (engine === 'mysql') {
             sql += col(column, "INT AUTO_INCREMENT PRIMARY KEY");
          } else if (engine === 'postgresql') {
@@ -134,22 +134,22 @@ class Migration {
          } else if (engine === 'sqlite') {
             sql += col(column, "INTEGER PRIMARY KEY AUTOINCREMENT")
          }
-      } else if (field instanceof XqlSchema) {
+      } else if (iof(field, XqlSchema)) {
          if (engine === 'mysql') {
             sql += col(column, "INT")
          } else if (engine === 'postgresql' || engine === 'sqlite') {
             sql += col(column, "INTEGER")
          }
-      } else if (field instanceof XqlString) {
+      } else if (iof(field, XqlString)) {
          let length = meta.length || meta.max
          if (meta.text || length > 65535 || engine === 'sqlite') {
             sql += col(column, "TEXT")
          } else {
             sql += col(column, `VARCHAR(${length || 255})`)
          }
-      } else if (field instanceof XqlFile) {
+      } else if (iof(field, XqlFile)) {
          sql += col(column, "VARCHAR(255)")
-      } else if (field instanceof XqlNumber) {
+      } else if (iof(field, XqlNumber)) {
          if (engine === "mysql") {
             if (meta.integer) {
                sql += col(column, "INT")
@@ -167,13 +167,13 @@ class Migration {
                sql += col(column, engine === "sqlite" ? "NUMERIC" : "NUMERIC(10, 2)")
             }
          }
-      } else if (field instanceof XqlBoolean) {
+      } else if (iof(field, XqlBoolean)) {
          if (engine === "mysql" || engine === "postgresql") {
             sql += col(column, "BOOLEAN")
          } else if (engine === "sqlite") {
             sql += col(column, "INTEGER") // SQLite has no BOOLEAN → use INTEGER (0/1)
          }
-      } else if (field instanceof XqlDate) {
+      } else if (iof(field, XqlDate)) {
          if (engine === "mysql") {
             sql += col(column, "DATETIME")
          } else if (engine === "postgresql") {
@@ -181,7 +181,7 @@ class Migration {
          } else if (engine === "sqlite") {
             sql += col(column, "TEXT") // store ISO string (SQLite has no native DATETIME)
          }
-      } else if (field instanceof XqlEnum) {
+      } else if (iof(field, XqlEnum)) {
          if (engine === "mysql") {
             sql += col(column, `ENUM(${(field as any).values.map((v: any) => `'${escapeSqlValue(v)}'`).join(', ')})`)
          } else if (engine === "postgresql") {
@@ -192,11 +192,11 @@ class Migration {
             const values = (field as any).values.map((v: any) => `'${escapeSqlValue(v)}'`).join(", ");
             sql += `"${column}" TEXT CHECK("${column}" IN (${values})) ${nullable} ${unique}, `
          }
-      } else if (field instanceof XqlObject || field instanceof XqlRecord || field instanceof XqlTuple || field instanceof XqlUnion) {
+      } else if (iof(field, XqlObject, XqlRecord, XqlTuple, XqlUnion)) {
          sql += col(column, "TEXT")
-      } else if (field instanceof XqlArray) {
+      } else if (iof(field, XqlArray)) {
          const arrayType = (field as any).type;
-         const isSchemaArray = arrayType instanceof XqlSchema;
+         const isSchemaArray = iof(arrayType, XqlSchema)
          if (!isSchemaArray) {
             sql += col(column, "TEXT")
          }

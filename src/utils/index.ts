@@ -1,19 +1,19 @@
 import XanvType from "xanv/XanvType"
 import { XansqlDialectEngine } from "../core/types";
+import { XqlFields } from "../xt/types";
 
 
 export const isServer = () => typeof window === 'undefined'
 export const isArray = (v: any) => Array.isArray(v)
-// export const isObject = (v: any) => typeof v === 'object' && v !== null && !isArray(v) && !(v instanceof Date) && !(v instanceof RegExp) && !(v instanceof Buffer) && !(v instanceof Uint8Array) && !(v instanceof ArrayBuffer)
 export const isObject = (v: any) => Object.prototype.toString.call(v) === '[object Object]';
 export const isString = (v: any) => typeof v === 'string'
 export const isNumber = (v: any) => typeof v === 'number' && !isNaN(v)
 export const isBoolean = (v: any) => typeof v === 'boolean'
 
-export const formatValue = (v: any, xanv?: XanvType<any, any>): any => {
+export const formatValue = (v: any, xanv?: XanvType<any>): any => {
    if (isArray(v)) return v.map((item) => formatValue(item, xanv)).join(',')
    !!xanv && xanv.parse(v);
-   if (v instanceof Date) v = v.toISOString()
+   if (iof(v, Date)) v = v.toISOString()
    if (isString(v)) return `'${escapeSqlValue(v)}'`
    if (isNumber(v)) return v
    if (isBoolean(v)) return v ? 'TRUE' : 'FALSE'
@@ -43,6 +43,11 @@ export const freezeObject = (obj: any) => {
       }
    });
    return Object.freeze(obj);
+}
+
+
+export const iof = (field: any, ...instances: any[]) => {
+   return instances.some(instance => field instanceof instance || field.constructor === instance.constructor);
 }
 
 

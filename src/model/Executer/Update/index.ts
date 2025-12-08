@@ -17,7 +17,6 @@ class UpdateExecuter {
       const xansql = this.model.xansql
       const model = this.model
       const upArgs = new UpdateDataArgs(model, args.data)
-      const isRelation = args instanceof RelationExecuteArgs
 
       if (Object.keys(args.where).length === 0) {
          throw new XansqlError({

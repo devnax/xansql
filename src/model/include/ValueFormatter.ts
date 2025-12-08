@@ -1,5 +1,6 @@
 import Model from "..";
 import XansqlError from "../../core/XansqlError";
+import { iof } from "../../utils";
 import XqlArray from "../../xt/fields/Array";
 import XqlBoolean from "../../xt/fields/Boolean";
 import XqlDate from "../../xt/fields/Date";
@@ -15,10 +16,6 @@ import XqlTuple from "../../xt/fields/Tuple";
 import XqlUnion from "../../xt/fields/Union";
 
 class ValueFormatter {
-   static iof(model: Model, column: string, ...instances: any[]) {
-      const field = model.schema[column];
-      return instances.some(instance => field instanceof instance);
-   }
 
    private static escape(value: string) {
       if (value == null) return ''
@@ -48,23 +45,25 @@ class ValueFormatter {
          column: column
       });
       try {
+         value === null && console.log(column, value);
+
          value = field.parse(value);
          if (value === undefined || value === null) {
             return 'NULL';
-         } else if (this.iof(model, column, XqlIDField, XqlNumber, XqlSchema)) {
+         } else if (iof(field, XqlIDField, XqlNumber, XqlSchema)) {
             return value
-         } else if (this.iof(model, column, XqlFile)) {
+         } else if (iof(field, XqlFile)) {
             return `'${value.name}'`;
-         } else if (this.iof(model, column, XqlString, XqlEnum)) {
+         } else if (iof(field, XqlString, XqlEnum)) {
             return `'${this.escape(value)}'`;
-         } else if (this.iof(model, column, XqlObject, XqlRecord, XqlArray, XqlTuple, XqlUnion)) {
+         } else if (iof(field, XqlObject, XqlRecord, XqlArray, XqlTuple, XqlUnion)) {
             value = JSON.stringify(value);
             return `'${this.escape(value)}'`;
-         } else if (this.iof(model, column, XqlDate)) {
-            if (value instanceof String) {
+         } else if (iof(field, XqlDate)) {
+            if (iof(value, String)) {
                value = new Date(value as any)
             }
-            if (!(value instanceof Date) || isNaN(value.getTime())) {
+            if (!iof(value, Date) || isNaN(value.getTime())) {
                throw new Error(`Invalid date value for column ${column}: ${value}`);
             }
 
@@ -78,7 +77,7 @@ class ValueFormatter {
             const seconds = pad(date.getUTCSeconds());
             value = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
             return `'${value}'`;
-         } else if (this.iof(model, column, XqlBoolean)) {
+         } else if (iof(model, column, XqlBoolean)) {
             return value ? 1 : 0;
          }
       } catch (error: any) {
@@ -95,13 +94,13 @@ class ValueFormatter {
       if (!field) throw new Error(`Column ${column} does not exist in model ${model.table}`);
       if (value === null || value === undefined) return null
 
-      if (this.iof(model, column, XqlIDField, XqlNumber, XqlString, XqlFile, XqlEnum)) {
+      if (iof(model, column, XqlIDField, XqlNumber, XqlString, XqlFile, XqlEnum)) {
          return value
-      } else if (this.iof(model, column, XqlObject, XqlRecord, XqlArray, XqlTuple, XqlUnion)) {
+      } else if (iof(model, column, XqlObject, XqlRecord, XqlArray, XqlTuple, XqlUnion)) {
          return JSON.parse(value);
-      } else if (this.iof(model, column, XqlDate)) {
+      } else if (iof(model, column, XqlDate)) {
          return new Date(value);
-      } else if (this.iof(model, column, XqlBoolean)) {
+      } else if (iof(model, column, XqlBoolean)) {
          return Boolean(value);
       }
 

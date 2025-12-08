@@ -14,6 +14,7 @@ import XqlUnion from "../../../xt/fields/Union";
 import Foreign, { ForeignInfoType } from "../../../core/classes/ForeignInfo";
 import XqlFile from "../../../xt/fields/File";
 import XansqlError from "../../../core/XansqlError";
+import { iof } from "../../../utils";
 
 export type SelectArgsRelationInfo = {
    args: {
@@ -83,7 +84,7 @@ class SelectArgs {
             });
          }
 
-         let field = model.schema[column]
+         const field = model.schema[column]
          let value: boolean | FindArgsType = args[column]
 
          if (Foreign.is(field)) {
@@ -159,7 +160,7 @@ class SelectArgs {
             }
 
          } else {
-            if (ValueFormatter.iof(model, column, XqlFile, XqlEnum, XqlArray, XqlObject, XqlRecord, XqlTuple, XqlUnion)) {
+            if (iof(field, XqlFile, XqlEnum, XqlArray, XqlObject, XqlRecord, XqlTuple, XqlUnion)) {
                this.formatable_columns.push(column)
             }
             this.columns.push(column)
