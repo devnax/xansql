@@ -3,14 +3,11 @@ import { XVObject } from "xanv"
 class XqlObject extends XVObject {
 
    index() {
-      this.meta.index = true
-      return this
+      return this.set("index", () => { }, true)
    }
 
    unique() {
-      this.meta.unique = true
-      this.index()
-      return this
+      return this.set("unique", () => { }, true)
    }
 }
 

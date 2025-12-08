@@ -3,8 +3,7 @@ import { XVString } from "xanv"
 class XqlString extends XVString {
 
    index() {
-      this.meta.index = true
-      return this
+      return this.set("index", () => { }, true)
    }
 
    text() {
@@ -13,9 +12,7 @@ class XqlString extends XVString {
    }
 
    unique() {
-      this.meta.unique = true
-      this.index()
-      return this
+      return this.set("unique", () => { }, true)
    }
 
    email(): this {

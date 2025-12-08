@@ -3,14 +3,11 @@ import { XVUnion } from "xanv"
 class XqlUnion extends XVUnion {
 
    index() {
-      this.meta.index = true
-      return this
+      return this.set("index", () => { }, true)
    }
 
    unique() {
-      this.meta.unique = true
-      this.index()
-      return this
+      return this.set("unique", () => { }, true)
    }
 }
 

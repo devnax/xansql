@@ -1,7 +1,7 @@
 import { XanvType } from "xanv";
 import { isObject } from "../../utils";
 
-class XqlSchema extends XanvType<any, any> {
+class XqlSchema extends XanvType<any> {
    type = "schema";
    readonly table: string;
    readonly column: string;
@@ -16,7 +16,7 @@ class XqlSchema extends XanvType<any, any> {
       super();
       this.table = table;
       this.column = column;
-      this.meta.index = true
+      this.index();
    }
 
    protected check(value: any) {
@@ -37,6 +37,10 @@ class XqlSchema extends XanvType<any, any> {
       } else {
          throw new Error(msg);
       }
+   }
+
+   index() {
+      return this.set("index", () => { }, true)
    }
 
 }

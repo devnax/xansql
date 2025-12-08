@@ -43,7 +43,9 @@ class XansqlMigration {
 
          for (let model of models) {
             const dsql = this.TableMigration.buildDrop(model);
-            await xansql.execute(dsql);
+            try {
+               await xansql.execute(dsql);
+            } catch (error) { }
          }
       }
 
@@ -51,11 +53,11 @@ class XansqlMigration {
          await xansql.execute(option);
       }
 
-      for (let { table, sql } of tables) {
+      for (let { sql } of tables) {
          await xansql.execute(sql);
       }
 
-      for (let { sql, table } of indexes) {
+      for (let { sql } of indexes) {
          try {
             await xansql.execute(sql);
          } catch (error) { }

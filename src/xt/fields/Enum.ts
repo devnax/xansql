@@ -3,13 +3,11 @@ import { XVEnum } from "xanv"
 class XqlEnum extends XVEnum {
 
    index() {
-      this.meta.index = true
-      return this
+      return this.set("index", () => { }, true)
    }
 
    unique() {
-      this.meta.unique = true
-      return this
+      return this.meta.unique = true
    }
 }
 
