@@ -109,7 +109,7 @@ class CreateDataArgs {
                   }
                } else {
                   // check is the field is IDField or created_at or updated_at
-                  if (model.IDColumn === column || iof(field, XqlDate) && (field.meta.update || field.meta.create)) {
+                  if (model.IDColumn === column || iof(field, XqlDate) && (field.meta.update || (field.meta.create || field.meta.update))) {
                      throw new XansqlError({
                         message: `Cannot set value for ${model.table}.${column}. It is automatically managed.`,
                         model: model.table,
@@ -159,9 +159,11 @@ class CreateDataArgs {
                      column: column
                   }))
                }
-               continue
+            } else if (iof(field, XqlDate) && (field.meta.create || field.meta.update)) {
+               this.data[column] = ValueFormatter.toSql(model, column, new Date())
+            } else {
+               this.data[column] = ValueFormatter.toSql(model, column, null)
             }
-            this.data[column] = ValueFormatter.toSql(model, column, null)
          }
 
          // generate sql

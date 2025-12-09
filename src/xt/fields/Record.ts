@@ -2,9 +2,7 @@ import { XVRecord } from "xanv"
 
 class XqlRecord extends XVRecord {
    optional() {
-      super.optional();
-      super.nullable();
-      return this;
+      return super.optional().nullable();
    }
    index() {
       return this.set("index", () => { }, true)

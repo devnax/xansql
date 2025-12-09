@@ -14,7 +14,7 @@
       "release": "makepack release"
    },
    "dependencies": {
-      "xanv": "^1.1.4"
+      "xanv": "^1.1.5"
    },
    "devDependencies": {
       "@faker-js/faker": "^9.7.0",
@@ -32,20 +32,25 @@
       "pg": "^8.16.3",
       "react": "^19.1.0",
       "react-dom": "^19.1.0",
-      "securequ": "^1.1.7",
+      "securequ": "^1.1.9",
       "tslib": "^2.8.1",
       "typescript": "^5.9.3"
    },
    "exports": {
       ".": {
          "import": "./index.mjs",
-         "require": "./index.js",
-         "types": "./index.d.ts"
+         "require": "./index.js"
       },
       "./dialect/*": {
          "import": "./dialect/*.mjs",
-         "require": "./dialect/*.js",
-         "types": "./dialect/*.d.ts"
+         "require": "./dialect/*.js"
+      }
+   },
+   "typesVersions": {
+      "*": {
+         "dialect/*": [
+            "./dialect/*.d.ts"
+         ]
       }
    }
 }

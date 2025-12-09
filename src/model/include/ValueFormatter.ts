@@ -45,8 +45,6 @@ class ValueFormatter {
          column: column
       });
       try {
-         value === null && console.log(column, value);
-
          value = field.parse(value);
          if (value === undefined || value === null) {
             return 'NULL';
@@ -82,7 +80,7 @@ class ValueFormatter {
          }
       } catch (error: any) {
          throw new XansqlError({
-            message: `${error.message} (in column ${model.table}.${column})`,
+            message: `${model.table}.${column}: ${error.message.toLowerCase()}`,
             model: model.table,
             column: column
          });

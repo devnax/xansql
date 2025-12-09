@@ -2,10 +2,9 @@ import { XVDate } from "xanv"
 
 class XqlDate extends XVDate {
    optional() {
-      super.optional();
-      super.nullable();
-      return this;
+      return super.optional().nullable();
    }
+
    index() {
       return this.set("index", () => { }, true)
    }
@@ -15,16 +14,11 @@ class XqlDate extends XVDate {
    }
 
    update() {
-      this.set("update", () => { }, true)
-      this.default(() => new Date())
-      return this
+      return this.set("update", () => { }, true).default(() => new Date())
    }
 
    create() {
-      this.set("create", () => { }, true)
-      this.index()
-      this.default(() => new Date())
-      return this
+      return this.index().default(() => new Date()).set("create", () => { }, true)
    }
 }
 

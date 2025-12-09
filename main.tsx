@@ -98,8 +98,8 @@ const App = () => {
                 name: "Jane Doe",
                 // username: "jane.doe",
                 photo: file,
-                password: "",
-                email: "",
+                password: "asdasdasd",
+                email: "najrul@gmail.com",
               }
             })
             console.log(result);

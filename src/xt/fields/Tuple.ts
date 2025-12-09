@@ -2,9 +2,7 @@ import { XVTuple } from "xanv"
 
 class XqlTuple extends XVTuple {
    optional() {
-      super.optional();
-      super.nullable();
-      return this;
+      return super.optional().nullable();
    }
    index() {
       return this.set("index", () => { }, true)

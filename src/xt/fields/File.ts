@@ -2,9 +2,7 @@ import { XVFile } from "xanv"
 
 class XqlFile extends XVFile {
    optional() {
-      super.optional();
-      super.nullable();
-      return this;
+      return super.optional().nullable();
    }
    index() {
       return this.set("index", () => { }, true)

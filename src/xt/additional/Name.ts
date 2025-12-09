@@ -7,7 +7,7 @@ class XqlName extends XqlString {
    }
 
    name() {
-      this.set("name", (v: any) => {
+      return this.set("name", (v: any) => {
          const nameRegex = /^[a-zA-Z\s'-]+$/;
          if (!nameRegex.test(v)) {
             throw new Error("Invalid name format.");

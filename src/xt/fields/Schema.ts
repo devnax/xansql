@@ -40,9 +40,7 @@ class XqlSchema extends XanvType<any> {
    }
 
    optional() {
-      super.optional();
-      super.nullable();
-      return this;
+      return super.optional().nullable();
    }
 
    index() {

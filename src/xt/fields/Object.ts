@@ -2,9 +2,7 @@ import { XVObject } from "xanv"
 
 class XqlObject extends XVObject {
    optional() {
-      super.optional();
-      super.nullable();
-      return this;
+      return super.optional().nullable();
    }
    index() {
       return this.set("index", () => { }, true)

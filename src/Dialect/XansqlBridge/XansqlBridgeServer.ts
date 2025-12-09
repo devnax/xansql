@@ -5,8 +5,6 @@ import XansqlError from "../../core/XansqlError";
 import Model from "../../model";
 import { ListenOptions, XansqlBridgeAuthorizedInfo, XansqlBridgeServerConfig } from "./types";
 
-
-
 class XansqlBridgeServer {
    readonly XANFETCH_CONTENT_TYPE = 'application/octet-stream';
    xansql: Xansql;
@@ -47,6 +45,7 @@ class XansqlBridgeServer {
       });
 
       server.get(await makePath('find', xansql), async (req: any) => {
+
          const params: any = req.searchParams
          await this.authorized({
             method: "GET",

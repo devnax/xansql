@@ -2,9 +2,7 @@ import { XVArray } from "xanv"
 
 class XqlArray extends XVArray {
    optional() {
-      super.optional();
-      super.nullable();
-      return this;
+      return super.optional().nullable();
    }
    index() {
       return this.set("index", () => { }, true)

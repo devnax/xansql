@@ -2,9 +2,7 @@ import { XVString } from "xanv"
 
 class XqlString extends XVString {
    optional() {
-      super.optional();
-      super.nullable();
-      return this;
+      return super.optional().nullable();
    }
    index() {
       return this.set("index", () => { }, true)
@@ -20,8 +18,7 @@ class XqlString extends XVString {
 
    email(): this {
       this.index()
-      super.email()
-      return this
+      return super.email()
    }
 }
 

@@ -36,3 +36,10 @@ export const ProductModelSchema = new Schema("products", {
    user: xt.schema("users", "products").optional(),
 })
 
+export const ProductMetaSchema = new Schema("product_metas", {
+   pmid: xt.id(),
+   product: xt.schema("products", "metas"),
+   meta_key: xt.string(),
+   meta_value: xt.string(),
+})
+

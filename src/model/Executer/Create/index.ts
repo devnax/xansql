@@ -38,7 +38,7 @@ class CreateExecuter {
                const keys = Object.keys(arg.data)
                const sql = `INSERT INTO ${model.table} (${keys.join(", ")}) VALUES (${keys.map(k => arg.data[k]).join(", ")})`
                const created = await model.execute(sql)
-               insertId = created.insertId
+               insertId = created?.insertId
             } catch (error: any) {
                if (fileColumns.length > 0) {
                   for (let fileId of uploadedFileIds) {

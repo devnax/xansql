@@ -1,7 +1,7 @@
 import dotenv from 'dotenv'
 import { Xansql } from '../src'
 import SqliteDialect from '../src/dialect/SqliteDialect'
-import { ProductCategorySchema, ProductModelSchema, UserModelMetaSchema, UserModelSchema } from './Schema';
+import { ProductCategorySchema, ProductMetaSchema, ProductModelSchema, UserModelMetaSchema, UserModelSchema } from './Schema';
 
 dotenv.config()
 
@@ -16,3 +16,4 @@ export const UserModel = db.model(UserModelSchema)
 export const ProductModel = db.model(ProductModelSchema)
 export const ProductCategory = db.model(ProductCategorySchema)
 export const UserModelMeta = db.model(UserModelMetaSchema)
+export const ProductMetaModel = db.model(ProductMetaSchema)

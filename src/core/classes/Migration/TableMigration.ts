@@ -74,6 +74,7 @@ class Migration {
       const table = model.table;
       const schema = model?.schema || {};
       let sqls: string[] = [];
+      let footers: string[] = [];
 
       for (const column in schema) {
          const field = schema[column];
@@ -85,7 +86,7 @@ class Migration {
             const info = Foreign.get(model!, column)
             const fk = this.ForeignKeyMigration.buildCreate(table, column, info.table, info.relation.main);
             if (fk) {
-               sqls.push(fk);
+               footers.push(fk);
             }
          }
 
@@ -93,6 +94,9 @@ class Migration {
             const indexSql = this.IndexMigration.buildCreate(table, column);
             indexes.push({ table, sql: indexSql });
          }
+      }
+      if (footers.length > 0) {
+         sqls.push(footers.join(','));
       }
 
       let sql = `CREATE TABLE IF NOT EXISTS ${quote(engine, table)} (${sqls.join(',')})`;

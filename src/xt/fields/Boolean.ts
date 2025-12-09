@@ -2,9 +2,7 @@ import { XVBoolean } from "xanv"
 
 class XqlBoolean extends XVBoolean {
    optional() {
-      super.optional();
-      super.nullable();
-      return this;
+      return super.optional().nullable();
    }
    index() {
       return this.set("index", () => { }, true)

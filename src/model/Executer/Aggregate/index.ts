@@ -49,12 +49,12 @@ class AggregateExecuter {
          groupBySql = ` GROUP BY ${args.groupBy.join(", ")} `
       }
       sql += `${select.sql} FROM ${model.table} ${Where.sql}${groupBySql}${OrderBy.sql}${LimitSql}`.trim()
-      const { results } = await model.execute(sql)
+      const res = await model.execute(sql)
 
       // remove groupBy columns from results
-      if (this.removeGroupByColumns && results.length && args.groupBy && args.groupBy.length) {
+      if (this.removeGroupByColumns && res?.results.length && args.groupBy && args.groupBy.length) {
          const groupBySet = new Set(args.groupBy)
-         for (let { chunk } of chunkArray(results)) {
+         for (let { chunk } of chunkArray(res?.results)) {
             for (let row of chunk) {
                for (let column of groupBySet) {
                   delete (row as any)[column]
@@ -63,7 +63,7 @@ class AggregateExecuter {
          }
       }
 
-      return results
+      return res?.results
    }
 }
 

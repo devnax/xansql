@@ -1,7 +1,5 @@
 import XanvType from "xanv/XanvType"
 import { XansqlDialectEngine } from "../core/types";
-import { XqlFields } from "../xt/types";
-
 
 export const isServer = () => typeof window === 'undefined'
 export const isArray = (v: any) => Array.isArray(v)
@@ -47,7 +45,7 @@ export const freezeObject = (obj: any) => {
 
 
 export const iof = (field: any, ...instances: any[]) => {
-   return instances.some(instance => field instanceof instance || field.constructor === instance.constructor);
+   return instances.some(instance => field instanceof instance || field?.constructor === instance.constructor);
 }
 
 

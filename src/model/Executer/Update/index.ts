@@ -66,7 +66,7 @@ class UpdateExecuter {
             }
          }
 
-         if (!update.affectedRows) {
+         if (!update?.affectedRows) {
             return []
          }
       } catch (error: any) {

@@ -5,18 +5,23 @@ let secretCache: string | null = null;
 export const makeSecret = async (xansql: Xansql) => {
    if (secretCache) return secretCache;
    const models = xansql.models
-   let uid = ''
+   let uid = []
    for (let model of models.values()) {
-      uid += model.table
+      uid.push(model.table)
       for (let column in model.schema) {
-         uid += column
+         uid.push(column)
          const field = model.schema[column]
          const meta = field.meta || {}
-         uid += JSON.stringify(meta)
+         const keys = Object.keys(meta)
+         if (keys.length) {
+            keys.sort()
+            uid.push(...keys)
+         }
       }
    }
+   uid = uid.sort()
 
-   secretCache = await crypto.hash(uid)
+   secretCache = await crypto.hash(uid.join(""))
    return secretCache;
 }
 
