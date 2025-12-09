@@ -453,12 +453,12 @@ const server = async (app: Express) => {
    });
 
    app.get('/migrate', async (req: any, res: any) => {
-      const status = await db.migrate(true)
+      const status = await db.migrate()
       res.json({ status });
    });
 
    app.get('/faker', async (req: any, res: any) => {
-      const d = await fakeData(1)
+      const d = await fakeData(100)
       const start = Date.now()
       const users = await UserModel.create({
          data: d,

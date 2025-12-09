@@ -1,16 +1,14 @@
 import { PoolOptions } from 'mysql2';
 import mysql from 'mysql2/promise';
-import { ExecuterResult } from '../core/types';
+import { ExecuterResult, XansqlDialectEngine, XansqlFileConfig } from '../core/types';
 
-const MysqlDialect = (config: string | PoolOptions) => {
-   const pool = mysql.createPool(
-      typeof config === 'string' ? { uri: config } : config
-   );
+const MysqlDialect = ({ file, ...config }: PoolOptions & { file?: XansqlFileConfig }) => {
+   const pool = mysql.createPool(typeof config === 'string' ? { uri: config } : config);
 
-   const execute = async (sql: string, params: any[] = []): Promise<ExecuterResult> => {
+   const execute = async (sql: string): Promise<ExecuterResult> => {
       const conn = await pool.getConnection();
       try {
-         const [rows] = await conn.query(sql, params);
+         const [rows] = await conn.query(sql);
          const result: any = rows;
 
          return {
@@ -83,9 +81,10 @@ const MysqlDialect = (config: string | PoolOptions) => {
    };
 
    return {
-      engine: 'mysql' as const,
+      engine: 'mysql' as XansqlDialectEngine,
       execute,
-      getSchema
+      getSchema,
+      file
    };
 };
 

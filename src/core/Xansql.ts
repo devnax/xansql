@@ -2,7 +2,7 @@ import Model from "../model";
 import { ExecuterResult, XansqlConfigType, XansqlConfigTypeRequired } from "./types";
 import XansqlTransaction from "./classes/XansqlTransaction";
 import XansqlConfig from "./classes/XansqlConfig";
-import ModelFormatter from "./classes/ModelFormatter";
+import ModelFactory from "./classes/ModelFactory";
 import XansqlMigration from "./classes/Migration";
 import EventManager, { EventHandler, EventPayloads } from "./classes/EventManager";
 import XansqlError from "./XansqlError";
@@ -10,23 +10,19 @@ import Schema from "../model/Schema";
 import { XansqlModelHooks } from "../model/types";
 
 class Xansql {
-   readonly config: XansqlConfigTypeRequired;
-   readonly ModelFactory = new Map<string, Model>()
-
    private _aliases = new Map<string, string>();
-   private ModelFormatter: ModelFormatter;
+   private ModelFactory: ModelFactory;
    private XansqlConfig: XansqlConfig;
+   readonly config: XansqlConfigTypeRequired;
    readonly XansqlTransaction: XansqlTransaction;
    readonly EventManager: EventManager
-
-   // SQL Generator Instances can be added here
    readonly XansqlMigration: XansqlMigration
 
    constructor(config: XansqlConfigType) {
       this.XansqlConfig = new XansqlConfig(this, config);
       this.config = this.XansqlConfig.parse()
       this.XansqlTransaction = new XansqlTransaction(this);
-      this.ModelFormatter = new ModelFormatter(this);
+      this.ModelFactory = new ModelFactory(this);
 
       this.XansqlMigration = new XansqlMigration(this);
       this.EventManager = new EventManager();
@@ -37,12 +33,12 @@ class Xansql {
    }
 
    get models() {
-      return this.ModelFormatter.format()
+      return this.ModelFactory.models
    }
 
    clone(config?: Partial<XansqlConfigType>) {
       const self = new XansqlClone({ ...this.config, ...(config || {}) });
-      for (let [table, model] of this.ModelFactory) {
+      for (let [table, model] of this.models) {
          const schema = new Schema(table, model.schema)
          for (let hook in model.hooks) {
             schema.addHook(hook as any, model.hooks[hook as keyof XansqlModelHooks] as any)
@@ -80,7 +76,7 @@ class Xansql {
             model: schema.table,
          });
       }
-      if (this.ModelFactory.has(schema.table)) {
+      if (this.ModelFactory.models.has(schema.table)) {
          throw new XansqlError({
             message: `Model for table ${schema.table} already exists.`,
             model: schema.table,
@@ -89,12 +85,12 @@ class Xansql {
       model.alias = this.makeAlias(schema.table);
       model.xansql = this;
       model.hooks = schema.hooks;
-      this.ModelFactory.set(schema.table, model);
+      this.ModelFactory.models.set(schema.table, model);
 
       // this will delay the model formatting to allow multiple models to be added before formatting
       clearTimeout(this._timer);
       this._timer = setTimeout(() => {
-         this.ModelFormatter.format()
+         this.ModelFactory.format()
       }, 5);
       return model
    }

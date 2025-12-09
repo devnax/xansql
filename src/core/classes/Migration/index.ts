@@ -19,8 +19,9 @@ class XansqlMigration {
       const xansql = this.xansql;
       const engine = xansql.config.dialect.engine;
       const { options, tables, indexes } = this.TableMigration.statements();
+
       if (force) {
-         const models = Array.from(xansql.ModelFactory.values()).reverse();
+         const models = Array.from(xansql.models.values()).reverse();
 
          for (let model of models) {
             const fileWhere: any[] = [];
@@ -111,7 +112,7 @@ class XansqlMigration {
 
    async generate() {
       const xansql = this.xansql;
-      const models = Array.from(xansql.ModelFactory.values());
+      const models = Array.from(xansql.models.values());
       const raw_schema: XansqlDialectSchemaType = await xansql.getRawSchema() as any
       const tables = Object.keys(raw_schema);
       const migration_sql: string[] = [];

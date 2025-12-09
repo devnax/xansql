@@ -18,6 +18,7 @@ import XansqlError from "../../XansqlError";
 import Foreign from "../ForeignInfo";
 import ForeignKeyMigration from "./ForeingMigration";
 import IndexMigration from "./IndexMigration";
+import ValueFormatter from "../../../model/include/ValueFormatter";
 
 class Migration {
    xansql: Xansql;
@@ -126,8 +127,12 @@ class Migration {
       const meta = field.meta || {};
       const nullable = meta.nullable || meta.optional ? 'NULL' : 'NOT NULL';
       const unique = meta.unique ? 'UNIQUE' : '';
+      let default_value = ''
+      if (meta.default !== undefined) {
+         default_value = ValueFormatter.getDefaultSql(model, column);
+      }
       const col = (column: string, sqlType: string) => {
-         return `  ${quote(engine, column)} ${sqlType} ${nullable} ${unique}`.trim()
+         return `  ${quote(engine, column)} ${sqlType} ${nullable} ${default_value} ${unique}`.trim().replace(/ +/g, ' ');
       };
       let sql = ''
       if (iof(field, XqlIDField)) {

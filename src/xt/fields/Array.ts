@@ -2,7 +2,12 @@ import { XVArray } from "xanv"
 
 class XqlArray extends XVArray {
    optional() {
-      return super.optional().nullable();
+      super.optional()
+      return super.nullable();
+   }
+   nullable() {
+      super.optional()
+      return super.nullable();
    }
    index() {
       return this.set("index", () => { }, true)

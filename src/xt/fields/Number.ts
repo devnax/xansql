@@ -2,7 +2,12 @@ import { XVNumber } from "xanv"
 
 class XqlNumber extends XVNumber {
    optional() {
-      return super.optional().nullable();
+      super.optional()
+      return super.nullable();
+   }
+   nullable() {
+      super.optional()
+      return super.nullable();
    }
    index() {
       return this.set("index", () => { }, true)

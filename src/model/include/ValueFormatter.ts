@@ -46,7 +46,11 @@ class ValueFormatter {
       });
       try {
          value = field.parse(value);
+         const meta = field.meta || {};
          if (value === undefined || value === null) {
+            if (meta.unique) {
+               return ''
+            }
             return 'NULL';
          } else if (iof(field, XqlIDField, XqlNumber, XqlSchema)) {
             return value
@@ -104,6 +108,57 @@ class ValueFormatter {
 
       return value;
    }
+
+   static getDefaultSql(model: Model, column: string) {
+      const field = model.schema[column];
+      if (!field) throw new XansqlError({
+         message: `Column ${column} does not exist in model ${model.table}`,
+         model: model.table,
+         column
+      });
+
+      try {
+         let value = field.parse(undefined);
+         const meta = field.meta || {};
+         if (!meta.optional) {
+            return '';
+         }
+
+         if (value === undefined || value === null) {
+            return 'DEFAULT NULL';
+         } else if (iof(field, XqlIDField, XqlNumber, XqlSchema)) {
+            return `DEFAULT ${value}`;
+         } else if (iof(field, XqlString, XqlEnum, XqlFile)) {
+            return `DEFAULT '${this.escape(value)}'`;
+         } else if (iof(field, XqlObject, XqlRecord, XqlArray, XqlTuple, XqlUnion)) {
+            value = JSON.stringify(value);
+            return `DEFAULT '${this.escape(value)}'`;
+         } else if (iof(field, XqlDate)) {
+            const c = new Date()
+            let v
+            if (c.toISOString() === value.toISOString()) {
+               v = `DEFAULT CURRENT_TIMESTAMP`;
+            } else {
+               v = `DEFAULT '${value}'`;
+            }
+            if (meta.update) {
+               v = ` ${v} ON UPDATE CURRENT_TIMESTAMP`;
+            }
+            return v
+         } else if (iof(field, XqlBoolean)) {
+            return value ? 'DEFAULT 1' : 'DEFAULT 0';
+         }
+      } catch (error: any) {
+         throw new XansqlError({
+            message: `Failed to generate default SQL for ${model.table}.${column}: ${error.message}`,
+            model: model.table,
+            column
+         });
+      }
+
+      return ''; // fallback: no default
+   }
+
 
 }
 

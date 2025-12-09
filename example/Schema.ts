@@ -31,7 +31,7 @@ export const ProductModelSchema = new Schema("products", {
    name: xt.string().index(),
    description: xt.string(),
    price: xt.string(),
-   test: xt.string(2).optional(),
+   disoucnt_price: xt.string().default(() => "100"),
    categories: xt.array(xt.schema("categories", "post")),
    user: xt.schema("users", "products").optional(),
 })

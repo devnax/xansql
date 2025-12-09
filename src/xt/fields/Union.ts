@@ -2,7 +2,12 @@ import { XVUnion } from "xanv"
 
 class XqlUnion extends XVUnion {
    optional() {
-      return super.optional().nullable();
+      super.optional()
+      return super.nullable();
+   }
+   nullable() {
+      super.optional()
+      return super.nullable();
    }
    index() {
       return this.set("index", () => { }, true)

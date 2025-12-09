@@ -1,8 +1,8 @@
 import postpres, { PoolConfig } from 'pg';
-import { ExecuterResult } from '../core/types';
+import { ExecuterResult, XansqlFileConfig } from '../core/types';
 
 
-const PostgresDialect = (config: PoolConfig) => {
+const PostgresDialect = ({ file, ...config }: PoolConfig & { file?: XansqlFileConfig }) => {
    let pool = new postpres.Pool(config);
 
    const execute = async (sql: string): Promise<ExecuterResult> => {
@@ -120,7 +120,8 @@ const PostgresDialect = (config: PoolConfig) => {
    return {
       engine: 'postgres' as const,
       execute,
-      getSchema
+      getSchema,
+      file
    };
 };
 

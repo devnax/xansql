@@ -1,7 +1,7 @@
 import sqlite from 'better-sqlite3';
-import { ExecuterResult, XansqlDialectSchemaType } from '../core/types';
+import { ExecuterResult, XansqlDialectSchemaType, XansqlFileConfig } from '../core/types';
 
-const SqliteDialect = (filePath: string = ':memory:') => {
+const SqliteDialect = (filePath: string = ':memory:', file?: XansqlFileConfig) => {
    const db = new sqlite(filePath)
 
    const execute = async (sql: string): Promise<ExecuterResult> => {
@@ -53,7 +53,8 @@ const SqliteDialect = (filePath: string = ':memory:') => {
    return {
       engine: 'sqlite' as const,
       execute,
-      getSchema
+      getSchema,
+      file
    };
 };
 

@@ -2,7 +2,12 @@ import { XVString } from "xanv"
 
 class XqlString extends XVString {
    optional() {
-      return super.optional().nullable();
+      super.optional()
+      return super.nullable();
+   }
+   nullable() {
+      super.optional()
+      return super.nullable();
    }
    index() {
       return this.set("index", () => { }, true)
