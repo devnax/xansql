@@ -1,5 +1,6 @@
 import { crypto } from "securequ";
 import Xansql from "../../core/Xansql";
+import Foreign from "../../core/classes/ForeignInfo";
 
 let secretCache: string | null = null;
 export const makeSecret = async (xansql: Xansql) => {
@@ -9,16 +10,19 @@ export const makeSecret = async (xansql: Xansql) => {
    for (let model of models.values()) {
       uid.push(model.table)
       for (let column in model.schema) {
-         uid.push(column)
          const field = model.schema[column]
-         const meta = field.meta || {}
-         const keys = Object.keys(meta)
-         if (keys.length) {
-            keys.sort()
-            uid.push(...keys)
+         if (!Foreign.isArray(model.schema[column])) {
+            uid.push(column)
+            const meta = field.meta || {}
+            const keys = Object.keys(meta)
+            if (keys.length) {
+               keys.sort()
+               uid.push(...keys)
+            }
          }
       }
    }
+   uid = Array.from(new Set(uid)) // unique
    uid = uid.sort()
 
    secretCache = await crypto.hash(uid.join(""))
