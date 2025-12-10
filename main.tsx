@@ -27,47 +27,47 @@ const App = () => {
       <div style={{ marginTop: "50px" }}>
         <Button label="Find" onClick={async () => {
           const result = await UserModel.find({
-            aggregate: {
-              products: {
-                price: {
-                  sum: {
-                    alias: "total_price"
-                  },
-                  avg: {
-                    alias: "avg_price",
-                    round: 2
-                  },
-                }
-              },
-              metas: {
-                meta_value: {
-                  count: true
-                }
-              }
-            },
+            // aggregate: {
+            //   products: {
+            //     price: {
+            //       sum: {
+            //         alias: "total_price"
+            //       },
+            //       avg: {
+            //         alias: "avg_price",
+            //         round: 2
+            //       },
+            //     }
+            //   },
+            //   metas: {
+            //     meta_value: {
+            //       count: true
+            //     }
+            //   }
+            // },
             where: {
               // name: "John Doe"
             },
-            select: {
-              name: true,
-              photo: true,
-              password: true,
-              products: {
-                aggregate: {
-                  categories: {
-                    pcid: {
-                      count: true,
-                    },
-                    name: {
-                      count: true,
-                    }
-                  }
-                },
-                select: {
-                  categories: true
-                }
-              }
-            }
+            // select: {
+            //   name: true,
+            //   photo: true,
+            //   password: true,
+            //   products: {
+            //     aggregate: {
+            //       categories: {
+            //         pcid: {
+            //           count: true,
+            //         },
+            //         name: {
+            //           count: true,
+            //         }
+            //       }
+            //     },
+            //     select: {
+            //       categories: true
+            //     }
+            //   }
+            // }
           })
           console.log(result);
 

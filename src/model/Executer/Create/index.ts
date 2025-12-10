@@ -31,23 +31,24 @@ class CreateExecuter {
                if (fileColumns.length > 0) {
                   for (let file_col of fileColumns) {
                      const filemeta = await xansql.uploadFile(arg.files[file_col])
+
                      uploadedFileIds.push(filemeta.fileId)
                      arg.data[file_col] = `'${JSON.stringify(filemeta)}'`
                   }
                }
+
                const keys = Object.keys(arg.data)
                const sql = `INSERT INTO ${model.table} (${keys.join(", ")}) VALUES (${keys.map(k => arg.data[k]).join(", ")})`
                const created = await model.execute(sql)
+
                insertId = created?.insertId
             } catch (error: any) {
-               if (fileColumns.length > 0) {
-                  for (let fileId of uploadedFileIds) {
-                     try {
-                        await xansql.deleteFile(fileId)
-                     } catch (error) { }
-                  }
-                  throw error
+               for (let fileId of uploadedFileIds) {
+                  try {
+                     await xansql.deleteFile(fileId)
+                  } catch (error) { }
                }
+               throw error
             }
             if (insertId) {
                insertIds.push(insertId)

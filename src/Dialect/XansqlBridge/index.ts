@@ -35,23 +35,33 @@ const XansqlBridge = (url: string, engine?: XansqlDialectEngine) => {
 
       if (meta.action === "SELECT") {
          let res = await client.get(await makePath('find', xansql), { params: data })
-         !res.success && console.error(res);
+         if (!res.success) {
+            throw new XansqlError(res.message);
+         }
          return res.data || null
       } else if (meta.action === "INSERT") {
          let res = await client.post(await makePath('insert', xansql), { body: data })
-         !res.success && console.error(res);
+         if (!res.success) {
+            throw new XansqlError(res.message);
+         }
          return res.data || null
       } else if (meta.action === "UPDATE") {
          let res = await client.put(await makePath('update', xansql), { body: data })
-         !res.success && console.error(res);
+         if (!res.success) {
+            throw new XansqlError(res.message);
+         }
          return res.data || null
       } else if (meta.action === "DELETE") {
          let res = await client.delete(await makePath('delete', xansql), { params: data })
-         !res.success && console.error(res);
+         if (!res.success) {
+            throw new XansqlError(res.message);
+         }
          return res.data || null
       } else {
          let res = await client.post(await makePath('executer', xansql), { body: data })
-         !res.success && console.error(res);
+         if (!res.success) {
+            throw new XansqlError(res.message);
+         }
          return res.data || null
       }
    };

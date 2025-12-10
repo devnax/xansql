@@ -14,7 +14,7 @@ const mysql = MysqlDialect({
    port: 3306,
    user: 'root',
    password: 'root1234',
-   database: "nextjs_edgedu",
+   database: "xansql",
 })
 
 const sqlite = SqliteDialect(sqliteConn)

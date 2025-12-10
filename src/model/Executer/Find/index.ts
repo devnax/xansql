@@ -43,10 +43,16 @@ class FindExecuter {
             results = results.concat(executed.results)
          }
       } else {
+         let lastRecordCount: any = null
          for (let { take, skip } of chunkNumbers(Limit.take)) {
+            if (lastRecordCount !== null && lastRecordCount < take) {
+               break;
+            }
             const batchLimitArgs = new LimitArgs(model, { take, skip: Limit.skip + skip })
             const sql = `SELECT ${Select.sql} FROM ${model.table} ${where_sql}${OrderBy.sql}${batchLimitArgs.sql}`.trim()
             const executed = await model.execute(sql)
+            lastRecordCount = executed?.results?.length || 0
+
             if (executed?.results) {
                results = results.concat(executed.results)
             }

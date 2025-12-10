@@ -46,11 +46,7 @@ class ValueFormatter {
       });
       try {
          value = field.parse(value);
-         const meta = field.meta || {};
          if (value === undefined || value === null) {
-            if (meta.unique) {
-               return ''
-            }
             return 'NULL';
          } else if (iof(field, XqlIDField, XqlNumber, XqlSchema)) {
             return value
