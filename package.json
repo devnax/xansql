@@ -1,6 +1,6 @@
 {
    "name": "xansql",
-   "version": "1.0.12",
+   "version": "1.0.13",
    "main": "./index.cjs",
    "module": "./index.mjs",
    "types": "./index.d.ts",
@@ -14,7 +14,7 @@
       "release": "makepack release"
    },
    "dependencies": {
-      "xanv": "^1.1.5"
+      "xanv": "^1.1.6"
    },
    "devDependencies": {
       "@faker-js/faker": "^9.7.0",
