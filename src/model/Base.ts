@@ -59,6 +59,22 @@ abstract class ModelBase {
       return await xansql.execute(sql) as any
    }
 
+   async drop() {
+      const sql = `DROP TABLE ${this.table}`;
+      return await this.execute(sql);
+   }
+
+   async migrations() {
+      let tableSql = ""
+
+      return {
+         table: "",
+         drop: "",
+         indexes: [],
+         foreign_keys: [],
+      }
+   }
+
    isIDColumn(column: string): boolean {
       return column === this.IDColumn;
    }

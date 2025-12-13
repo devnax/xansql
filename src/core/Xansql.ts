@@ -22,7 +22,7 @@ class Xansql {
       this.XansqlConfig = new XansqlConfig(this, config);
       this.config = this.XansqlConfig.parse()
       this.XansqlTransaction = new XansqlTransaction(this);
-      this.ModelFactory = new ModelFactory(this);
+      this.ModelFactory = new ModelFactory();
 
       this.XansqlMigration = new XansqlMigration(this);
       this.EventManager = new EventManager();
@@ -67,7 +67,7 @@ class Xansql {
       return alias;
    }
 
-   _timer: any = null;
+
    model(schema: Schema): Model {
       const model = new Model(schema.table, schema.schema);
       if (!model.IDColumn) {
@@ -85,13 +85,7 @@ class Xansql {
       model.alias = this.makeAlias(schema.table);
       model.xansql = this;
       model.hooks = schema.hooks;
-      this.ModelFactory.models.set(schema.table, model);
-
-      // this will delay the model formatting to allow multiple models to be added before formatting
-      clearTimeout(this._timer);
-      this._timer = setTimeout(() => {
-         this.ModelFactory.format()
-      }, 5);
+      this.ModelFactory.set(model);
       return model
    }
 

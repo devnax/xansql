@@ -41,7 +41,7 @@ class ForeignKeyMigration {
       const isOptional = meta.nullable || meta.optional;
       const fk = this.identifier(table, column);
 
-      let sql = `CONSTRAINT ${fk} FOREIGN KEY (${quote(engine, column)}) REFERENCES ${quote(engine, refTable)}(${quote(engine, refColumn)})`;
+      let sql = `ALTER TABLE ${table} ADD CONSTRAINT ${fk} FOREIGN KEY (${quote(engine, column)}) REFERENCES ${quote(engine, refTable)}(${quote(engine, refColumn)})`;
       if (isOptional) {
          sql += ` ON DELETE SET NULL ON UPDATE CASCADE`;
       } else {

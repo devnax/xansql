@@ -9,97 +9,26 @@ import XansqlError from "../XansqlError";
  * this class will format the models and assign relationships
  */
 class ModelFactgory {
-   private xansql: Xansql;
-   private isFormated: boolean = false;
    private restricted_columns: string[] = [];
    readonly models: Map<string, Model> = new Map();
-
-   constructor(xansql: Xansql) {
-      this.xansql = xansql;
-   }
+   private timer: any = null;
 
    private restrictedColumn(column: string): boolean {
       return this.restricted_columns.includes(column.toUpperCase());
    }
 
-   /**
-    * Topological sort with cycle detection
-    */
-   private sortModelsByDependencies(models: Map<string, Model>): string[] {
-      const graph = new Map<string, Set<string>>();
-      const visiting = new Set<string>();
-      const visited = new Set<string>();
-      const result: string[] = [];
+   set(model: Model) {
+      this.models.set(model.table, model);
+      clearTimeout(this.timer);
+      this.timer = setTimeout(() => this.format(), 5);
+   }
 
-      // build dependency graph
-      for (const [table, model] of models) {
-         const deps = new Set<string>();
-         for (const column in model.schema) {
-            const field: any = model.schema[column];
-            if (Foreign.isSchema(field)) {
-               deps.add(field.table);
-            }
-         }
-         graph.set(table, deps);
-      }
-
-      const visit = (table: string) => {
-         if (visiting.has(table)) {
-            throw new XansqlError({
-               message: `Circular foreign key detected involving "${table}"`,
-               model: table
-            });
-         }
-
-         if (visited.has(table)) return;
-
-         visiting.add(table);
-
-         const deps = graph.get(table);
-         if (deps) {
-            for (const dep of deps) {
-               if (!models.has(dep)) {
-                  throw new XansqlError({
-                     message: `Foreign model "${dep}" not found while sorting "${table}"`,
-                     model: table
-                  });
-               }
-               visit(dep);
-            }
-         }
-
-         visiting.delete(table);
-         visited.add(table);
-         result.push(table);
-      };
-
-      for (const table of models.keys()) {
-         visit(table);
-      }
-
-      return result;
+   get(table: string): Model | undefined {
+      return this.models.get(table);
    }
 
    format() {
-      if (this.isFormated) {
-         return this.models;
-      }
       const models = this.models;
-
-      // Proper, safe table sorting
-      const sortedTables = this.sortModelsByDependencies(models);
-
-      // rebuild model map in correct order
-      const sortedModels = new Map<string, Model>();
-      for (const table of sortedTables) {
-         const model = models.get(table) as Model;
-         sortedModels.set(table, model);
-      }
-
-      models.clear();
-      for (const [table, model] of sortedModels) {
-         models.set(table, model);
-      }
 
       // relationship wiring
       for (const model of models.values()) {
@@ -121,8 +50,6 @@ class ModelFactgory {
             }
          }
       }
-
-      this.isFormated = true;
       return models;
    }
 
@@ -207,6 +134,10 @@ class ModelFactgory {
          FModel.schema[FSchemaField.column] = n;
          models.set(FModel.table, FModel);
       }
+   }
+
+   private generateIndexes() {
+
    }
 }
 

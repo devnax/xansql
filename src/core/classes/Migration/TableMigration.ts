@@ -37,6 +37,7 @@ class Migration {
       const options: string[] = []
       const tables: ({ table: string, sql: string })[] = [];
       const indexes: ({ table: string, sql: string })[] = [];
+      const foreign_keys: ({ table: string, sql: string })[] = [];
 
       if (engine === 'sqlite') {
          options.push(`PRAGMA foreign_keys = ON;`);
@@ -54,12 +55,13 @@ class Migration {
 
       for (const table of models.keys()) {
          const model = models.get(table);
-         const { sql, indexes: modelIndexes } = this.buildCreate(model!);
+         const { sql, indexes: modelIndexes, foreign_keys: modeForeignKeys } = this.buildCreate(model!);
          indexes.push(...modelIndexes);
          tables.push({
             table,
             sql
          });
+         foreign_keys.push(...modeForeignKeys);
       }
 
       return {
@@ -75,7 +77,7 @@ class Migration {
       const table = model.table;
       const schema = model?.schema || {};
       let sqls: string[] = [];
-      let footers: string[] = [];
+      let foreign_keys: ({ table: string, sql: string })[] = []
 
       for (const column in schema) {
          const field = schema[column];
@@ -87,7 +89,7 @@ class Migration {
             const info = Foreign.get(model!, column)
             const fk = this.ForeignKeyMigration.buildCreate(table, column, info.table, info.relation.main);
             if (fk) {
-               footers.push(fk);
+               foreign_keys.push({ table, sql: fk });
             }
          }
 
@@ -95,9 +97,6 @@ class Migration {
             const indexSql = this.IndexMigration.buildCreate(table, column);
             indexes.push({ table, sql: indexSql });
          }
-      }
-      if (footers.length > 0) {
-         sqls.push(footers.join(','));
       }
 
       let sql = `CREATE TABLE IF NOT EXISTS ${quote(engine, table)} (${sqls.join(',')})`;
@@ -109,7 +108,8 @@ class Migration {
 
       return {
          sql,
-         indexes
+         indexes,
+         foreign_keys
       }
    }
 
