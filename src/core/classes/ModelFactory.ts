@@ -1,7 +1,6 @@
 import xt from "../../xt";
 import Model from "../../model";
 import XqlSchema from "../../xt/fields/Schema";
-import Xansql from "../Xansql";
 import Foreign from "./ForeignInfo";
 import XansqlError from "../XansqlError";
 
@@ -11,6 +10,7 @@ import XansqlError from "../XansqlError";
 class ModelFactgory {
    private restricted_columns: string[] = [];
    readonly models: Map<string, Model> = new Map();
+   readonly aliases: Map<string, string> = new Map();
    private timer: any = null;
 
    private restrictedColumn(column: string): boolean {
@@ -32,6 +32,8 @@ class ModelFactgory {
 
       // relationship wiring
       for (const model of models.values()) {
+         this.makeAlias(model.table);
+
          for (const column in model.schema) {
             if (this.restrictedColumn(column)) {
                throw new XansqlError({
@@ -136,9 +138,39 @@ class ModelFactgory {
       }
    }
 
-   private generateIndexes() {
+   private makeAlias(table: string): string {
+      if (this.aliases.has(table)) {
+         return this.aliases.get(table)!;
+      }
 
+      const used = new Set(this.aliases.values());
+
+      const name = table
+         .split(/[._]/)
+         .pop()!
+         .replace(/([a-z])([A-Z])/g, '$1_$2')
+         .toLowerCase();
+
+      const parts = name.split('_').filter(Boolean);
+
+      let alias =
+         parts.length === 1
+            ? parts[0].slice(0, 2)
+            : parts.map(p => p[0]).join('');
+
+      if (!alias) alias = 't';
+
+      let unique = alias;
+      let i = 1;
+
+      while (used.has(unique)) {
+         unique = `${alias}${i++}`;
+      }
+
+      this.aliases.set(table, unique);
+      return unique;
    }
+
 }
 
 export default ModelFactgory;

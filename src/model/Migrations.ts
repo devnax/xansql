@@ -51,18 +51,23 @@ class Migrations {
       const table = this.model.table;
       const engine = this.model.xansql.dialect.engine;
 
-      let builds = []
+      let builds = {} as { [key: string]: string }
       let indexes = {} as { [key: string]: string }
       let foreign_keys = {} as { [key: string]: string }
       let types = {} as { [key: string]: string }
 
       for (let column in schema) {
          const field = schema[column];
+
+         if (Foreign.isArray(field)) {
+            continue; // skip array relations
+         }
+
          const meta = field.meta || {};
          const unique = meta.unique ? 'UNIQUE' : '';
          const isOptional = meta.nullable || meta.optional;
          const build = this.buildColumn(column);
-         builds.push(build.sql);
+         builds[column] = build.sql;
          types[column] = build.typeSql;
 
          if (Foreign.isSchema(field)) {
@@ -92,7 +97,7 @@ class Migrations {
          }
       }
 
-      let sql = `CREATE TABLE IF NOT EXISTS ${quote(engine, table)} (${builds.join(',')})`;
+      let sql = `CREATE TABLE IF NOT EXISTS ${quote(engine, table)} (${Object.values(builds).join(',')})`;
       if (engine === 'mysql') {
          sql += ` ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`;
       } else {
@@ -101,6 +106,7 @@ class Migrations {
 
       return {
          table: sql,
+         columns: builds,
          indexes,
          foreign_keys,
          types
@@ -167,7 +173,7 @@ class Migrations {
          default_value = ValueFormatter.getDefaultSql(model, column);
       }
       const col = (column: string, sqlType: string) => {
-         return `  ${quote(engine, column)} ${sqlType} ${nullable} ${default_value} ${unique}`.trim().replace(/ +/g, ' ');
+         return `${quote(engine, column)} ${sqlType} ${nullable} ${default_value} ${unique}`.trim().replace(/ +/g, ' ');
       };
       let sql = ''
       let typeSql = ''

@@ -269,12 +269,77 @@ class Model extends ModelBase {
       return !!(await this.count({ where }))
    }
 
+   async addColumn(column: string) {
+      if (!(column in this.schema)) {
+         throw new XansqlError({
+            message: `Column "${column}" does not exist in schema "${this.table}"`,
+            model: this.table,
+         });
+      }
 
+      const migrations = this.migrations.up()
+      const colsql = migrations.columns[column];
+      const sql = `ALTER TABLE ${this.table} ADD COLUMN ${colsql}`;
+      await this.execute(sql);
+
+      // add indexes
+      if (column in migrations.indexes) {
+         await this.execute(migrations.indexes[column]);
+      }
+
+      // add foreign keys
+      if (column in migrations.foreign_keys) {
+         await this.execute(migrations.foreign_keys[column]);
+      }
+
+      // add types
+      if (column in migrations.types) {
+         await this.execute(migrations.types[column]);
+      }
+   }
+
+   async removeColumn(column: string) {
+      const sql = `ALTER TABLE ${this.table} DROP COLUMN ${column}`;
+
+      // remove foreign keys
+      const migrations = this.migrations.down()
+      if (column in migrations.foreign_keys) {
+         await this.execute(migrations.foreign_keys[column]);
+      }
+
+      // remove indexes
+      if (column in migrations.indexes) {
+         await this.execute(migrations.indexes[column]);
+      }
+
+      // remove types
+      if (column in migrations.types) {
+         await this.execute(migrations.types[column]);
+      }
+
+      await this.execute(sql);
+   }
+
+   async renameColumn(oldColumn: string, newColumn: string) {
+      if (!(newColumn in this.schema)) {
+         throw new XansqlError({
+            message: `Column "${newColumn}" does not exist in schema "${this.table}"`,
+            model: this.table,
+         });
+      }
+      const sql = `ALTER TABLE ${this.table} RENAME COLUMN ${oldColumn} TO ${newColumn}`;
+      await this.execute(sql);
+   }
+
+   async truncate() {
+      await this.execute(`TRUNCATE TABLE ${this.table}`);
+   }
 
    async drop() {
       const sql = this.migrations.down().table
       await this.execute(sql)
    }
+
 }
 
 export default Model;

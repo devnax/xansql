@@ -22,7 +22,6 @@ abstract class ModelBase {
    readonly relations: Relation[] = [];
    readonly hooks: XansqlModelHooks = {};
    readonly xansql: Xansql;
-   alias: string = '';
 
    constructor(xansql: Xansql, schema: Schema) {
       this.xansql = xansql;
@@ -30,7 +29,7 @@ abstract class ModelBase {
       this.schema = schema.schema;
       this.hooks = schema.hooks;
 
-      for (let column in schema) {
+      for (let column in schema.schema) {
          const field = schema.schema[column];
          if (iof(field, XqlIDField)) {
             if (this.IDColumn) {
@@ -51,6 +50,7 @@ abstract class ModelBase {
             this.columns.push(column);
          }
       }
+
       if (!this.IDColumn) {
          throw new XansqlError({
             message: `Schema ${this.table} must have an id column`,
@@ -59,13 +59,13 @@ abstract class ModelBase {
       }
    }
 
+   get alias(): string {
+      return this.xansql.aliases.get(this.table) || "";
+   }
+
    async execute(sql: string) {
       const xansql = this.xansql;
       return await xansql.execute(sql) as any
-   }
-
-   async truncate() {
-      await this.execute(`TRUNCATE TABLE ${this.table}`);
    }
 
    protected async callHook(hook: XansqlModelHookNames, ...args: any): Promise<any> {

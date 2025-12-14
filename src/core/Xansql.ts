@@ -3,14 +3,13 @@ import { ExecuterResult, XansqlConfigType, XansqlConfigTypeRequired } from "./ty
 import XansqlTransaction from "./classes/XansqlTransaction";
 import XansqlConfig from "./classes/XansqlConfig";
 import ModelFactory from "./classes/ModelFactory";
-import XansqlMigration from "./classes/Migration";
+import XansqlMigration from "./classes/XansqlMigrartion";
 import EventManager, { EventHandler, EventPayloads } from "./classes/EventManager";
 import XansqlError from "./XansqlError";
 import Schema from "../model/Schema";
 import { XansqlModelHooks } from "../model/types";
 
 class Xansql {
-   private _aliases = new Map<string, string>();
    private ModelFactory: ModelFactory;
    private XansqlConfig: XansqlConfig;
    readonly config: XansqlConfigTypeRequired;
@@ -35,6 +34,9 @@ class Xansql {
    get models() {
       return this.ModelFactory.models
    }
+   get aliases() {
+      return this.ModelFactory.aliases
+   }
 
    clone(config?: Partial<XansqlConfigType>) {
       const self = new XansqlClone({ ...this.config, ...(config || {}) });
@@ -48,26 +50,6 @@ class Xansql {
       return self;
    }
 
-   private makeAlias(table: string) {
-      let wordLength = 1;
-      table = table.toLowerCase().replace(/[^a-z0-9_]/g, '_')
-      let alias = table.slice(0, wordLength)
-      while (true) {
-         if (!this._aliases.has(alias) || wordLength > table.length) break;
-         wordLength++;
-         alias = table.slice(0, wordLength);
-      }
-      if (this._aliases.has(alias)) {
-         throw new XansqlError({
-            message: `Cannot create alias for table ${table}, please rename the table to avoid conflicts.`,
-            model: table,
-         });
-      }
-      this._aliases.set(table, alias);
-      return alias;
-   }
-
-
    model(schema: Schema): Model {
       const model = new Model(this, schema);
       if (this.ModelFactory.models.has(schema.table)) {
@@ -76,7 +58,6 @@ class Xansql {
             model: schema.table,
          });
       }
-      model.alias = this.makeAlias(schema.table);
       this.ModelFactory.set(model);
       return model
    }
@@ -119,11 +100,7 @@ class Xansql {
    }
 
    async migrate(force?: boolean) {
-      return await this.XansqlMigration.migrate(force);
-   }
-
-   async generateMigration() {
-      return await this.XansqlMigration.generate();
+      await this.XansqlMigration.migrate(force);
    }
 
    on<K extends keyof EventPayloads>(event: K, handler: EventHandler<K>) {
