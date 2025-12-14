@@ -48,6 +48,7 @@ export type XansqlFileMeta = {
 };
 
 export type XansqlFileConfig = {
+   deleteFileOnMigration?: boolean;
    maxFilesize?: number; // in KB
    checkFileType?: boolean;
    chunkSize?: number; // in KB

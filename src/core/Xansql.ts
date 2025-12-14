@@ -69,13 +69,7 @@ class Xansql {
 
 
    model(schema: Schema): Model {
-      const model = new Model(schema.table, schema.schema);
-      if (!model.IDColumn) {
-         throw new XansqlError({
-            message: `Model ${schema.table} must have an ID column.`,
-            model: schema.table,
-         });
-      }
+      const model = new Model(this, schema);
       if (this.ModelFactory.models.has(schema.table)) {
          throw new XansqlError({
             message: `Model for table ${schema.table} already exists.`,
@@ -83,8 +77,6 @@ class Xansql {
          });
       }
       model.alias = this.makeAlias(schema.table);
-      model.xansql = this;
-      model.hooks = schema.hooks;
       this.ModelFactory.set(model);
       return model
    }

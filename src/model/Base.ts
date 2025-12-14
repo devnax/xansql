@@ -5,6 +5,8 @@ import XansqlError from "../core/XansqlError";
 import { iof } from "../utils";
 import XqlIDField from "../xt/fields/IDField";
 import { XansqlSchemaObject } from "../xt/types";
+import Migrations from "./Migrations";
+import Schema from "./Schema";
 import { XansqlModelHookNames, XansqlModelHooks } from "./types";
 
 type Relation = {
@@ -18,15 +20,18 @@ abstract class ModelBase {
    readonly IDColumn: string = '';
    readonly columns: string[] = [];
    readonly relations: Relation[] = [];
-   hooks: XansqlModelHooks = {};
-   xansql: Xansql = null as any;
+   readonly hooks: XansqlModelHooks = {};
+   readonly xansql: Xansql;
    alias: string = '';
 
-   constructor(table: string, schema: XansqlSchemaObject) {
-      this.table = table;
-      this.schema = schema;
+   constructor(xansql: Xansql, schema: Schema) {
+      this.xansql = xansql;
+      this.table = schema.table;
+      this.schema = schema.schema;
+      this.hooks = schema.hooks;
+
       for (let column in schema) {
-         const field = schema[column];
+         const field = schema.schema[column];
          if (iof(field, XqlIDField)) {
             if (this.IDColumn) {
                throw new XansqlError({
@@ -59,24 +64,8 @@ abstract class ModelBase {
       return await xansql.execute(sql) as any
    }
 
-   async drop() {
-      const sql = `DROP TABLE ${this.table}`;
-      return await this.execute(sql);
-   }
-
-   async migrations() {
-      let tableSql = ""
-
-      return {
-         table: "",
-         drop: "",
-         indexes: [],
-         foreign_keys: [],
-      }
-   }
-
-   isIDColumn(column: string): boolean {
-      return column === this.IDColumn;
+   async truncate() {
+      await this.execute(`TRUNCATE TABLE ${this.table}`);
    }
 
    protected async callHook(hook: XansqlModelHookNames, ...args: any): Promise<any> {

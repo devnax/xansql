@@ -1,3 +1,4 @@
+import Xansql from "../core/Xansql";
 import XansqlError from "../core/XansqlError";
 import { iof } from "../utils";
 import RelationExecuteArgs from "./Args/RelationExcuteArgs";
@@ -7,9 +8,17 @@ import CreateExecuter from "./Executer/Create";
 import DeleteExecuter from "./Executer/Delete";
 import FindExecuter from "./Executer/Find";
 import UpdateExecuter from "./Executer/Update";
+import Migrations from "./Migrations";
+import Schema from "./Schema";
 import { AggregateArgsType, CreateArgsType, DeleteArgsType, FindArgsType, UpdateArgsType, WhereArgsType } from "./types";
 
 class Model extends ModelBase {
+   readonly migrations: Migrations
+
+   constructor(xansql: Xansql, schema: Schema) {
+      super(xansql, schema);
+      this.migrations = new Migrations(this);
+   }
 
    async create(args: CreateArgsType): Promise<any[]> {
       const xansql = this.xansql;
@@ -260,233 +269,12 @@ class Model extends ModelBase {
       return !!(await this.count({ where }))
    }
 
-   async truncate() {
-      await this.execute(`TRUNCATE TABLE ${this.table}`);
+
+
+   async drop() {
+      const sql = this.migrations.down().table
+      await this.execute(sql)
    }
-
-
-   // end Helpers Methods
-   // async createIndex(column: string) {
-   //    const { IndexMigration } = this.xansql.XansqlMigration.TableMigration;
-   //    const indexsql = IndexMigration.buildCreate(this.table, column);
-   //    try {
-   //       let executeId = undefined;
-   //       if (typeof window !== "undefined") {
-   //          executeId = ExecuteMeta.set({
-   //             model: this,
-   //             action: "CREATE_INDEX",
-   //             modelType: "main",
-   //             args: {}
-   //          });
-   //       }
-   //       await this.xansql.execute(indexsql, executeId);
-   //    } catch (error) {
-   //       throw new Error("Index already exists");
-   //    }
-   // }
-
-   // async dropIndex(column: string) {
-   //    const { IndexMigration } = this.xansql.XansqlMigration.TableMigration;
-   //    const indexsql = IndexMigration.buildDrop(this.table, column);
-   //    let executeId = undefined;
-   //    if (typeof window !== "undefined") {
-   //       executeId = ExecuteMeta.set({
-   //          model: this,
-   //          action: "DROP_INDEX",
-   //          modelType: "main",
-   //          args: {}
-   //       });
-   //    }
-   //    await this.xansql.execute(indexsql, executeId);
-   // }
-
-   // async addColumn(column: string) {
-   //    const { TableMigration } = this.xansql.XansqlMigration;
-   //    if (!(column in this.schema)) {
-   //       throw new Error(`Column ${column} already exists in table ${this.table}`);
-   //    }
-
-   //    const field = this.schema[column] as XqlFields;
-   //    if (!field) {
-   //       throw new Error(`Field definition for column ${column} is missing in schema for table ${this.table}`);
-   //    }
-   //    const sqlColumn = TableMigration.buildColumn(this.table, column);
-   //    let sql = `ALTER TABLE ${this.table} ADD COLUMN ${sqlColumn};`;
-   //    let executeId = undefined;
-   //    if (typeof window !== "undefined") {
-   //       executeId = ExecuteMeta.set({
-   //          model: this,
-   //          action: "ADD_COLUMN",
-   //          modelType: "main",
-   //          args: {}
-   //       });
-   //    }
-   //    await this.xansql.execute(sql, executeId);
-   //    this.schema[column] = field;
-
-   //    // add foreign key if exists
-   //    const meta = field.meta || {};
-   //    if (Foreign.isSchema(field)) {
-   //       const info = Foreign.get(this, column)
-   //       const fkSql = TableMigration.ForeignKeyMigration.buildCreate(this.table, column, info.table, info.relation.main);
-   //       let executeId = undefined;
-   //       if (typeof window !== "undefined") {
-   //          executeId = ExecuteMeta.set({
-   //             model: this,
-   //             action: "ADD_FOREIGN_KEY",
-   //             modelType: "main",
-   //             args: {}
-   //          });
-   //       }
-   //       await this.xansql.execute(`ALTER TABLE ${this.table} ADD ${fkSql};`, executeId);
-   //    }
-
-   //    // add index if exists
-   //    if (meta.index) {
-   //       const indexSql = TableMigration.IndexMigration.buildCreate(this.table, column);
-   //       let executeId = undefined;
-   //       if (typeof window !== "undefined") {
-   //          executeId = ExecuteMeta.set({
-   //             model: this,
-   //             action: "CREATE_INDEX",
-   //             modelType: "main",
-   //             args: {}
-   //          });
-   //       }
-   //       await this.xansql.execute(indexSql, executeId);
-   //    }
-
-   // }
-
-   // async renameColumn(oldColumn: string, newColumn: string) {
-   //    if (!(oldColumn in this.schema)) {
-   //       throw new Error(`Column ${oldColumn} does not exist in table ${this.table}`);
-   //    }
-   //    if (newColumn in this.schema) {
-   //       throw new Error(`Column ${newColumn} already exists in table ${this.table}`);
-   //    }
-   //    const engine = this.xansql.config.dialect.engine;
-   //    let sql = ``;
-
-   //    if (engine === 'mysql') {
-   //       sql = `ALTER TABLE ${this.table} CHANGE COLUMN ${oldColumn} ${newColumn} ${this.xansql.XansqlMigration.TableMigration.buildColumn(this.table, oldColumn)};`;
-   //    } else if (engine === 'postgresql') {
-   //       sql = `ALTER TABLE ${this.table} RENAME COLUMN ${oldColumn} TO ${newColumn};`;
-   //    } else if (engine === 'sqlite') {
-   //       throw new Error(`Renaming columns is not supported in SQLite`);
-   //    }
-   //    let executeId = undefined;
-   //    if (typeof window !== "undefined") {
-   //       executeId = ExecuteMeta.set({
-   //          model: this,
-   //          action: "RENAME_COLUMN",
-   //          modelType: "main",
-   //          args: {}
-   //       });
-   //    }
-   //    await this.xansql.execute(sql, executeId);
-   //    const field = this.schema[oldColumn];
-   //    delete this.schema[oldColumn];
-   //    this.schema[newColumn] = field;
-
-   //    // rename foreign key if exists
-   //    const fieldMeta = field.meta || {};
-   //    if (Foreign.isSchema(field)) {
-   //       const fkOld = this.xansql.XansqlMigration.TableMigration.ForeignKeyMigration.identifier(this.table, oldColumn);
-   //       const fkNew = this.xansql.XansqlMigration.TableMigration.ForeignKeyMigration.identifier(this.table, newColumn);
-   //       let fsql = ``;
-   //       if (engine === 'mysql') {
-   //          fsql = `ALTER TABLE ${this.table} DROP FOREIGN KEY ${fkOld}, ADD CONSTRAINT ${fkNew} FOREIGN KEY (${newColumn}) REFERENCES ${Foreign.get(this, newColumn).table}(${Foreign.get(this, newColumn).relation.main});`;
-   //       } else if (engine === 'postgresql') {
-   //          fsql = `ALTER TABLE ${this.table} RENAME CONSTRAINT ${fkOld} TO ${fkNew};`;
-   //       } else if (engine === 'sqlite') {
-   //          throw new Error(`Renaming foreign keys is not supported in SQLite`);
-   //       }
-   //       let executeId = undefined;
-   //       if (typeof window !== "undefined") {
-   //          executeId = ExecuteMeta.set({
-   //             model: this,
-   //             action: "DROP_FOREIGN_KEY",
-   //             modelType: "main",
-   //             args: {}
-   //          });
-   //       }
-   //       await this.xansql.execute(fsql, executeId);
-   //    }
-
-   //    // rename index if exists
-   //    if (fieldMeta.index) {
-   //       const indexOld = this.xansql.XansqlMigration.TableMigration.IndexMigration.identifier(this.table, oldColumn);
-   //       const indexNew = this.xansql.XansqlMigration.TableMigration.IndexMigration.identifier(this.table, newColumn);
-   //       let isql = ``;
-   //       if (engine === 'mysql') {
-   //          isql = `ALTER TABLE ${this.table} DROP INDEX ${indexOld}, ADD INDEX ${indexNew} (${newColumn});`;
-   //       } else if (engine === 'postgresql') {
-   //          isql = `ALTER INDEX ${indexOld} RENAME TO ${indexNew};`;
-   //       } else if (engine === 'sqlite') {
-   //          throw new Error(`Renaming indexes is not supported in SQLite`);
-   //       }
-   //       let executeId = undefined;
-   //       if (typeof window !== "undefined") {
-   //          executeId = ExecuteMeta.set({
-   //             model: this,
-   //             action: "DROP_INDEX",
-   //             modelType: "main",
-   //             args: {}
-   //          });
-   //       }
-   //       await this.xansql.execute(isql, executeId);
-   //    }
-   // }
-
-   // async dropColumn(column: string) {
-
-   //    let sql = `ALTER TABLE ${this.table} DROP COLUMN ${column};`;
-   //    let executeId = undefined;
-   //    if (typeof window !== "undefined") {
-   //       executeId = ExecuteMeta.set({
-   //          model: this,
-   //          action: "DROP_COLUMN",
-   //          modelType: "main",
-   //          args: {}
-   //       });
-   //    }
-   //    await this.xansql.execute(sql, executeId);
-   //    const field = this.schema[column];
-   //    delete this.schema[column];
-   //    const fieldMeta = field.meta || {};
-
-   //    // drop foreign key if exists
-   //    if (Foreign.isSchema(field)) {
-   //       const fkSql = this.xansql.XansqlMigration.TableMigration.ForeignKeyMigration.buildDrop(this.table, column);
-   //       let executeId = undefined;
-   //       if (typeof window !== "undefined") {
-   //          executeId = ExecuteMeta.set({
-   //             model: this,
-   //             action: "ADD_FOREIGN_KEY",
-   //             modelType: "main",
-   //             args: {}
-   //          });
-   //       }
-   //       await this.xansql.execute(fkSql, executeId);
-   //    }
-
-   //    // drop index if exists
-   //    if (fieldMeta.index) {
-   //       const indexSql = this.xansql.XansqlMigration.TableMigration.IndexMigration.buildDrop(this.table, column);
-   //       let executeId = undefined;
-   //       if (typeof window !== "undefined") {
-   //          executeId = ExecuteMeta.set({
-   //             model: this,
-   //             action: "CREATE_INDEX",
-   //             modelType: "main",
-   //             args: {}
-   //          });
-   //       }
-   //       await this.xansql.execute(indexSql, executeId);
-   //    }
-   // }
-
 }
 
 export default Model;

@@ -17,43 +17,36 @@ class XansqlMigration {
 
    async migrate(force?: boolean) {
       const xansql = this.xansql;
-      const dialect = xansql.config.dialect;
-      const engine = dialect.engine;
+      const engine = xansql.config.dialect.engine;
       const { options, tables, indexes } = this.TableMigration.statements();
-      const models = Array.from(xansql.models.values()).reverse();
 
       if (force) {
-         if (dialect.file && typeof dialect.file.delete === "function") {
-            let is = dialect.file.deleteFileOnMigration ?? true;
-            if (is) {
-               for (let model of models) {
-                  const fileWhere: any[] = [];
-                  for (let column in model.schema) {
-                     const field = model.schema[column];
-                     if (iof(field, XqlFile)) {
-                        fileWhere.push({ [column]: { isNotNull: true } });
-                     }
-                  }
+         const models = Array.from(xansql.models.values()).reverse();
 
-                  if (Object.keys(fileWhere).length > 0) {
-                     try {
-                        await model.delete({
-                           where: fileWhere,
-                           select: { [model.IDColumn]: true }
-                        });
-                     } catch (error) { }
-                  }
+         for (let model of models) {
+            const fileWhere: any[] = [];
+            for (let column in model.schema) {
+               const field = model.schema[column];
+               if (iof(field, XqlFile)) {
+                  fileWhere.push({ [column]: { isNotNull: true } });
                }
+            }
+
+            if (Object.keys(fileWhere).length > 0) {
+               try {
+                  await model.delete({
+                     where: fileWhere,
+                     select: { [model.IDColumn]: true }
+                  });
+               } catch (error) { }
             }
          }
 
          for (let model of models) {
-            const migrations = model.migrations.down()
+            const dsql = this.TableMigration.buildDrop(model);
             try {
-               await model.drop()
-            } catch (error) {
-
-            }
+               await xansql.execute(dsql);
+            } catch (error) { }
          }
       }
 
