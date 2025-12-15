@@ -86,8 +86,9 @@ class XansqlMigration {
 
    async dropAll() {
       const xansql = this.xansql;
+      const models = Array.from(xansql.models.values()).reverse();
 
-      for (let model of xansql.models.values()) {
+      for (let model of models) {
          const migrations = model.migrations.down()
          for (let index in migrations.indexes) {
             try {
@@ -112,7 +113,7 @@ class XansqlMigration {
          }
       }
 
-      for (let model of xansql.models.values()) {
+      for (let model of models) {
          try {
             await model.drop()
          } catch (error) { }
