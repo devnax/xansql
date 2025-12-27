@@ -1,13 +1,15 @@
 {
    "name": "xansql",
-   "version": "1.0.19",
+   "version": "1.0.20",
    "main": "./index.cjs",
    "module": "./index.mjs",
    "types": "./index.d.ts",
    "type": "module",
    "description": "",
    "keywords": [],
-   "sideEffects": false,
+   "sideEffects": [
+      "src/utils.ts"
+   ],
    "scripts": {
       "start": "makepack start",
       "build": "makepack build",
@@ -27,7 +29,7 @@
       "dotenv": "^16.5.0",
       "express": "^5.1.0",
       "faker": "^6.6.6",
-      "makepack": "^1.7.22",
+      "makepack": "^1.7.23",
       "mysql2": "^3.14.0",
       "pg": "^8.16.3",
       "react": "^19.1.0",
