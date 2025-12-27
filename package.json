@@ -1,6 +1,6 @@
 {
    "name": "xansql",
-   "version": "1.0.18",
+   "version": "1.0.19",
    "main": "./index.cjs",
    "module": "./index.mjs",
    "types": "./index.d.ts",
@@ -27,12 +27,12 @@
       "dotenv": "^16.5.0",
       "express": "^5.1.0",
       "faker": "^6.6.6",
-      "makepack": "^1.7.21",
+      "makepack": "^1.7.22",
       "mysql2": "^3.14.0",
       "pg": "^8.16.3",
       "react": "^19.1.0",
       "react-dom": "^19.1.0",
-      "securequ": "^1.1.10",
+      "securequ": "^1.1.12",
       "tslib": "^2.8.1",
       "typescript": "^5.9.3"
    },
@@ -40,12 +40,12 @@
       ".": {
          "types": "./index.d.ts",
          "import": "./index.mjs",
-         "require": "./index.cjs"
+         "require": "./index.js"
       },
       "./dialect/*": {
          "types": "./dialect/*.d.ts",
          "import": "./dialect/*.mjs",
-         "require": "./dialect/*.cjs"
+         "require": "./dialect/*.js"
       }
    }
 }
