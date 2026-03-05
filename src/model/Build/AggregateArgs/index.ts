@@ -65,7 +65,7 @@ class BuildAggregateArgs {
                      ${args.groupBy?.length ? largs.sql : ""}
                   `.trim()
       sql = sql.replace(/\s+/gi, " ")
-      const execute = await model.execute(sql)
+      const execute = await model.execute(sql, args.debug)
       return execute.results
    }
 }

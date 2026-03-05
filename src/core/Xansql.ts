@@ -36,10 +36,10 @@ class Xansql {
       return _model as Model<ReturnType<M['schema']>>
    }
 
-   async execute(sql: string): Promise<ExecuterResult> {
+   async execute(sql: string, debug = this.config.debug): Promise<ExecuterResult> {
       const query = sql.trim().replace(/\s+/g, ' ');
 
-      const isDebug = this.config.debug && !sql.includes(this.Migration.model.table)
+      const isDebug = debug ?? false
 
       if (isDebug) {
          console.log(`[DB] Executing → ${query}`);

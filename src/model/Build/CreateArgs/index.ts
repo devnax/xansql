@@ -122,7 +122,7 @@ class BuildCreateArgs {
             let sql = `INSERT INTO ${model.table} (${Object.keys(values).join(', ')}) VALUES (${Object.values(values).join(", ")})`
             if (engine === "postgres") sql += ` RETURNING ${model.IDColumn}`
             sql = sql.replace(/\s+/gi, " ")
-            const results = await model.execute(sql)
+            const results = await model.execute(sql, args.debug)
             insertId = results?.insertId
             if (results.results?.length && engine === "postgres") {
                insertId = results.results[0][model.IDColumn]
@@ -148,7 +148,7 @@ class BuildCreateArgs {
                   rdata[rinfo.target.relation] = insertId
                }
 
-               const build = new BuildCreateArgs({ data: rdata }, RModel, true)
+               const build = new BuildCreateArgs({ data: rdata, debug: args.debug }, RModel, true)
                await build.results()
             }
          }
@@ -159,7 +159,8 @@ class BuildCreateArgs {
                select: sargs,
                where: {
                   [model.IDColumn]: insertId
-               }
+               },
+               debug: args.debug
             }, model)
             return await buildFind.results()
          }

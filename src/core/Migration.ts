@@ -59,10 +59,10 @@ class Migration {
       }
 
       const sql = `CREATE TABLE IF NOT EXISTS ${model.table}(${column_sqls.join(",")})`
-      await model.execute(sql)
+      await model.execute(sql, false)
       for (let idxql of index_sqls) {
          try {
-            await model.execute(idxql)
+            await model.execute(idxql, false)
          } catch (error) { }
       }
 
@@ -80,7 +80,7 @@ class Migration {
 
                } else {
                   // Add column
-                  await model.execute(info.sql.alter_column)
+                  await model.execute(info.sql.alter_column, false)
                }
             }
          }
@@ -97,7 +97,8 @@ class Migration {
          where: {
             model: model.table
          },
-         useTransection: false
+         useTransection: false,
+         debug: false
       })
    }
 

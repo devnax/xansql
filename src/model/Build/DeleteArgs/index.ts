@@ -42,7 +42,8 @@ class BuildDeleteArgs {
                            }
                         }
                      },
-                     where: args.where
+                     where: args.where,
+                     debug: false
                   }, m)
                   const res = await fargs.results()
                   if (res?.length) {
@@ -65,7 +66,8 @@ class BuildDeleteArgs {
                                  [model.IDColumn]: {
                                     in: chunk
                                  }
-                              }
+                              },
+                              debug: args.debug
                            }, m)
                            await build.results()
                         }
@@ -77,7 +79,8 @@ class BuildDeleteArgs {
                         },
                         where: {
                            [col]: args.where
-                        }
+                        },
+                        debug: args.debug
                      }, m)
                      await build.results()
                   }
@@ -90,7 +93,8 @@ class BuildDeleteArgs {
                                  [model.IDColumn]: {
                                     in: chunk
                                  }
-                              }
+                              },
+                              debug: args.debug
                            }, m, true)
 
                            await build.results()
@@ -100,7 +104,8 @@ class BuildDeleteArgs {
                      const build = new BuildDeleteArgs({
                         where: {
                            [col]: args.where
-                        }
+                        },
+                        debug: args.debug
                      }, m, true)
                      await build.results()
                   }
@@ -124,7 +129,8 @@ class BuildDeleteArgs {
             [model.IDColumn]: true,
             ..._select
          },
-         where: args.where
+         where: args.where,
+         debug: false
       }, model)
       const fileRows = await fargs.results()
 
@@ -135,7 +141,7 @@ class BuildDeleteArgs {
       }
 
       const sql = `DELETE FROM ${model.table} as ${model.alias} ${wargs.sql}`.trim()
-      const execute = await model.execute(sql)
+      const execute = await model.execute(sql, args.debug)
 
       if (execute.affectedRows && fileRows?.length) {
          for (let { chunk } of chunkArray(fileRows)) {

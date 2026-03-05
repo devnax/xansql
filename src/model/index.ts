@@ -47,19 +47,52 @@ abstract class Model<S extends SchemaShape = SchemaShape> {
          }
       }
 
-      const aliases = Array.from(xansql.models.values()).map(m => m.alias)
-      const parts = this.table.split(/_|(?=[A-Z])/);
-      let alias = parts.map(p => p[0]).join('');
-      if (!alias || alias.length < 1) {
-         alias = this.table.slice(0, 2);
-      }
-      alias = alias.toLowerCase();
-      let counter = 1;
+      // const aliases = Array.from(xansql.models.values()).map(m => m.alias)
+      // const parts = this.table.split(/_|(?=[A-Z])/);
+      // let alias = parts.map(p => p[0]).join('');
+      // if (!alias || alias.length < 1) {
+      //    alias = this.table.slice(0, 2);
+      // }
+      // alias = alias.toLowerCase();
+      // let counter = 1;
+      // while (aliases.includes(alias)) {
+      //    alias = alias + counter;
+      //    counter++;
+      // }
+      // this.alias = alias
+
+      const aliases = Array.from(xansql.models.values()).map(m => m.alias);
+      const parts = this.table.split(/_|(?=[A-Z])/).filter(Boolean);
+
+      let alias = parts.map(p => p[0]).join('').toLowerCase(); // up
+      let indexes = parts.map(() => 1);
+
       while (aliases.includes(alias)) {
-         alias = alias + counter;
-         counter++;
+         let changed = false;
+
+         for (let i = 0; i < parts.length; i++) {
+            if (indexes[i] < parts[i].length) {
+               indexes[i]++;
+               changed = true;
+               break;
+            }
+         }
+
+         if (!changed) break;
+
+         alias = parts.map((p, i) => p.slice(0, indexes[i])).join('').toLowerCase();
       }
-      this.alias = alias
+
+      if (aliases.includes(alias)) {
+         let counter = 1;
+         let temp = alias;
+         while (aliases.includes(temp)) {
+            temp = alias + counter;
+            counter++;
+         }
+         alias = temp;
+      }
+      this.alias = alias;
 
       let migration_columns = []
       let index_sqls = []
@@ -186,10 +219,9 @@ abstract class Model<S extends SchemaShape = SchemaShape> {
       return new ModelWhere<S>(this, inColumn, where)
    }
 
-   async execute(sql: string) {
-      return this.xansql.execute(sql)
+   async execute(sql: string, debug?: boolean) {
+      return this.xansql.execute(sql, debug)
    }
-
 
    async find<T extends FindArgs<S>>(args: ExactArgs<T, FindArgs<S>>): Promise<FindResult<T, S>[] | null> {
       try {

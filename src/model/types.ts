@@ -158,7 +158,8 @@ export type AggregateArgs<S extends SchemaShape, T extends AggregateArgs<any, an
    orderBy?: AggregateOrderBy<T['groupBy']>;
    limit?: LimitArgs;
    where?: WhereArgs<S>;
-   select: AggregateSelectArgs<S>
+   select: AggregateSelectArgs<S>;
+   debug?: boolean
 }
 
 // FIND ARGS
@@ -174,7 +175,8 @@ export type FindArgs<S extends SchemaShape> = {
    select?: SelectArgs<S>
    limit?: LimitArgs
    orderBy?: OrderByArgs<S>;
-   aggregate?: FindAggregateArgs<S>
+   aggregate?: FindAggregateArgs<S>;
+   debug?: boolean
 }
 
 // Fix FindResult so missing select returns full shape
@@ -247,6 +249,7 @@ export type CreateArgs<S extends SchemaShape> = {
    data: CreateDataArgs<S> | CreateDataArgs<S>[];
    select?: SelectArgs<S>;
    useTransection?: boolean;
+   debug?: boolean
 }
 
 
@@ -275,6 +278,7 @@ export type UpdateArgs<S extends SchemaShape> = Normalize<{
    data: UpdateDataArgs<S>;
    where: Normalize<WhereArgs<S>>;
    useTransection?: boolean;
+   debug?: boolean
 }>
 
 // UPSERT
@@ -283,6 +287,7 @@ export type UpsertArgs<S extends SchemaShape> = {
    update: UpdateDataArgs<S>;
    where: WhereArgs<S>;
    useTransection?: boolean;
+   debug?: boolean
 }
 
 // DELETE ARGS
@@ -290,6 +295,7 @@ export type DeleteArgs<S extends SchemaShape> = {
    where: WhereArgs<S>;
    select?: SelectArgs<S>;
    useTransection?: boolean;
+   debug?: boolean
 }
 
 

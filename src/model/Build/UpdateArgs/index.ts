@@ -83,7 +83,8 @@ class BuildUpdateArgs {
          }
          const build = new BuildFindArgs({
             select,
-            where: args.where
+            where: args.where,
+            debug: false
          }, model)
          oldFileResults = await build.results()
       }
@@ -91,7 +92,7 @@ class BuildUpdateArgs {
       let execute
       try {
          let sql = `UPDATE ${model.table} as ${model.alias} SET ${values.join(", ")} ${wargs.sql}`.trim()
-         execute = await model.execute(sql.replace(/\s+/gi, " "))
+         execute = await model.execute(sql.replace(/\s+/gi, " "), args.debug)
       } catch (error) {
          for (let col in fileMetas) {
             await xansql.deleteFile(fileMetas[col].fileId)
@@ -125,7 +126,8 @@ class BuildUpdateArgs {
                where: {
                   ...rargs.where,
                   [rinfo.target.column]: args.where
-               }
+               },
+               debug: args.debug
             }, RModel, true)
             await build.results()
          }
@@ -137,7 +139,8 @@ class BuildUpdateArgs {
             select: sargs,
             where: {
                ...args.where,
-            }
+            },
+            debug: args.debug
          }, model)
          return await buildFind.results()
       }

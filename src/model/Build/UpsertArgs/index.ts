@@ -12,13 +12,15 @@ class BuildUpsertArgs {
 
       const uargs = new BuildUpdateArgs({
          data: args.update,
-         where: args.where
+         where: args.where,
+         debug: args.debug
       }, model)
 
       const results = await uargs.results()
       if (!results?.length) {
          const cargs = new BuildCreateArgs({
             data: args.create,
+            debug: args.debug
          }, model)
          return await cargs.results()
       }

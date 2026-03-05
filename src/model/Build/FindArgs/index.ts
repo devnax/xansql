@@ -35,7 +35,7 @@ class BuildFindArgs<A extends FindArgs<any> = any> {
          }
          wargs.parts.push(`${model.alias}.${subQueryInfo.column} IN (${subQueryInfo.ins.join(",")})`)
       }
-      let sql = `SELECT  ${args.distinct ? "DISTINCT" : ""} ${sargs.sql} FROM ${model.table} as ${model.alias} ${wargs.sql} ${largs.sql} ${oargs.sql}`
+      let sql = `SELECT  ${args.distinct ? "DISTINCT" : ""} ${sargs.sql} FROM ${model.table} as ${model.alias} ${wargs.sql} ${oargs.sql} ${largs.sql}`
 
       if (subQueryInfo && largs.sql) {
          const orderBySql = oargs.sql ? oargs.sql : `ORDER BY ${model.alias}.${model.IDColumn}`
@@ -58,17 +58,8 @@ class BuildFindArgs<A extends FindArgs<any> = any> {
       sql = sql.replace(/\s+/gi, " ")
 
       // execute model
-      const execute = await model.execute(sql)
+      const execute = await model.execute(sql, args.debug)
       const results = execute.results
-
-
-
-      const indexes: {
-         [column: string]: {
-            [id: number]: number
-         }
-      } = {}
-
       const rowIds = []
       const rowIndexes: { [id: number]: number } = {}
       const relIds: {
@@ -137,7 +128,8 @@ class BuildFindArgs<A extends FindArgs<any> = any> {
                            in: rowIds
                         }
                      }
-                  }
+                  },
+                  debug: args.debug
                }, RModel)
 
                const agresults = await agargs.results()
@@ -177,7 +169,7 @@ class BuildFindArgs<A extends FindArgs<any> = any> {
             if (!in_ids.length) continue
             const RModel = xansql.model(field.model)
             const rargs = sargs.relations[col]
-
+            rargs.debug = args.debug
             const f = new BuildFindArgs(rargs as any, RModel, {
                column: rel_column,
                ins: in_ids
