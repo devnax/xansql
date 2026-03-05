@@ -1,0 +1,8 @@
+node_modules
+.mpack 
+.env
+db.sqlite*
+.db
+uploads
+package-lock.json
+/src/dialect

@@ -1,0 +1,57 @@
+{
+   "name": "@xansql/core",
+   "version": "1.1.14",
+   "main": "./index.cjs",
+   "module": "./index.js",
+   "types": "./index.d.ts",
+   "type": "module",
+   "description": "XanSQL Core Library",
+   "author": "Devnax",
+   "publishConfig": {
+      "access": "public"
+   },
+   "keywords": [],
+   "sideEffects": [],
+   "repository": {
+      "type": "git",
+      "url": "https://github.com/xansql/core"
+   },
+   "scripts": {
+      "start": "makepack start -p 1234",
+      "build": "makepack build",
+      "release": "makepack release"
+   },
+   "dependencies": {
+      "xanv": "^1.1.24"
+   },
+   "devDependencies": {
+      "@faker-js/faker": "^9.7.0",
+      "@types/express": "^5.0.5",
+      "@types/react": "^19.0.2",
+      "@types/react-dom": "^19.0.2",
+      "@xansql/bridge": "^1.0.7",
+      "@xansql/mysql-dialect": "^1.0.1",
+      "@xansql/sqlite-dialect": "^1.0.0",
+      "dotenv": "^16.5.0",
+      "express": "^5.1.0",
+      "faker": "^6.6.6",
+      "makepack": "^1.7.28",
+      "react": "^19.1.0",
+      "react-dom": "^19.1.0",
+      "securequ": "^1.1.22",
+      "tslib": "^2.8.1",
+      "typescript": "^5.9.3"
+   },
+   "exports": {
+      ".": {
+         "import": "./index.js",
+         "require": "./index.cjs",
+         "types": "./index.d.ts"
+      },
+      "./dialects/*": {
+         "import": "./dialects/*/index.js",
+         "require": "./dialects/*/index.cjs",
+         "types": "./dialects/*/index.d.ts"
+      }
+   }
+}
