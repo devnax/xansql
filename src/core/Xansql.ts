@@ -39,21 +39,23 @@ class Xansql {
    async execute(sql: string): Promise<ExecuterResult> {
       const query = sql.trim().replace(/\s+/g, ' ');
 
-      if (this.config.debug) {
+      const isDebug = this.config.debug && !sql.includes(this.Migration.model.table)
+
+      if (isDebug) {
          console.log(`[DB] Executing → ${query}`);
       }
 
       try {
          const result = await this.dialect.execute(query, this) as ExecuterResult;
 
-         if (this.config.debug) {
+         if (isDebug) {
             console.log(`[DB] Executed ✓`);
             console.dir(result, { depth: null });
          }
 
          return result;
       } catch (error) {
-         if (this.config.debug) {
+         if (isDebug) {
             console.error(`[DB] Execution failed ✗`);
             console.error(query);
          }

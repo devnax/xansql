@@ -15,9 +15,9 @@ class XqlEnum<const T extends string | number> extends XVEnum<T> {
          return `'${escapeSqlValue(_value)}'`
       },
 
-      fromSql: (value: string): ReturnType<typeof this.parse> => {
+      fromSql: (value: unknown): ReturnType<typeof this.parse> => {
          if (value === null || value === undefined) return null
-         return JSON.parse(value);
+         return value as any
       }
    }
 

@@ -14,7 +14,7 @@ class XansqlConfig {
          code: "INTERNAL_ERROR",
          message: `Dialect configuration is required in Xansql config.`,
       })
-      if (!config.dialect.engine && !config.dialect.execute) throw new XansqlError({
+      if (!config.dialect.engine || !config.dialect.execute) throw new XansqlError({
          code: "INTERNAL_ERROR",
          message: `Dialect engine and execute function are required in Xansql config.`,
       })

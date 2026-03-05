@@ -5,10 +5,11 @@ export class UserModel extends Model {
       return {
          uid: xt.id(),
          name: xt.string(),
-         age: xt.number(),
+         age: xt.number().default(20),
          photo: xt.photo().nullable(),
          email: xt.string().email().unique().nullable(),
          phone: xt.number().nullable(),
+         role: xt.enum(["admin", "user"]),
          create_at: xt.date().createdAt(),
          update_at: xt.date().updatedAt(),
          products: xt.many(ProductModel, 'user'),

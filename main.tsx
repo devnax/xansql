@@ -50,6 +50,7 @@ const App = () => {
             data: {
               name: "asdasd",
               age: 20,
+              role: "admin",
               email: Math.random() + "asd@gmail.com",
               photo: file as any
             }

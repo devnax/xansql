@@ -229,6 +229,7 @@ export type CreateDataArgs<S extends SchemaShape> = Normalize<{
    S[C] extends XqlIDField ? never :
    S[C] extends XqlRelationMany<any> ? never :
    S[C]['meta'] extends { nullable: true } ? never :
+   S[C]['meta'] extends { default: any } ? never :
    S[C]['meta'] extends { createdAt: true } ? never :
    S[C]['meta'] extends { updatedAt: true } ? never : C
    ]: CreateDataValue<S[C]>
@@ -236,7 +237,9 @@ export type CreateDataArgs<S extends SchemaShape> = Normalize<{
    [
    C in keyof S as
    S[C] extends XqlRelationMany<any> ? C :
-   S[C]['meta'] extends { nullable: true } ? C : never
+   S[C]['meta'] extends { nullable: true } ? C :
+   S[C]['meta'] extends { default: any } ? C :
+   never
    ]?: CreateDataValue<S[C]>
 }>
 
