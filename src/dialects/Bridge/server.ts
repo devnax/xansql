@@ -117,13 +117,7 @@ class XansqlBridgeServer {
 
       const server = await this.initial()
       try {
-
-         const res = await server.listen(url, options)
-         return {
-            status: res.status,
-            value: res.value,
-            contentType: res.contentType
-         }
+         return await server.listen(url, options)
       } catch (error: any) {
 
          const secret = await makeSecret(this.xansql)

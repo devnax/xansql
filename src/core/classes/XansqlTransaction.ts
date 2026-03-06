@@ -13,7 +13,7 @@ class XansqlTransaction {
       clearTimeout(this.commitTimer!)
       if (!this.active) {
          this.active = true
-         await this.xansql.execute("BEGIN")
+         await this.xansql.execute("BEGIN", false)
       }
    }
 
@@ -21,7 +21,7 @@ class XansqlTransaction {
       this.commitTimer = setTimeout(async () => {
          if (!this.active) return
          this.active = false
-         await this.xansql.execute("COMMIT")
+         await this.xansql.execute("COMMIT", false)
       }, 0)
    }
 
@@ -29,7 +29,7 @@ class XansqlTransaction {
       this.commitTimer = setTimeout(async () => {
          if (!this.active) return
          this.active = false
-         await this.xansql.execute("ROLLBACK")
+         await this.xansql.execute("ROLLBACK", false)
       }, 0)
    }
 }

@@ -37,7 +37,6 @@ class Xansql {
 
    async execute(sql: string, debug = this.config.debug): Promise<ExecuterResult> {
       const query = sql.trim().replace(/\s+/g, ' ');
-
       const isDebug = debug ?? false
 
       if (isDebug) {
@@ -45,12 +44,12 @@ class Xansql {
       }
 
       try {
-         const result = await this.dialect.execute(query, this) as ExecuterResult;
+         const execute = await this.dialect.execute(query, this) as ExecuterResult;
          if (isDebug) {
             console.log(`[DB] Executed ✓`);
-            console.dir(result, { depth: null });
+            console.dir(execute.results, { depth: null });
          }
-         return result;
+         return execute;
       } catch (error) {
          if (isDebug) {
             console.error(`[DB] Execution failed ✗`);
