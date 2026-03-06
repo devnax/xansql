@@ -114,22 +114,8 @@ class XansqlBridgeServer {
    }
 
    async listen(url: string, options: ListenOptions) {
-
       const server = await this.initial()
-      try {
-         return await server.listen(url, options)
-      } catch (error: any) {
-
-         const secret = await makeSecret(this.xansql)
-
-         return {
-            status: 500,
-            value: await crypto.encryptBuffer({
-               success: false,
-               message: error.message || 'Internal Server Error'
-            }, secret)
-         }
-      }
+      return await server.listen(url, options)
    }
 }
 
