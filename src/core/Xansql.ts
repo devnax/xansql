@@ -8,7 +8,6 @@ import { chunkFile, getFileId, totalChunks } from "../utils/file";
 import Migration from "./Migration";
 import fileScaner from "../utils/fileScaner";
 
-
 class Xansql {
    private XansqlConfig: XansqlConfig;
    readonly config: XansqlConfigTypeRequired;
@@ -47,20 +46,17 @@ class Xansql {
 
       try {
          const result = await this.dialect.execute(query, this) as ExecuterResult;
-
          if (isDebug) {
             console.log(`[DB] Executed ✓`);
             console.dir(result, { depth: null });
          }
-
          return result;
       } catch (error) {
          if (isDebug) {
             console.error(`[DB] Execution failed ✗`);
             console.error(query);
          }
-
-         throw error; // never swallow DB errors
+         throw error
       }
    }
 
@@ -123,9 +119,13 @@ class Xansql {
       }
       return await this.config.file.delete(fileId, this);
    }
+
+   async migrate() {
+      const models = Array.from(this.models.values())
+      for (let model of models) {
+         await this.Migration.migrate(model)
+      }
+   }
 }
-
-class XansqlClone extends Xansql { }
-
 
 export default Xansql

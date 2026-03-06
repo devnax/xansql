@@ -122,6 +122,7 @@ class XansqlBridgeServer {
          return {
             status: res.status,
             value: res.value,
+            contentType: res.contentType
          }
       } catch (error: any) {
 

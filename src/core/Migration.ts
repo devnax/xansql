@@ -106,7 +106,8 @@ class Migration {
       return await this.model.findOne({
          where: {
             model: model.table
-         }
+         },
+         debug: false
       })
    }
 
@@ -119,7 +120,7 @@ class Migration {
 
    async has(model: Model) {
       return await this.model.count({
-         model: model.table
+         model: model.table,
       })
    }
 }

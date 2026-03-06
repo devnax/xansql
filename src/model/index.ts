@@ -183,11 +183,6 @@ abstract class Model<S extends SchemaShape = SchemaShape> {
       }
 
       this.schema = (() => fields).bind(this)
-
-      // migration server only
-      if (this.table !== "_xansql_migration") {
-         xansql.Migration.migrate(this)
-      }
    }
 
    // private async migrationInit() {
@@ -326,7 +321,7 @@ abstract class Model<S extends SchemaShape = SchemaShape> {
             skip
          }
       })
-      const total = await this.count(args?.where || {} as WhereArgs<S>)
+      const total = await this.count(args?.where || {} as WhereArgs<S>, args.debug)
       return {
          results,
          total,
@@ -336,24 +331,25 @@ abstract class Model<S extends SchemaShape = SchemaShape> {
       }
    }
 
-   async exists(where: WhereArgs<S>): Promise<boolean> {
-      return !!(await this.count(where))
+   async exists(where: WhereArgs<S>, debug?: boolean): Promise<boolean> {
+      return !!(await this.count(where, debug))
    }
 
    // Aggregate Methods
-   async count(where: WhereArgs<S>): Promise<number> {
+   async count(where: WhereArgs<S>, debug?: boolean): Promise<number> {
       const res: any = await this.aggregate({
          where,
          select: {
             [this.IDColumn]: {
                count: true
             }
-         } as any
+         } as any,
+         debug
       })
       return res?.length ? res[0][`count_${this.IDColumn}`] : 0
    }
 
-   async min(column: string, where: WhereArgs<S>): Promise<number> {
+   async min(column: string, where: WhereArgs<S>, debug?: boolean): Promise<number> {
       if (!(column in this.schema)) {
          throw new XansqlError({
             code: "INVALID_ARGUMENTS",
@@ -368,12 +364,13 @@ abstract class Model<S extends SchemaShape = SchemaShape> {
             [column]: {
                min: true
             }
-         } as any
+         } as any,
+         debug
       })
       return res?.length ? res[0][`min_${column}`] : 0
    }
 
-   async max(column: string, where: WhereArgs<S>): Promise<number> {
+   async max(column: string, where: WhereArgs<S>, debug?: boolean): Promise<number> {
       if (!(column in this.schema)) {
          throw new XansqlError({
             code: "INVALID_ARGUMENTS",
@@ -388,12 +385,13 @@ abstract class Model<S extends SchemaShape = SchemaShape> {
             [column]: {
                max: true
             }
-         } as any
+         } as any,
+         debug
       })
       return res?.length ? res[0][`max_${column}`] : 0
    }
 
-   async sum(column: string, where: WhereArgs<S>): Promise<number> {
+   async sum(column: string, where: WhereArgs<S>, debug?: boolean): Promise<number> {
       if (!(column in this.schema)) {
          throw new XansqlError({
             code: "INVALID_ARGUMENTS",
@@ -408,12 +406,13 @@ abstract class Model<S extends SchemaShape = SchemaShape> {
             [column]: {
                sum: true
             }
-         } as any
+         } as any,
+         debug
       })
       return res?.length ? res[0][`sum_${column}`] : 0
    }
 
-   async avg(column: string, where: WhereArgs<S>): Promise<number> {
+   async avg(column: string, where: WhereArgs<S>, debug?: boolean): Promise<number> {
       if (!(column in this.schema)) {
          throw new XansqlError({
             code: "INVALID_ARGUMENTS",
@@ -428,7 +427,8 @@ abstract class Model<S extends SchemaShape = SchemaShape> {
             [column]: {
                avg: true
             }
-         } as any
+         } as any,
+         debug
       })
       return res?.length ? res[0][`avg_${column}`] : 0
    }
