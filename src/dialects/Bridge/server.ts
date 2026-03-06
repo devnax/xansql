@@ -3,7 +3,7 @@ import XansqlError from "../../core/XansqlError";
 import Model from "../../model";
 import { makePath, makeSecret } from "./base";
 import { ListenOptions, XansqlBridgeAuthorizedInfo, XansqlBridgeServerConfig } from "./types";
-import { crypto, SecurequServer } from "securequ";
+import { SecurequServer } from "securequ";
 
 class XansqlBridgeServer {
    readonly REQUEST_CONTENT_TYPE = 'application/octet-stream';

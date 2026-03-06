@@ -8,6 +8,7 @@ import { db, Product, User } from './example/db';
 const bridge = new XansqlBridgeServer(db as any, {
    basepath: "/data",
    mode: "development",
+   // debug: true,
    isAuthorized: async (info) => {
       return true;
    }
