@@ -47,7 +47,8 @@ class XqlFieldInfo {
       let default_value = ''
       if (meta.default !== undefined) {
          try {
-            default_value = field.parse(undefined)
+            const parse = field.parse(undefined)
+            default_value = (field as any).value.toSql(parse)
          } catch (error) { }
       }
 

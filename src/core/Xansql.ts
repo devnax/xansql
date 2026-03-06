@@ -119,10 +119,10 @@ class Xansql {
       return await this.config.file.delete(fileId, this);
    }
 
-   async migrate() {
+   async migrate(force?: boolean) {
       const models = Array.from(this.models.values())
       for (let model of models) {
-         await this.Migration.migrate(model)
+         await this.Migration.migrate(model, force)
       }
    }
 }

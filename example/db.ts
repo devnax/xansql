@@ -19,11 +19,12 @@ const mysql = MysqlDialect({
 export const db = new Xansql({
    dialect: mysql as any,
    file: {
-      upload: async (chunk: Uint8Array, filemeta: XansqlFileMeta) => {
+      upload: async (chunk: Uint8Array, filemeta: XansqlFileMeta, db: Xansql) => {
          const uploadDir = path.join(process.cwd(), dir);
          if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
          const filePath = path.join(uploadDir, filemeta.fileId);
          fs.appendFileSync(filePath, Buffer.from(chunk));
+         return filemeta
       },
       delete: async (fileId: string) => {
          const fs = await import('fs');

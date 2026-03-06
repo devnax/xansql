@@ -236,7 +236,8 @@ const server = async (app: Express) => {
    });
 
    app.get('/migrate', async (req: any, res: any) => {
-
+      const results = await db.migrate(true)
+      res.json({ results })
    });
 
    app.get('/faker', async (req: any, res: any) => {

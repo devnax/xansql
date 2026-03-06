@@ -38,8 +38,16 @@ class Migration {
       this.migrate(this.model)
    }
 
-   async migrate<M extends Model<any>>(model: M) {
+   async migrate<M extends Model<any>>(model: M, force?: boolean) {
       if (typeof window !== "undefined") return
+
+      if (force) {
+         try {
+            await model.execute(`DROP TABLE IF EXISTS ${model.table}`)
+         } catch (error) {
+
+         }
+      }
 
       const schema = model.schema()
       let column_sqls = []
