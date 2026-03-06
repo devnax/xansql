@@ -19,9 +19,9 @@ export type XansqlBridgeResponse = {
 
 export type XansqlBridgeServerConfig = {
    basepath: string;
+   debug?: boolean;
    mode?: "production" | "development";
    isAuthorized?: (info: XansqlBridgeAuthorizedInfo) => Promise<boolean>;
-   // file?: SecurequServerConfig["file"];
 };
 
 export type ListenOptions = ListenerInfo
