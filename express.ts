@@ -4,6 +4,21 @@ import fakeData from './faker'
 import express, { Express } from 'express';
 import XansqlBridgeServer from './src/dialects/Bridge/server'
 import { db, Product, User } from './example/db';
+import { XansqlError } from './src';
+
+const err = new XansqlError({
+   code: "CONNECTION_ERROR",
+   message: "Connection failed",
+   model: "users",
+   field: "id",
+   params: {
+      name: "nax"
+   }
+})
+
+
+console.log(err.pretty);
+
 
 const bridge = new XansqlBridgeServer(db as any, {
    basepath: "/data",

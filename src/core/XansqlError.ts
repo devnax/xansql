@@ -19,13 +19,39 @@ export interface XansqlErrorOptions {
    params?: object
 }
 
-class XansqlError extends Error {
+// 🎨 ANSI helpers
+const ansi = {
+   reset: "\x1b[0m",
+   bold: "\x1b[1m",
+   dim: "\x1b[2m",
+
+   red: "\x1b[31m",
+   yellow: "\x1b[33m",
+   cyan: "\x1b[36m",
+   magenta: "\x1b[35m",
+   gray: "\x1b[90m",
+
+   bgRed: "\x1b[41m",
+   black: "\x1b[30m",
+   white: "\x1b[37m",
+}
+
+const color = {
+   bold: (s: string) => ansi.bold + s + ansi.reset,
+   red: (s: string) => ansi.red + s + ansi.reset,
+   yellow: (s: string) => ansi.yellow + s + ansi.reset,
+   cyan: (s: string) => ansi.cyan + s + ansi.reset,
+   magenta: (s: string) => ansi.magenta + s + ansi.reset,
+   gray: (s: string) => ansi.gray + s + ansi.reset,
+   bgRedWhite: (s: string) => ansi.bgRed + ansi.white + s + ansi.reset,
+}
+
+export class XansqlError extends Error {
    public readonly code: XansqlErrorCode
    public readonly model?: string
    public readonly field?: string
    public readonly sql?: string
    public readonly params?: object
-   public readonly timestamp: string
 
    constructor(options: XansqlErrorOptions) {
       super(options.message)
@@ -36,53 +62,36 @@ class XansqlError extends Error {
       this.field = options.field
       this.sql = options.sql
       this.params = options.params
-      this.timestamp = new Date().toISOString()
+
+      Object.setPrototypeOf(this, new.target.prototype)
       Error.captureStackTrace?.(this, XansqlError)
-      super.message = this.format() as string
-
    }
 
-   toJSON() {
-      return {
-         name: this.name,
-         code: this.code,
-         message: this.message,
-         model: this.model,
-         field: this.field,
-         sql: this.sql,
-         params: this.params,
-         timestamp: this.timestamp,
-      }
-   }
-
-   format(): string {
-      let context = []
-      if (this.model) {
-         context.push(`Model: ${this.model}`)
-      }
-      if (this.field) {
-         context.push(`Field: ${this.field}`)
-      }
-      if (this.sql) {
-         context.push(`SQL: ${this.sql}`)
-      }
+   // 🎨 Pretty colored output (terminal)
+   get pretty(): string {
+      const context: string[] = []
+      if (this.model) context.push(color.cyan("Model: ") + this.model)
+      if (this.field) context.push(color.cyan("Field: ") + this.field)
+      if (this.sql) context.push(color.cyan("SQL: ") + this.sql)
       if (this.params) {
-         context.push(`Params: ${JSON.stringify(this.params, null, 2)}`)
+         context.push(
+            color.cyan("Params: ") +
+            color.gray(JSON.stringify(this.params, null, 2))
+         )
       }
-      return `  XANSQL ERROR  •  ${this.code}
 
-- Message
-  ${this.message}
-
-- Context
-${context.join("\n")}
-Time  : ${this.timestamp}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-`.trim()
+      return [
+         color.bold(color.bgRedWhite(" XANSQL ERROR ")) +
+         " " +
+         color.bold(color.red(this.code)),
+         "",
+         color.bold(color.yellow("Message:")),
+         "  " + this.message,
+         "",
+         context.length ? context.join("\n") : color.gray("  (none)"),
+         "",
+      ].join("\n")
    }
-
-
 }
 
 export default XansqlError
