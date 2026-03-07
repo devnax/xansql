@@ -201,7 +201,12 @@ export type FindArgs<S extends SchemaShape> = {
 
 // Fix FindResult so missing select returns full shape
 export type FindResultFullSchema<S extends SchemaShape> = {
-   [K in keyof S as S[K] extends { isRelation: true } ? never : K]: Infer<S[K]>
+   [K in keyof S as S[K] extends { isRelation: true } ? never : K]: (
+      S[K] extends XqlFile ? (
+         S[K] extends { meta: { nullable: true } } ? XansqlFileMeta | null : XansqlFileMeta
+      ) :
+      Infer<S[K]>
+   )
 }
 
 export type FindResultColumnMap<T extends FindArgs<any>, S extends SchemaShape> = {
@@ -225,10 +230,12 @@ export type FindResultMap<T extends FindArgs<any>, S extends SchemaShape> = {
          T['select'][K] extends FindArgs<any> ? (
             keyof T['select'][K] extends never ? Normalize<FindResultFullSchema<S[K]['schema']>> : FindResult<T["select"][K], S[K]['schema']>
          ) : Normalize<FindResultFullSchema<S[K]['schema']>>
-      ) : S[K] extends XqlFile ? (
-         S[K] extends { meta: { nullable: true } } ? XansqlFileMeta | null : XansqlFileMeta
-      ) :
-      Infer<S[K]>
+      ) : (
+         S[K] extends XqlFile ? (
+            S[K] extends { meta: { nullable: true } } ? XansqlFileMeta | null : XansqlFileMeta
+         ) :
+         Infer<S[K]>
+      )
    )
 }
 
