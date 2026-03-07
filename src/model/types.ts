@@ -5,7 +5,8 @@ import XqlRelationOne from "../xt/fields/RelationOne"
 import { XqlField } from "../xt/types"
 import XqlIDField from "../xt/fields/IDField"
 import ModelWhere from "./ModelWhere"
-import { ExecuterResult } from "../core/types"
+import { ExecuterResult, XansqlFileMeta } from "../core/types"
+import XqlFile from "../xt/fields/File"
 
 export type ModelRowObject<S extends SchemaShape> = {
    [column in keyof S as S[column] extends XqlRelationMany<any> ? never : column]: S[column]
@@ -224,6 +225,8 @@ export type FindResultMap<T extends FindArgs<any>, S extends SchemaShape> = {
          T['select'][K] extends FindArgs<any> ? (
             keyof T['select'][K] extends never ? Normalize<FindResultFullSchema<S[K]['schema']>> : FindResult<T["select"][K], S[K]['schema']>
          ) : Normalize<FindResultFullSchema<S[K]['schema']>>
+      ) : S[K] extends XqlFile ? (
+         S[K] extends { meta: { nullable: true } } ? XansqlFileMeta | null : XansqlFileMeta
       ) :
       Infer<S[K]>
    )

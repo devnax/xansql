@@ -33,6 +33,7 @@ const App = () => {
 
             },
             select: {
+              photo: true,
               products: {
                 select: {
                   categories: {
