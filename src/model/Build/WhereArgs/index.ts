@@ -22,7 +22,6 @@ class BuildWhereArgs<S extends SchemaShape, M extends Model<any>> {
 
    constructor(args: WhereArgs<S>, model: M, aliases: Aliases = {}) {
       this.model = model
-      const xansql = model.xansql
       const schema = model.schema();
       const parts: string[] = [];
       aliases[model.table] = model.table in aliases ? aliases[model.table] : 0
@@ -111,6 +110,70 @@ class BuildWhereArgs<S extends SchemaShape, M extends Model<any>> {
       }
       aliases[model.table] = aliases[model.table] + 1
       this.parts = parts;
+   }
+
+
+   private buildRelation(field: any, col: string, val: any, alias: string, aliases: Aliases) {
+      const model = this.model
+      const xansql = model.xansql
+      const relArgs = val as WhereArgs<any>;
+      const RModel = xansql.model(field.model);
+      const parts: string[] = [];
+      aliases[RModel.table] = RModel.table in aliases ? aliases[RModel.table] + 1 : 0
+      const ralias = `${RModel.alias}${aliases[RModel.table] || ""}`
+      const rinfo = field.relationInfo as RelationManyInfo
+      const relationSql = `${alias}.${rinfo.self.relation}=${ralias}.${rinfo.target.relation}`
+
+      if (Array.isArray(relArgs)) {
+         const _parts = []
+         for (const rargs of relArgs) {
+            if (!isObject(rargs)) { }
+            const b = this.buildRelation(field, col, rargs, alias, aliases)
+            _parts.push(`(${b})`)
+         }
+         if (_parts.length) {
+            parts.push(_parts.join(" OR "))
+         }
+      } else {
+         const _sparts: string[] = []
+         let _args: { [col: string]: any } = {}
+         if (field.type === "relation-one") {
+            if (relArgs === null) {
+               parts.push(`${alias}.${col} IS NULL`);
+            } else if (typeof relArgs === "number") {
+               parts.push(`${alias}.${col}=${this.format(col, val)}`);
+            } else {
+               const _subargs: { [col: string]: any } = {}
+               for (let col in relArgs) {
+                  const val = relArgs[col]
+                  if (sub_keys.includes(col)) {
+                     _subargs[col] = val
+                  } else {
+                     _args[col] = val
+                  }
+               }
+
+               if (Object.keys(_subargs).length) {
+                  const cond = this.condition(col, _subargs, alias, aliases);
+                  if (cond) {
+                     _sparts.push(cond)
+                  }
+               }
+            }
+         } else {
+            _args = relArgs
+         }
+
+         if (Object.keys(_args).length) {
+            const relWhere = new BuildWhereArgs(_args, RModel, aliases);
+            const relSql = relWhere.parts.join(" AND ");
+            _sparts.push(
+               `EXISTS (SELECT 1 FROM ${RModel.table} as ${ralias} WHERE ${relationSql}${relSql ? ` AND ${relSql}` : ""})`
+            );
+         }
+         parts.push(_sparts.join(" AND "))
+      }
+      return parts.join(" AND ")
    }
 
    private condition(column: string, subargs: WhereSubConditionArgs<any>, alias: string, aliases: Aliases) {
@@ -268,64 +331,6 @@ class BuildWhereArgs<S extends SchemaShape, M extends Model<any>> {
       }
 
       return parts.join(" AND ");
-   }
-
-   private buildRelation(field: any, col: string, val: any, alias: string, aliases: Aliases) {
-      const model = this.model
-      const xansql = model.xansql
-      const relArgs = val as WhereArgs<any>;
-      const RModel = xansql.model(field.model);
-      const parts: string[] = [];
-      aliases[RModel.table] = RModel.table in aliases ? aliases[RModel.table] + 1 : 0
-      const ralias = `${RModel.alias}${aliases[RModel.table] || ""}`
-      const rinfo = field.relationInfo as RelationManyInfo
-      const relationSql = `${alias}.${rinfo.self.relation}=${ralias}.${rinfo.target.relation}`
-
-      if (Array.isArray(relArgs)) {
-         const _parts = []
-         for (const rargs of relArgs) {
-            if (!isObject(rargs)) { }
-            const b = this.buildRelation(field, col, rargs, alias, aliases)
-            _parts.push(`(${b})`)
-         }
-
-         if (_parts.length) {
-            parts.push(_parts.join(" OR "))
-         }
-      } else {
-         const _sparts: string[] = []
-         let _args: { [col: string]: any } = {}
-         if (field.type === "relation-one") {
-            const _subargs: { [col: string]: any } = {}
-            for (let col in relArgs) {
-               const val = relArgs[col]
-               if (sub_keys.includes(col)) {
-                  _subargs[col] = val
-               } else {
-                  _args[col] = val
-               }
-            }
-
-            if (Object.keys(_subargs).length) {
-               const cond = this.condition(col, _subargs, alias, aliases);
-               if (cond) {
-                  _sparts.push(cond)
-               }
-            }
-         } else {
-            _args = relArgs
-         }
-
-         if (Object.keys(_args).length) {
-            const relWhere = new BuildWhereArgs(_args, RModel, aliases);
-            const relSql = relWhere.parts.join(" AND ");
-            _sparts.push(
-               `EXISTS (SELECT 1 FROM ${RModel.table} as ${ralias} WHERE ${relationSql}${relSql ? ` AND ${relSql}` : ""})`
-            );
-         }
-         parts.push(_sparts.join(" AND "))
-      }
-      return parts.join(" AND ")
    }
 
    private format(column: string, value: any, parse = true) {

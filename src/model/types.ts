@@ -117,7 +117,7 @@ type WhereObject<S extends SchemaShape> = Normalize<{
       WhereObject<S[C]['schema']> | WhereObject<S[C]['schema']>[]
    ) :
    S[C] extends { type: "relation-one", schema: SchemaShape } ? (
-      WhereSubConditionArgs<S[C]> | WhereObject<S[C]['schema']> | (WhereSubConditionArgs<S[C]> | WhereObject<S[C]['schema']>)[]
+      number | null | WhereSubConditionArgs<S[C]> | WhereObject<S[C]['schema']> | (WhereSubConditionArgs<S[C]> | WhereObject<S[C]['schema']>)[]
    ) :
    WhereColumnArgs<S[C]>
 }>
