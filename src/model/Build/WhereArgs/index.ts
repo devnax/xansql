@@ -171,8 +171,11 @@ class BuildWhereArgs<S extends SchemaShape, M extends Model<any>> {
                `EXISTS (SELECT 1 FROM ${RModel.table} as ${ralias} WHERE ${relationSql}${relSql ? ` AND ${relSql}` : ""})`
             );
          }
-         parts.push(_sparts.join(" AND "))
+         if (_sparts.length) {
+            parts.push(_sparts.join(" AND "))
+         }
       }
+
       return parts.join(" AND ")
    }
 

@@ -35,24 +35,43 @@ export type ModelOptions<S extends SchemaShape = any> = {
    }
 }
 
-export type ExactArgs<T, Shape> =
-   T extends object
+// export type ExactArgs<T, Shape> =
+//    T extends object
+//    ? Shape extends object
+//    ? Exclude<keyof T, keyof Shape> extends never
+//    ? {
+//       [K in keyof T]:
+//       K extends keyof Shape
+//       ? K extends "where"   // 👈 stop recursion here
+//       ? T[K]
+//       : T[K] extends object
+//       ? Shape[K] extends object
+//       ? ExactArgs<T[K], Shape[K]>
+//       : T[K]
+//       : T[K]
+//       : never
+//    }
+//    : never
+//    : never
+//    : T;
+
+export type ExactArgs<T, Shape> = T extends object
    ? Shape extends object
-   ? Exclude<keyof T, keyof Shape> extends never
    ? {
-      [K in keyof T]:
-      K extends keyof Shape
-      ? K extends "where"   // 👈 stop recursion here
-      ? T[K]
+      [K in keyof T]: K extends keyof Shape
+      ? K extends "where"
+      ? T[K] // stop recursion
       : T[K] extends object
       ? Shape[K] extends object
-      ? ExactArgs<T[K], Shape[K]>
+      ? ExactArgs<T[K], Shape[K]> // recursive
       : T[K]
       : T[K]
-      : never
+      : { ERROR: "Unknown field"; field: K }; // ❌ only unknown keys
+   } & {
+      // ❌ ensure missing required keys in Shape are also errors
+      [K in Exclude<keyof Shape, keyof T>]?: { ERROR: "Missing field"; field: K };
    }
-   : never
-   : never
+   : T
    : T;
 
 export type SchemaShape = Record<string, XqlField>

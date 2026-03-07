@@ -1,6 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { Product, User } from './example/db-client';
+import { USER_ROLES } from './example/Schema';
 
 const Button = ({ label, onClick }: any) => {
   return (
@@ -28,6 +29,8 @@ const App = () => {
           const results = await User.find({
             where: {
               // uid: 10
+              // customer: null,
+
             },
             select: {
               products: {
@@ -50,7 +53,7 @@ const App = () => {
             data: {
               name: "asdasd",
               age: 20,
-              role: "admin",
+              role: USER_ROLES.ADMIN,
               email: Math.random() + "asd@gmail.com",
               photo: file as any
             }

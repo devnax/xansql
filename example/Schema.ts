@@ -26,9 +26,11 @@ export class UserModel extends Model {
          photo: xt.photo().nullable(),
          email: xt.string().email().unique().nullable(),
          phone: xt.number().nullable(),
-         roles: xt.enum(USER_ROLES).default(USER_ROLES.ACCOUNT_MANAGER),
+         role: xt.enum(USER_ROLES).default(USER_ROLES.ACCOUNT_MANAGER).nullable(),
+
          create_at: xt.date().createdAt(),
          update_at: xt.date().updatedAt(),
+
          products: xt.many(ProductModel, 'user'),
          customer: xt.one(UserModel, 'customers').nullable(),
          customers: xt.many(UserModel, 'customer'),
