@@ -149,7 +149,7 @@ class BuildDeleteArgs {
                for (let col in frow) {
                   const field = schema[col]
                   if (iof(field, XqlFile)) {
-                     const fileMeta: XansqlFileMeta = field.value.fromSql(frow[col]) as any
+                     const fileMeta = frow[col]
                      if (fileMeta) {
                         await xansql.deleteFile(fileMeta.fileId)
                      }

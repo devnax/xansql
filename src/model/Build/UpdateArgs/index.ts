@@ -106,8 +106,7 @@ class BuildUpdateArgs {
          if (oldFileResults) {
             for (let row of oldFileResults) {
                for (let col in fileMetas) {
-                  const field = schema[col]
-                  const meta = field.value.fromSql(row[col]) as XansqlFileMeta
+                  const meta = row[col]
                   if (meta) {
                      await xansql.deleteFile(meta.fileId)
                   }

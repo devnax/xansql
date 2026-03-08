@@ -1,24 +1,8 @@
 import dotenv from 'dotenv'
 dotenv.config()
-import fakeData from './faker'
 import express, { Express } from 'express';
 import XansqlBridgeServer from './src/dialects/Bridge/server'
 import { db, Product, User } from './example/db';
-import { XansqlError } from './src';
-
-const err = new XansqlError({
-   code: "CONNECTION_ERROR",
-   message: "Connection failed",
-   model: "users",
-   field: "id",
-   params: {
-      name: "nax"
-   }
-})
-
-
-console.log(err.pretty);
-
 
 const bridge = new XansqlBridgeServer(db as any, {
    basepath: "/data",
@@ -236,7 +220,7 @@ const server = async (app: Express) => {
    app.get('/delete', async (req: any, res: any) => {
       const results = await User.delete({
          where: {
-            uid: 7
+            uid: 1
          }
       })
 
