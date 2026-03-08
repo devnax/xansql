@@ -2,19 +2,8 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { Product, User } from './example/db-client';
 import { USER_ROLES } from './example/Schema';
-import { XansqlError } from './src';
 
-const err = new XansqlError({
-  code: "CONNECTION_ERROR",
-  message: "Connection failed",
-  model: "users",
-  field: "id",
-  params: {
-    name: "nax"
-  }
-})
 
-console.log(err.pretty);
 const Button = ({ label, onClick }: any) => {
   return (
     <button

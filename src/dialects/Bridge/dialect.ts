@@ -5,11 +5,10 @@ import Xansql from "../../core/Xansql";
 import XansqlError from "../../core/XansqlError";
 
 const XansqlBridgeDialect = (url: string, engine?: XansqlDialectEngine) => {
-
    let instance: SecurequClient | null = null;
    const getClient = async (xansql: Xansql) => {
       if (!instance) {
-         const secret = await makeSecret(xansql)
+         const secret = makeSecret(xansql)
          instance = new SecurequClient({ secret, url });
       }
       return instance;

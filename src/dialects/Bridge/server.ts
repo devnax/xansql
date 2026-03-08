@@ -33,7 +33,7 @@ class XansqlBridgeServer {
 
       const config = this.config;
       const xansql = this.xansql
-      const secret = await makeSecret(this.xansql);
+      const secret = makeSecret(this.xansql);
 
       const server = new SecurequServer({
          ...(config || {}),
@@ -56,6 +56,8 @@ class XansqlBridgeServer {
             }
          ]
       });
+      this.server = server;
+
 
       server.get(await makePath('find', xansql), async (req: any) => {
          const params: any = req.searchParams
@@ -109,7 +111,6 @@ class XansqlBridgeServer {
          throw await xansql.execute(params.sql);
       })
 
-      this.server = server;
       return this.server;
    }
 

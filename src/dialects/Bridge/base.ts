@@ -1,8 +1,30 @@
 import { crypto } from "securequ"
 import Xansql from "../../core/Xansql"
 
+function secret32(input: string) {
+   let h1 = 0xdeadbeef ^ input.length;
+   let h2 = 0x41c6ce57 ^ input.length;
+
+   for (let i = 0; i < input.length; i++) {
+      const ch = input.charCodeAt(i);
+      h1 = Math.imul(h1 ^ ch, 2654435761);
+      h2 = Math.imul(h2 ^ ch, 1597334677);
+   }
+
+   h1 = (h1 ^ (h1 >>> 16)) >>> 0;
+   h2 = (h2 ^ (h2 >>> 16)) >>> 0;
+
+   const hex =
+      h1.toString(16).padStart(8, "0") +
+      h2.toString(16).padStart(8, "0") +
+      (h1 ^ h2).toString(16).padStart(8, "0") +
+      (h1 + h2).toString(16).padStart(8, "0");
+
+   return hex.slice(0, 32);
+}
+
 const Secrets = new Map<Xansql, string>()
-export const makeSecret = async (xansql: Xansql) => {
+export const makeSecret = (xansql: Xansql) => {
    if (Secrets.has(xansql)) return Secrets.get(xansql) as string
    const models = xansql.models
    let uid = []
@@ -25,13 +47,13 @@ export const makeSecret = async (xansql: Xansql) => {
    uid = Array.from(new Set(uid)) // unique
    uid = uid.sort()
 
-   const secret = await crypto.hash(uid.join(""))
+   const secret = secret32(uid.join(""))
    Secrets.set(xansql, secret)
    return secret;
 }
 
 export const makePath = async (path: string, xansql: Xansql) => {
-   const secret = await makeSecret(xansql)
+   const secret = makeSecret(xansql)
    const gen = `/${await crypto.hash(path + secret)}`
    return gen;
 }
