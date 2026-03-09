@@ -37,7 +37,7 @@ class BuildUpdateArgs {
                relations[col] = value
             }
          } else {
-            if (iof(field, XqlFile)) {
+            if (iof(field, XqlFile) && iof(value, File)) {
                try {
                   const filemeta = await xansql.uploadFile(value) as any
                   (fileMetas as any)[col] = filemeta
@@ -200,7 +200,6 @@ class BuildUpdateArgs {
       for (let col in data) {
          const value = data[col]
          const field = schema[col]
-
          if (field.meta.create || field.meta.update) {
             if (col in data) {
                throw new XansqlError({
@@ -218,15 +217,6 @@ class BuildUpdateArgs {
                message: `Invalid value for foreign key "${col}" in table "${model.table}". Expected a number, got ${typeof value}.`,
                model: model.table,
                field: col,
-            })
-         }
-
-         if (iof(field, XqlFile) && !iof(value, File)) {
-            throw new XansqlError({
-               code: "VALIDATION_ERROR",
-               message: `Invalid value for "${col}" in table "${model.table}". Expected a File, received ${typeof value}.`,
-               model: model.table,
-               field: col
             })
          }
       }

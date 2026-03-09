@@ -62,7 +62,7 @@ class BuildCreateArgs {
                      relations[col] = value
                   }
                } else {
-                  if (iof(field, XqlFile)) {
+                  if (iof(field, XqlFile) && iof(value, File)) {
                      try {
                         const filemeta = await xansql.uploadFile(value);
                         if (!filemeta) {
@@ -244,14 +244,6 @@ class BuildCreateArgs {
             })
          }
 
-         if (iof(field, XqlFile) && !iof(value, File)) {
-            throw new XansqlError({
-               code: "VALIDATION_ERROR",
-               message: `Invalid value for "${col}" in table "${model.table}". Expected a File, received ${typeof value}.`,
-               model: model.table,
-               field: col
-            })
-         }
       }
    }
 }
