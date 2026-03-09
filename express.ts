@@ -40,18 +40,18 @@ const server = async (app: Express) => {
    app.get('/create', async (req: any, res: any) => {
       const start = Date.now()
       const results = await User.create({
-         // select: {
-         //    name: true,
-         //    products: {
-         //       select: {
-         //          categories: {
-         //             select: {
-         //                sub_categories: true
-         //             }
-         //          }
-         //       }
-         //    }
-         // },
+         select: {
+            name: true,
+            products: {
+               select: {
+                  categories: {
+                     select: {
+                        sub_categories: true
+                     }
+                  }
+               }
+            }
+         },
          data: {
             name: "nax",
             email: Math.random() + "@gmail.com",

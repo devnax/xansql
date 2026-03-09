@@ -52,12 +52,15 @@ const App = () => {
           // const file = new File([new Uint8Array([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])], "image.png", { type: "image/png" });
 
           const results = await User.create({
-            data: {
+            data: [{
               name: "asdasd",
               age: 20,
               role: USER_ROLES.ADMIN,
               email: Math.random() + "asd@gmail.com",
               photo: file as any
+            }],
+            select: {
+              name: true
             }
           })
           console.log(results);

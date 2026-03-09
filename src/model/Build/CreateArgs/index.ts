@@ -31,9 +31,25 @@ class BuildCreateArgs {
       const data = args.data
 
       if (Array.isArray(data)) {
+         const insertIds: number[] = []
          for (let d of data) {
-            const build = new BuildCreateArgs({ data: d }, model, isSubquery)
-            await build.results()
+            const build = new BuildCreateArgs({ data: d }, model, true)
+            const id = await build.results()
+            insertIds.push(id)
+         }
+
+         if (!isSubquery) {
+            let sargs: SelectArgs = !args.select ? this.makeSelectArgs(data, model) : args.select
+            const buildFind = new BuildFindArgs({
+               select: sargs,
+               where: {
+                  [model.IDColumn]: {
+                     in: insertIds
+                  }
+               },
+               debug: args.debug
+            }, model)
+            return await buildFind.results()
          }
       } else {
          const values: { [col: string]: any } = {}
@@ -164,6 +180,8 @@ class BuildCreateArgs {
             }, model)
             return await buildFind.results()
          }
+
+         return insertId
       }
    }
 
