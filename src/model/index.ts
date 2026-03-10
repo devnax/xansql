@@ -149,7 +149,7 @@ abstract class Model<S extends SchemaShape = SchemaShape> {
       return this.xansql.execute(sql, debug)
    }
 
-   async find<T extends FindArgs<S>>(args: ExactArgs<T, FindArgs<S>>): Promise<FindResult<T, S> | null> {
+   async find<T extends FindArgs<S>>(args: ExactArgs<T, FindArgs<S>>): Promise<FindResult<T, S>[] | null> {
       try {
          const build = new BuildFindArgs(args as any, this)
          const results = await build.results()
