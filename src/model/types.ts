@@ -306,6 +306,7 @@ export type UpdateDataArgs<S extends SchemaShape> = Normalize<{
 export type UpdateArgs<S extends SchemaShape> = Normalize<{
    data: UpdateDataArgs<S>;
    where: Normalize<WhereArgs<S>>;
+   select?: SelectArgs<S>;
    useTransection?: boolean;
    debug?: boolean
 }>
@@ -315,6 +316,7 @@ export type UpsertArgs<S extends SchemaShape> = {
    create: CreateDataArgs<S>;
    update: UpdateDataArgs<S>;
    where: WhereArgs<S>;
+   select?: SelectArgs<S>;
    useTransection?: boolean;
    debug?: boolean
 }

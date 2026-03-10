@@ -122,6 +122,9 @@ class BuildUpdateArgs {
 
             const build = new BuildUpdateArgs({
                ...rargs,
+               select: {
+                  [RModel.IDColumn]: true
+               },
                where: {
                   ...rargs.where,
                   [rinfo.target.column]: args.where
@@ -133,12 +136,9 @@ class BuildUpdateArgs {
       }
 
       if (!isSubquery && execute?.affectedRows) {
-         let sargs: SelectArgs = this.makeSelectArgs(data, model)
          const buildFind = new BuildFindArgs({
-            select: sargs,
-            where: {
-               ...args.where,
-            },
+            select: args.select ?? this.makeSelectArgs(data, model),
+            where: args.where,
             debug: args.debug
          }, model)
          return await buildFind.results()

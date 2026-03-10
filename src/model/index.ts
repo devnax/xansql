@@ -14,6 +14,7 @@ import BuildDeleteArgs from "./Build/DeleteArgs";
 import ModelWhere from "./ModelWhere";
 import ReserveKeywords from "./ReserveKeywords";
 import BuildUpsertArgs from "./Build/UpsertArgs";
+import { AliasGenerate } from "./AliasGenerate";
 
 
 abstract class Model<S extends SchemaShape = SchemaShape> {
@@ -47,52 +48,7 @@ abstract class Model<S extends SchemaShape = SchemaShape> {
          }
       }
 
-      // const aliases = Array.from(xansql.models.values()).map(m => m.alias)
-      // const parts = this.table.split(/_|(?=[A-Z])/);
-      // let alias = parts.map(p => p[0]).join('');
-      // if (!alias || alias.length < 1) {
-      //    alias = this.table.slice(0, 2);
-      // }
-      // alias = alias.toLowerCase();
-      // let counter = 1;
-      // while (aliases.includes(alias)) {
-      //    alias = alias + counter;
-      //    counter++;
-      // }
-      // this.alias = alias
-
-      const aliases = Array.from(xansql.models.values()).map(m => m.alias);
-      const parts = this.table.split(/_|(?=[A-Z])/).filter(Boolean);
-
-      let alias = parts.map(p => p[0]).join('').toLowerCase(); // up
-      let indexes = parts.map(() => 1);
-
-      while (aliases.includes(alias)) {
-         let changed = false;
-
-         for (let i = 0; i < parts.length; i++) {
-            if (indexes[i] < parts[i].length) {
-               indexes[i]++;
-               changed = true;
-               break;
-            }
-         }
-
-         if (!changed) break;
-
-         alias = parts.map((p, i) => p.slice(0, indexes[i])).join('').toLowerCase();
-      }
-
-      if (aliases.includes(alias)) {
-         let counter = 1;
-         let temp = alias;
-         while (aliases.includes(temp)) {
-            temp = alias + counter;
-            counter++;
-         }
-         alias = temp;
-      }
-      this.alias = alias;
+      this.alias = (new AliasGenerate(xansql, this)).generate();
 
       let migration_columns = []
       let index_sqls = []
@@ -184,31 +140,6 @@ abstract class Model<S extends SchemaShape = SchemaShape> {
 
       this.schema = (() => fields).bind(this)
    }
-
-   // private async migrationInit() {
-   //    const fields = this.schema()
-   //    let migration_columns = []
-   //    let index_sqls = []
-   //    for (let column in fields) {
-   //       const field = fields[column]
-
-   //       if (!iof(field, XqlRelationMany)) {
-   //          const info = field.info
-   //          migration_columns.push(info.sql.column)
-   //          if (info.sql.create_index) {
-   //             index_sqls.push(info.sql.create_index)
-   //          }
-   //       }
-   //    }
-   //    const sql = `CREATE TABLE IF NOT EXISTS ${this.table}(${migration_columns.join(",")})`
-   //    await this.xansql.execute(sql)
-
-   //    for (let idxql of index_sqls) {
-   //       try {
-   //          await this.xansql.execute(idxql)
-   //       } catch (error) { }
-   //    }
-   // }
 
    where(inColumn: string, where?: WhereArgs<S>) {
       return new ModelWhere<S>(this, inColumn, where)

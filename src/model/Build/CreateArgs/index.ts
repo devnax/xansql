@@ -170,9 +170,8 @@ class BuildCreateArgs {
          }
 
          if (!isSubquery && insertId) {
-            let sargs: SelectArgs = !args.select ? this.makeSelectArgs(data, model) : args.select
             const buildFind = new BuildFindArgs({
-               select: sargs,
+               select: args.select ?? this.makeSelectArgs(data, model),
                where: {
                   [model.IDColumn]: insertId
                },

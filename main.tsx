@@ -60,7 +60,7 @@ const App = () => {
               photo: file as any
             }],
             select: {
-              name: true
+              photo: true
             }
           })
           console.log(results);
