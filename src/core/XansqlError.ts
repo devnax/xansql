@@ -46,7 +46,7 @@ const color = {
    bgRedWhite: (s: string) => ansi.bgRed + ansi.white + s + ansi.reset,
 }
 
-export class XansqlError extends Error {
+class XansqlError extends Error {
    public readonly code: XansqlErrorCode
    public readonly model?: string
    public readonly field?: string

@@ -60,12 +60,12 @@ class BuildAggregateSelectArgs {
             _sql = `ROUND(${_sql}, ${funcArg.round})`
          }
 
-         if (isObject && funcArg.alias) {
-            _sql += ` AS ${funcArg.alias}`
-         } else {
-            _sql += ` AS ${func}_${column}`
-         }
-         // _sql += ` AS ${func}_${column}`
+         // if (isObject && funcArg.alias) {
+         //    _sql += ` AS ${funcArg.alias}`
+         // } else {
+         //    _sql += ` AS ${func}_${column}`
+         // }
+         _sql += ` AS ${func}_${column}`
 
          sql.push(_sql)
       }

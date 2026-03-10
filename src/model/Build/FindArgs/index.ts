@@ -1,4 +1,5 @@
 import Model from "../..";
+import { isObject } from "../../../utils";
 import { chunkArray } from "../../../utils/chunker";
 import XqlRelationMany from "../../../xt/fields/RelationMany";
 import XqlRelationOne from "../../../xt/fields/RelationOne";
@@ -95,6 +96,21 @@ class BuildFindArgs<A extends FindArgs<any> = any> {
                }
             }
          }
+
+         // if aggregate exists then set aggregate value 0
+         if (args.aggregate) {
+            row.aggregate = row.aggregate ?? {}
+            for (let rel_col in args.aggregate) {
+               const agargs = args.aggregate[rel_col]
+               row.aggregate[rel_col] = row.aggregate[rel_col] ?? {}
+               for (let col in agargs) {
+                  const agval = agargs[col]
+                  for (let func in agval) {
+                     row.aggregate[rel_col][`${func}_${col}`] = 0
+                  }
+               }
+            }
+         }
       }
 
       if (results.length && Object.keys(sargs.relations).length) {
@@ -106,19 +122,8 @@ class BuildFindArgs<A extends FindArgs<any> = any> {
                const rinfo = field.relationInfo
                const RModel = xansql.model(field.model)
                const agselect = args.aggregate[col]
+
                if (!agselect || !Object.keys(agselect).length) continue
-               // const in_ids: number[] = []
-               // const indexes: { [id: number]: number } = {}
-
-               // for (let i = 0; i < results.length; i++) {
-               //    const row = results[i]
-               //    const id = row[rinfo.self.relation]
-               //    if (id) {
-               //       indexes[id] = i
-               //       in_ids.push(id)
-               //    }
-               // }
-
                const agargs = new BuildAggregateArgs({
                   select: agselect,
                   groupBy: [rinfo.target.column],

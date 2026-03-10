@@ -155,7 +155,7 @@ export type SelectArgs<S extends SchemaShape = SchemaShape> = Normalize<{
 export type AggregateFunctions = "count" | "sum" | "avg" | "min" | "max"
 export type AggregateArgsValue = {
    [func in AggregateFunctions]?: boolean | {
-      alias?: string;
+      // alias?: string;
       orderBy?: "asc" | "desc";
       round?: number;
       distinct?: boolean;
@@ -198,52 +198,6 @@ export type FindArgs<S extends SchemaShape> = {
    aggregate?: FindAggregateArgs<S>;
    debug?: boolean
 }
-
-// Fix FindResult so missing select returns full shape
-export type FindResultFullSchema<S extends SchemaShape> = {
-   [K in keyof S as S[K] extends { isRelation: true } ? never : K]: (
-      S[K] extends XqlFile ? (
-         S[K] extends { meta: { nullable: true } } ? XansqlFileMeta | null : XansqlFileMeta
-      ) :
-      Infer<S[K]>
-   )
-}
-
-export type FindResultColumnMap<T extends FindArgs<any>, S extends SchemaShape> = {
-   [K in keyof T['select'] & keyof S as T['select'][K] extends any ?
-   (
-      S[K] extends { isRelation: true } ? never : K
-   ) :
-   never]: true
-}
-
-export type FindResultMap<T extends FindArgs<any>, S extends SchemaShape> = {
-   [C in keyof S as S[C] extends XqlIDField ? C : never]: number
-} & {
-   [K in keyof T['select'] & keyof S as T['select'][K] extends any ? K : never]: (
-      S[K] extends { type: "relation-many", schema: SchemaShape } ? (
-         T['select'][K] extends FindArgs<any> ? (
-            keyof T['select'][K] extends never ? Normalize<FindResultFullSchema<S[K]['schema']>> : FindResult<T["select"][K], S[K]['schema']>[]
-         ) : Normalize<FindResultFullSchema<S[K]['schema']>>[]
-      ) :
-      S[K] extends { type: "relation-one", schema: SchemaShape } ? (
-         T['select'][K] extends FindArgs<any> ? (
-            keyof T['select'][K] extends never ? Normalize<FindResultFullSchema<S[K]['schema']>> : FindResult<T["select"][K], S[K]['schema']>
-         ) : Normalize<FindResultFullSchema<S[K]['schema']>>
-      ) : (
-         S[K] extends XqlFile ? (
-            S[K] extends { meta: { nullable: true } } ? XansqlFileMeta | null : XansqlFileMeta
-         ) :
-         Infer<S[K]>
-      )
-   )
-}
-
-export type FindResult<T extends FindArgs<any>, S extends SchemaShape> =
-   Normalize<keyof T['select'] extends never ? Normalize<FindResultFullSchema<S>> :
-      keyof FindResultColumnMap<T, S> extends never ? Normalize<FindResultFullSchema<S>> & Normalize<FindResultMap<T, S>> :
-      Normalize<FindResultMap<T, S>>>
-
 
 
 // CREATE ARGS
@@ -334,3 +288,109 @@ export type PaginateArgs<S extends SchemaShape> = Omit<FindArgs<S>, "limit"> & {
    page: number,
    perpage?: number
 }
+
+
+
+
+
+// Fix FindResult so missing select returns full shape
+export type FindResultFullSchema<S extends SchemaShape> = {
+   [K in keyof S as S[K] extends { isRelation: true } ? never : K]: (
+      S[K] extends XqlFile ? (
+         S[K] extends { meta: { nullable: true } } ? XansqlFileMeta | null : XansqlFileMeta
+      ) :
+      Infer<S[K]>
+   )
+}
+
+export type FindResultColumnMap<T extends FindArgs<any>, S extends SchemaShape> = {
+   [K in keyof T['select'] & keyof S as T['select'][K] extends any ?
+   (
+      S[K] extends { isRelation: true } ? never : K
+   ) :
+   never]: true
+}
+
+export type FindResultMap<T extends FindArgs<any>, S extends SchemaShape> = {
+   [C in keyof S as S[C] extends XqlIDField ? C : never]: number
+} & {
+   [K in keyof T['select'] & keyof S as T['select'][K] extends any ? K : never]: (
+      S[K] extends { type: "relation-many", schema: SchemaShape } ? (
+         T['select'][K] extends FindArgs<any> ? (
+            keyof T['select'][K] extends never ? Normalize<FindResultFullSchema<S[K]['schema']>> : FindResult<T["select"][K], S[K]['schema']>[]
+         ) : Normalize<FindResultFullSchema<S[K]['schema']>>[]
+      ) :
+      S[K] extends { type: "relation-one", schema: SchemaShape } ? (
+         T['select'][K] extends FindArgs<any> ? (
+            keyof T['select'][K] extends never ? Normalize<FindResultFullSchema<S[K]['schema']>> : FindResult<T["select"][K], S[K]['schema']>
+         ) : Normalize<FindResultFullSchema<S[K]['schema']>>
+      ) : (
+         S[K] extends XqlFile ? (
+            S[K] extends { meta: { nullable: true } } ? XansqlFileMeta | null : XansqlFileMeta
+         ) :
+         Infer<S[K]>
+      )
+   )
+}
+
+
+
+type FindResultAggregate<T extends FindArgs<any>> =
+   keyof T['aggregate'] extends never
+   ? {}
+   : {
+      aggregate: {
+         [RC in keyof T['aggregate']]:
+         keyof T['aggregate'][RC] extends never
+         ? never
+         : {
+            [RF in keyof T['aggregate'][RC]as
+            keyof T['aggregate'][RC][RF] extends never
+            ? never
+            : `${keyof T['aggregate'][RC][RF] & string}_${RF & string}`
+            ]: number
+         }
+      }
+   };
+
+export type FindResult<T extends FindArgs<any>, S extends SchemaShape> =
+   Normalize<
+      keyof T['select'] extends never
+      ? Normalize<FindResultFullSchema<S> & FindResultAggregate<T>>
+      : Normalize<FindResultMap<T, S>> & FindResultAggregate<T>>
+
+
+export type CreateResult<T extends CreateArgs<any>, S extends SchemaShape> = Normalize<
+   keyof T['select'] extends never
+   ? Normalize<FindResultFullSchema<S>>
+   : FindResultMap<{ select: T['select'] }, S>>
+
+
+export type UpdateResult<T extends UpdateArgs<any>, S extends SchemaShape> = Normalize<
+   keyof T['select'] extends never
+   ? Normalize<FindResultFullSchema<S>>
+   : FindResultMap<{ select: T['select'] }, S>>
+
+
+export type UpsertResult<T extends UpsertArgs<any>, S extends SchemaShape> = Normalize<
+   keyof T['select'] extends never
+   ? Normalize<FindResultFullSchema<S>>
+   : FindResultMap<T, S>>
+
+export type DeleteResult<T extends DeleteArgs<any>, S extends SchemaShape> = Normalize<
+   keyof T['select'] extends never
+   ? Normalize<FindResultFullSchema<S>>
+   : FindResultMap<{ select: T['select'] }, S>>
+
+export type AggregateResultGroupBy<T extends AggregateGroupByArgs<any> | undefined, S extends SchemaShape> =
+   T extends Array<keyof any>
+   ? { [K in T[number] & keyof S as K extends any ? K : never]: Infer<S[K]> }
+   : never;
+
+export type AggregateResult<T extends AggregateArgs<any, any>, S extends SchemaShape> = Normalize<AggregateResultGroupBy<T['groupBy'], S> & {
+   [RF in keyof T['select']as
+   keyof T['select'][RF] extends never
+   ? never
+   : `${keyof T['select'][RF] & string}_${RF & string}`
+   ]: number
+}>

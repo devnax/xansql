@@ -3,7 +3,7 @@ import { iof } from "../utils";
 import XqlIDField from "../xt/fields/IDField";
 import XqlRelationMany from "../xt/fields/RelationMany";
 import XqlRelationOne from "../xt/fields/RelationOne";
-import { AggregateArgs, CreateArgs, DeleteArgs, ExactArgs, FindArgs, FindResult, ModelClass, PaginateArgs, SchemaShape, UpdateArgs, UpsertArgs, WhereArgs } from "./types";
+import { AggregateArgs, AggregateResult, CreateArgs, CreateResult, DeleteArgs, DeleteResult, ExactArgs, FindArgs, FindResult, ModelClass, PaginateArgs, SchemaShape, UpdateArgs, UpdateResult, UpsertArgs, UpsertResult, WhereArgs } from "./types";
 import XansqlError from "../core/XansqlError";
 import BuildFindArgs from "./Build/FindArgs";
 import BuildCreateArgs from "./Build/CreateArgs";
@@ -149,7 +149,7 @@ abstract class Model<S extends SchemaShape = SchemaShape> {
       return this.xansql.execute(sql, debug)
    }
 
-   async find<T extends FindArgs<S>>(args: ExactArgs<T, FindArgs<S>>): Promise<FindResult<T, S>[] | null> {
+   async find<T extends FindArgs<S>>(args: ExactArgs<T, FindArgs<S>>): Promise<FindResult<T, S> | null> {
       try {
          const build = new BuildFindArgs(args as any, this)
          const results = await build.results()
@@ -161,7 +161,7 @@ abstract class Model<S extends SchemaShape = SchemaShape> {
 
    async findOne<T extends FindArgs<S>>(args: ExactArgs<T, FindArgs<S>>): Promise<FindResult<T, S> | null> {
       try {
-         const results = await this.find(args)
+         const results: any = await this.find(args)
          if (results?.length) {
             return results[0]
          }
@@ -171,7 +171,7 @@ abstract class Model<S extends SchemaShape = SchemaShape> {
       }
    }
 
-   async aggregate<T extends AggregateArgs<S, any>>(args: ExactArgs<T, AggregateArgs<S, T>>) {
+   async aggregate<T extends AggregateArgs<S, any>>(args: ExactArgs<T, AggregateArgs<S, T>>): Promise<AggregateResult<T, S>[] | null> {
       try {
          await this.xansql.XansqlTransaction.begin()
          const build = new BuildAggregateArgs(args as any, this)
@@ -184,7 +184,7 @@ abstract class Model<S extends SchemaShape = SchemaShape> {
       }
    }
 
-   async create<T extends CreateArgs<S>>(args: ExactArgs<T, CreateArgs<S>>): Promise<FindResult<T, S>[] | null> {
+   async create<T extends CreateArgs<S>>(args: ExactArgs<T, CreateArgs<S>>): Promise<CreateResult<T, S>[] | null> {
       const useTransection = args.useTransection ?? true
       try {
          useTransection && await this.xansql.XansqlTransaction.begin()
@@ -198,11 +198,25 @@ abstract class Model<S extends SchemaShape = SchemaShape> {
       }
    }
 
-   async update<T extends UpdateArgs<S>>(args: ExactArgs<T, UpdateArgs<S>>) {
+   async update<T extends UpdateArgs<S>>(args: ExactArgs<T, UpdateArgs<S>>): Promise<UpdateResult<T, S>[] | null> {
       const useTransection = args.useTransection ?? true
       try {
          useTransection && await this.xansql.XansqlTransaction.begin()
-         const build = new BuildUpdateArgs(args, this)
+         const build = new BuildUpdateArgs(args as any, this)
+         const results = await build.results()
+         useTransection && await this.xansql.XansqlTransaction.commit()
+         return results as any
+      } catch (error) {
+         useTransection && await this.xansql.XansqlTransaction.rollback()
+         throw error
+      }
+   }
+
+   async upsert<T extends UpsertArgs<S>>(args: ExactArgs<T, UpsertArgs<S>>): Promise<UpsertResult<T, S>[] | null> {
+      const useTransection = args.useTransection ?? true
+      try {
+         useTransection && await this.xansql.XansqlTransaction.begin()
+         const build = new BuildUpsertArgs(args as any, this)
          const results = await build.results()
          useTransection && await this.xansql.XansqlTransaction.commit()
          return results
@@ -212,28 +226,14 @@ abstract class Model<S extends SchemaShape = SchemaShape> {
       }
    }
 
-   async upsert<T extends UpsertArgs<S>>(args: ExactArgs<T, UpsertArgs<S>>) {
-      const useTransection = args.useTransection ?? true
-      try {
-         useTransection && await this.xansql.XansqlTransaction.begin()
-         const build = new BuildUpsertArgs(args, this)
-         const results = await build.results()
-         useTransection && await this.xansql.XansqlTransaction.commit()
-         return results
-      } catch (error) {
-         useTransection && await this.xansql.XansqlTransaction.rollback()
-         throw error
-      }
-   }
-
-   async delete<T extends DeleteArgs<S>>(args: ExactArgs<T, DeleteArgs<S>>) {
+   async delete<T extends DeleteArgs<S>>(args: ExactArgs<T, DeleteArgs<S>>): Promise<DeleteResult<T, S>[] | null> {
       const useTransection = args.useTransection ?? true
       try {
          useTransection && await this.xansql.XansqlTransaction.begin()
          const build = new BuildDeleteArgs(args as any, this as any)
          const results = await build.results()
          useTransection && await this.xansql.XansqlTransaction.commit()
-         return results
+         return results as any
       } catch (error) {
          useTransection && await this.xansql.XansqlTransaction.rollback()
          throw error
@@ -254,11 +254,11 @@ abstract class Model<S extends SchemaShape = SchemaShape> {
       })
       const total = await this.count(args?.where || {} as WhereArgs<S>, args.debug)
       return {
-         results,
          total,
          page,
          perpage,
-         pages: Math.ceil(total / perpage)
+         pages: Math.ceil(total / perpage),
+         results,
       }
    }
 

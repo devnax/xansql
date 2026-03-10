@@ -100,7 +100,8 @@ const server = async (app: Express) => {
                   sum: true
                },
                name: {
-                  count: true
+                  count: {
+                  }
                }
             }
          },
@@ -161,7 +162,7 @@ const server = async (app: Express) => {
    });
    app.get('/aggregate', async (req: any, res: any) => {
       const results = await User.aggregate({
-         // groupBy: ['email', "age"],
+         groupBy: ['email', "age"],
          limit: {
             take: 10
          },
@@ -214,7 +215,10 @@ const server = async (app: Express) => {
    });
 
    app.get("/count", async (req: any, res: any) => {
-
+      const results = await User.paginate({
+         page: 1,
+         where: {}
+      })
    })
 
    app.get('/delete', async (req: any, res: any) => {
