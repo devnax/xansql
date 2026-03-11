@@ -35,7 +35,6 @@ class Migration {
    model
    constructor(private xansql: Xansql) {
       this.model = xansql.model(MigrationModel)
-      this.migrate(this.model)
    }
 
    async migrate<M extends Model<any>>(model: M, force?: boolean) {

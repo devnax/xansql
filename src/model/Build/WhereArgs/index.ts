@@ -24,13 +24,16 @@ class BuildWhereArgs<S extends SchemaShape, M extends Model<any>> {
       this.model = model
       const schema = model.schema();
       const parts: string[] = [];
-      aliases[model.table] = model.table in aliases ? aliases[model.table] : 0
+      aliases[model.table] = model.table in aliases && aliases[model.table] > 0 ? aliases[model.table] : 0
       const alias = `${model.alias}${aliases[model.table] || ""}`
 
       if (Array.isArray(args)) {
          const _parts = []
          for (const arg of args) {
-            const w_parts = new BuildWhereArgs(arg, model, { ...aliases }).parts
+            const _aliases = { ...aliases }
+            _aliases[model.table] = aliases[model.table] - 1
+
+            const w_parts = new BuildWhereArgs(arg, model, _aliases).parts
             if (w_parts.length) {
                if (w_parts.length > 1) {
                   _parts.push(`(${w_parts.join(" AND ")})`)
@@ -46,14 +49,16 @@ class BuildWhereArgs<S extends SchemaShape, M extends Model<any>> {
          for (const col in args) {
             const val = args[col];
 
-
             if (col === "AND") {
                const andparts = []
+               const _aliases = { ...aliases }
+               _aliases[model.table] = aliases[model.table] - 1
+
                for (let aargs of val as any[]) {
                   if (!Object.keys(aargs).length) {
                      continue
                   }
-                  const b = new BuildWhereArgs(aargs, model, { ...aliases })
+                  const b = new BuildWhereArgs(aargs, model, _aliases)
                   andparts.push(b.parts.join(" AND "))
                }
                if (andparts.length) {
@@ -67,12 +72,15 @@ class BuildWhereArgs<S extends SchemaShape, M extends Model<any>> {
             }
 
             if (col === "OR") {
+               const _aliases = { ...aliases }
+               _aliases[model.table] = aliases[model.table] - 1
+
                const orparts = []
                for (let aargs of val as any[]) {
                   if (!Object.keys(aargs).length) {
                      continue
                   }
-                  const b = new BuildWhereArgs(aargs, model, { ...aliases })
+                  const b = new BuildWhereArgs(aargs, model, _aliases)
                   orparts.push(b.parts.join(" AND "))
                }
                if (orparts.length) {
@@ -86,12 +94,15 @@ class BuildWhereArgs<S extends SchemaShape, M extends Model<any>> {
             }
 
             if (col === "NOT") {
+               const _aliases = { ...aliases }
+               _aliases[model.table] = aliases[model.table] - 1
+
                const notparts = []
                for (let aargs of val as any[]) {
                   if (!Object.keys(aargs).length) {
                      continue
                   }
-                  const b = new BuildWhereArgs(aargs, model, { ...aliases })
+                  const b = new BuildWhereArgs(aargs, model, _aliases)
                   notparts.push(b.parts.join(" AND "))
                }
                if (notparts.length) {

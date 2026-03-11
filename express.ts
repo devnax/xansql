@@ -106,17 +106,16 @@ const server = async (app: Express) => {
             }
          },
          where: {
-            NOT: [
+            name: "well",
+            OR: [
                {
-                  email: "0.8318111595414859@gmail.com"
+                  name: {
+                     contains: "as"
+                  }
                },
-               {
-                  uid: 2
-               },
+
             ],
-            customer: {
-               // in: [1],
-            }
+
          },
          orderBy: {
             // uid: "desc"
