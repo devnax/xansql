@@ -252,7 +252,7 @@ abstract class Model<S extends SchemaShape = SchemaShape> {
             skip
          }
       })
-      const total = await this.count(args?.where || {} as WhereArgs<S>, args.debug)
+      const total = await this.count(args?.where || {} as any, args.debug)
       return {
          total,
          page,

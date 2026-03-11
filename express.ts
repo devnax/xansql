@@ -106,6 +106,14 @@ const server = async (app: Express) => {
             }
          },
          where: {
+            NOT: [
+               {
+                  email: "0.8318111595414859@gmail.com"
+               },
+               {
+                  uid: 2
+               },
+            ],
             customer: {
                // in: [1],
             }

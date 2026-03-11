@@ -36,44 +36,13 @@ export type ModelOptions<S extends SchemaShape = any> = {
    }
 }
 
-// export type ExactArgs<T, Shape> =
-//    T extends object
-//    ? Shape extends object
-//    ? Exclude<keyof T, keyof Shape> extends never
-//    ? {
-//       [K in keyof T]:
-//       K extends keyof Shape
-//       ? K extends "where"   // 👈 stop recursion here
-//       ? T[K]
-//       : T[K] extends object
-//       ? Shape[K] extends object
-//       ? ExactArgs<T[K], Shape[K]>
-//       : T[K]
-//       : T[K]
-//       : never
-//    }
-//    : never
-//    : never
-//    : T;
-
-export type ExactArgs<T, Shape> = T extends object
-   ? Shape extends object
+export type ExactArgs<T, Shape> =
+   T extends Shape
    ? {
-      [K in keyof T]: K extends keyof Shape
-      ? K extends "where"
-      ? T[K] // stop recursion
-      : T[K] extends object
-      ? Shape[K] extends object
-      ? ExactArgs<T[K], Shape[K]> // recursive
-      : T[K]
-      : T[K]
-      : { ERROR: "Unknown field"; field: K }; // ❌ only unknown keys
-   } & {
-      // ❌ ensure missing required keys in Shape are also errors
-      [K in Exclude<keyof Shape, keyof T>]?: { ERROR: "Missing field"; field: K };
+      [K in keyof T]:
+      K extends keyof Shape ? T[K] : never;
    }
-   : T
-   : T;
+   : never;
 
 export type SchemaShape = Record<string, XqlField>
 export type ModelClass<M extends Model<any>> = new (...args: any[]) => M
@@ -86,9 +55,6 @@ export type SchemaAllColumns<S extends SchemaShape> = {
 export type IsRelationField<F extends XqlField> = F extends { isRelation: true } ? true : false
 export type IsRelationOne<F extends XqlField> = F extends XqlRelationOne<any> ? true : false
 export type IsRelationMany<F extends XqlField> = F extends XqlRelationMany<any> ? true : false
-
-
-
 
 export type LimitArgs = {
    take: number;
@@ -128,9 +94,13 @@ export type WhereSubConditionArgs<F extends XqlField> =
    & WhereSubConditionStringArgs<F>
 
 
-export type InferWhereValue<F extends XVType<any>> = F extends { _type: infer R } ? R : never
-export type WhereColumnArgs<F extends XqlField> = InferWhereValue<F> | WhereSubConditionArgs<F> | WhereSubConditionArgs<F>[];
-
+type InferWhereValue<F extends XVType<any>> = F extends { _type: infer R } ? R : never
+type WhereColumnArgs<F extends XqlField> = InferWhereValue<F> | WhereSubConditionArgs<F> | WhereSubConditionArgs<F>[];
+type WhereLogicalArgs<S extends SchemaShape> = {
+   OR?: WhereObject<S>[];
+   AND?: WhereObject<S>[];
+   NOT?: WhereObject<S>[];
+}
 type WhereObject<S extends SchemaShape> = Normalize<{
    [C in keyof S]?:
    S[C] extends { type: "relation-many", schema: SchemaShape } ? (
@@ -140,7 +110,7 @@ type WhereObject<S extends SchemaShape> = Normalize<{
       number | null | WhereSubConditionArgs<S[C]> | WhereObject<S[C]['schema']> | (WhereSubConditionArgs<S[C]> | WhereObject<S[C]['schema']>)[]
    ) :
    WhereColumnArgs<S[C]>
-}>
+} & WhereLogicalArgs<S>>
 
 export type WhereArgs<S extends SchemaShape> = WhereObject<S> | WhereObject<S>[]
 
@@ -191,7 +161,7 @@ export type FindAggregateArgs<S extends SchemaShape> = Normalize<{
 // FIND ARGS
 export type FindArgs<S extends SchemaShape> = {
    distinct?: boolean;
-   where?: WhereArgs<S>
+   where?: Normalize<WhereArgs<S>>
    select?: SelectArgs<S>
    limit?: LimitArgs
    orderBy?: OrderByArgs<S>;

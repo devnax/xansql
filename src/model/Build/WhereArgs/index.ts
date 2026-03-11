@@ -46,6 +46,60 @@ class BuildWhereArgs<S extends SchemaShape, M extends Model<any>> {
          for (const col in args) {
             const val = args[col];
 
+
+            if (col === "AND") {
+               const andparts = []
+               for (let aargs of val as any[]) {
+                  if (!Object.keys(aargs).length) {
+                     continue
+                  }
+                  const b = new BuildWhereArgs(aargs, model, { ...aliases })
+                  andparts.push(b.parts.join(" AND "))
+               }
+               if (andparts.length) {
+                  if (andparts.length > 1) {
+                     parts.push(`(${andparts.join(" AND ")})`)
+                  } else {
+                     parts.push(andparts.join(" AND "))
+                  }
+               }
+               continue
+            }
+
+            if (col === "OR") {
+               const orparts = []
+               for (let aargs of val as any[]) {
+                  if (!Object.keys(aargs).length) {
+                     continue
+                  }
+                  const b = new BuildWhereArgs(aargs, model, { ...aliases })
+                  orparts.push(b.parts.join(" AND "))
+               }
+               if (orparts.length) {
+                  if (orparts.length > 1) {
+                     parts.push(`(${orparts.join(" OR ")})`)
+                  } else {
+                     parts.push(orparts.join(" OR "))
+                  }
+               }
+               continue
+            }
+
+            if (col === "NOT") {
+               const notparts = []
+               for (let aargs of val as any[]) {
+                  if (!Object.keys(aargs).length) {
+                     continue
+                  }
+                  const b = new BuildWhereArgs(aargs, model, { ...aliases })
+                  notparts.push(b.parts.join(" AND "))
+               }
+               if (notparts.length) {
+                  parts.push(`NOT (${notparts.join(" AND ")})`)
+               }
+               continue
+            }
+
             if (!(col in schema)) {
                throw new XansqlError({
                   code: "NOT_FOUND",
