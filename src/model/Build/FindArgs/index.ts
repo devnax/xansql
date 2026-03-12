@@ -29,18 +29,31 @@ class BuildFindArgs<A extends FindArgs<any> = any> {
       const sargs = new BuildSelectArgs((args as any)?.select! || {}, model)
       const largs = new BuildLimitArgs(args.limit || {} as any, model)
       const oargs = new BuildOrderByArgs(args.orderBy || {}, model)
+      const distinct = args.distinct || []
 
       if (subQueryInfo) {
          if (!sargs.columns.includes(subQueryInfo.column)) {
             sargs.columns.push(subQueryInfo.column)
          }
          wargs.parts.push(`${model.alias}.${subQueryInfo.column} IN (${subQueryInfo.ins.join(",")})`)
+         if (distinct.length && !distinct.includes(subQueryInfo.column)) {
+            distinct.push(subQueryInfo.column)
+         }
       }
-      let sql = `SELECT  ${args.distinct ? "DISTINCT" : ""} ${sargs.sql} FROM ${model.table} as ${model.alias} ${wargs.sql} ${oargs.sql} ${largs.sql}`
 
-      if (subQueryInfo && largs.sql) {
-         const orderBySql = oargs.sql ? oargs.sql : `ORDER BY ${model.alias}.${model.IDColumn}`
+      let sql = ""
+
+      if (!distinct.length) {
          sql = `
+            SELECT ${sargs.sql}
+            FROM ${model.table} as ${model.alias}
+            ${wargs.sql} 
+            ${oargs.sql} 
+            ${largs.sql}
+         `
+         if (subQueryInfo && largs.sql) {
+            const orderBySql = oargs.sql ? oargs.sql : `ORDER BY ${model.alias}.${model.IDColumn}`
+            sql = `
             SELECT ${sargs.columns.join(", ")}
             FROM (
                 SELECT
@@ -54,6 +67,47 @@ class BuildFindArgs<A extends FindArgs<any> = any> {
             ) AS ${model.alias}
             WHERE rn > ${largs.skip} AND rn <= ${largs.take + largs.skip}
          `
+         }
+      } else {
+         const distinctCols = distinct.map(c => `${model.alias}.${c}`).join(", ");
+         const orderBySql = oargs.sql ? oargs.sql : `ORDER BY ${model.alias}.${model.IDColumn}`
+
+         sql = `
+             SELECT ${sargs.sql}
+             FROM (
+               SELECT
+                 ${sargs.sql},
+                 ROW_NUMBER() OVER (
+                   PARTITION BY ${distinctCols}
+                   ${orderBySql}
+                 ) AS distinct_rn
+               FROM ${model.table} ${model.alias}
+               ${wargs.sql}
+             ) ${model.alias}
+             WHERE distinct_rn = 1
+            ${orderBySql}
+            ${!subQueryInfo && largs.sql ? largs.sql : ""}
+         `;
+
+         if (subQueryInfo && largs.sql) {
+            const orderBySql = oargs.sql ? oargs.sql : `ORDER BY ${model.alias}.${model.IDColumn} ASC`;
+            sql = `
+             SELECT  ${sargs.sql}
+             FROM (
+               SELECT
+                  ${sargs.sql},
+                 ROW_NUMBER() OVER (
+                   PARTITION BY ${model.alias}.${subQueryInfo.column}
+                   ${orderBySql}
+                 ) AS rn
+               FROM (
+                 ${sql}
+               ) ${model.alias}
+             ) ${model.alias}
+             WHERE rn > ${largs.skip} AND rn <= ${largs.take + largs.skip}
+             ${orderBySql}
+           `;
+         }
       }
 
       sql = sql.replace(/\s+/gi, " ")

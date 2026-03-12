@@ -159,8 +159,10 @@ export type FindAggregateArgs<S extends SchemaShape> = Normalize<{
 
 
 // FIND ARGS
+export type FindDistinctArgs<S extends SchemaShape> = (keyof SchemaAllColumns<S>)[]
+
 export type FindArgs<S extends SchemaShape> = {
-   distinct?: boolean;
+   distinct?: FindDistinctArgs<S>;
    where?: Normalize<WhereArgs<S>>
    select?: SelectArgs<S>
    limit?: LimitArgs

@@ -53,38 +53,110 @@ const server = async (app: Express) => {
             }
          },
          data: {
-            name: "nax",
+            name: "test",
             email: Math.random() + "@gmail.com",
             age: 1,
             // metas: {
             //    key: "um",
             //    value: "nicer",
             // },
-            products: [{
-               name: "new Pro",
-               description: "we",
-               status: "asd",
-               metas: {
-                  key: "asd",
-                  value: "asd"
-               },
-               categories: [
-                  {
-                     name: "Mobile",
-                     value: "mobile",
+            products: [
+               {
+                  name: "new Pro",
+                  description: "we",
+                  status: "asd",
+                  metas: {
+                     key: "asd",
+                     value: "asd"
                   },
-                  {
-                     name: "Electronics",
-                     value: "Electronics",
-                     sub_categories: [
-                        {
-                           name: "sub",
-                           value: "sub",
-                        }
-                     ]
-                  }
-               ]
-            }]
+                  categories: [
+                     {
+                        name: "Mobile",
+                        value: "mobile",
+                     },
+                     {
+                        name: "Mobile",
+                        value: "mobile",
+                     },
+                     {
+                        name: "Electronics",
+                        value: "Electronics",
+                        sub_categories: [
+                           {
+                              name: "sub",
+                              value: "sub",
+                           }
+                        ]
+                     }
+                  ]
+               },
+               {
+                  name: "new Pro",
+                  description: "we",
+                  status: "asd",
+                  metas: {
+                     key: "asd",
+                     value: "asd"
+                  },
+                  categories: [
+                     {
+                        name: "Mobile",
+                        value: "mobile",
+                     },
+                     {
+                        name: "Mobile",
+                        value: "mobile",
+                     },
+                     {
+                        name: "Mobile",
+                        value: "mobile",
+                     },
+                     {
+                        name: "Electronics",
+                        value: "Electronics",
+                        sub_categories: [
+                           {
+                              name: "sub",
+                              value: "sub",
+                           }
+                        ]
+                     }
+                  ]
+               },
+               {
+                  name: "another pro",
+                  description: "we",
+                  status: "asd",
+                  metas: {
+                     key: "asd",
+                     value: "asd"
+                  },
+                  categories: [
+                     {
+                        name: "Mobile",
+                        value: "mobile",
+                     },
+                     {
+                        name: "Mobile",
+                        value: "mobile",
+                     },
+                     {
+                        name: "Mobile",
+                        value: "mobile",
+                     },
+                     {
+                        name: "Electronics",
+                        value: "Electronics",
+                        sub_categories: [
+                           {
+                              name: "sub",
+                              value: "sub",
+                           }
+                        ]
+                     }
+                  ]
+               }
+            ]
          }
       })
       res.json({ results })
@@ -93,6 +165,7 @@ const server = async (app: Express) => {
    app.get('/find', async (req: any, res: any) => {
       const start = Date.now()
       const results = await User.find({
+         distinct: ['name'],
          aggregate: {
             products: {
                pid: {
@@ -106,59 +179,52 @@ const server = async (app: Express) => {
             }
          },
          where: {
-            name: "well",
-            OR: [
-               {
-                  name: {
-                     contains: "as"
-                  }
-               },
-
-            ],
 
          },
          orderBy: {
-            // uid: "desc"
+            uid: "desc"
          },
+         // limit: {
+         //    take: 1,
+         //    skip: 1
+         // },
          select: {
-            // email: true,
-            customer: {
-
-            },
+            name: true,
             products: {
-               aggregate: {
-                  categories: {
-                     id: {
-                        count: true
-                     }
-                  }
-               },
-               limit: {
-                  take: 2,
+               // aggregate: {
+               //    categories: {
+               //       id: {
+               //          count: true
+               //       }
+               //    }
+               // },
+               // limit: {
+               //    take: 2,
+               // },
+               distinct: ['name'],
+               orderBy: {
+                  pid: "desc"
                },
                select: {
                   name: true,
-                  metas: {
-                     select: {
-                        key: true,
-                     }
-                  },
-                  categories: {
-                     // where: {
-                     //    value: "Electronics"
-                     // },
-                     // limit: { take: 1 },
-                     orderBy: {
-                        id: "desc"
-                     },
-                     select: {
-                        sub_categories: {
-                           select: {
-                              group: true
-                           }
-                        }
-                     }
-                  }
+                  // metas: {
+                  //    select: {
+                  //       key: true,
+                  //    }
+                  // },
+                  // categories: {
+                  //    distinct: ['name'],
+                  //    orderBy: {
+                  //       id: "desc"
+                  //    },
+                  //    select: {
+                  //       sub_categories: {
+                  //          select: {
+                  //             group: true
+                  //          }
+                  //       }
+                  //    }
+                  // }
                }
             }
          }
