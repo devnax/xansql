@@ -3,7 +3,7 @@ import { iof } from "../utils";
 import XqlIDField from "../xt/fields/IDField";
 import XqlRelationMany from "../xt/fields/RelationMany";
 import XqlRelationOne from "../xt/fields/RelationOne";
-import { AggregateArgs, AggregateResult, CreateArgs, CreateResult, DeleteArgs, DeleteResult, ExactArgs, FindArgs, FindResult, ModelClass, PaginateArgs, SchemaShape, UpdateArgs, UpdateResult, UpsertArgs, UpsertResult, WhereArgs } from "./types";
+import { AggregateArgs, AggregateResult, CreateArgs, CreateResult, DeleteArgs, DeleteResult, ExactArgs, FindArgs, FindOneArgs, FindResult, ModelClass, PaginateArgs, SchemaShape, UpdateArgs, UpdateResult, UpsertArgs, UpsertResult, WhereArgs } from "./types";
 import XansqlError from "../core/XansqlError";
 import BuildFindArgs from "./Build/FindArgs";
 import BuildCreateArgs from "./Build/CreateArgs";
@@ -159,9 +159,15 @@ abstract class Model<S extends SchemaShape = SchemaShape> {
       }
    }
 
-   async findOne<T extends FindArgs<S>>(args: ExactArgs<T, FindArgs<S>>): Promise<FindResult<T, S> | null> {
+   async findOne<T extends FindArgs<S>>(args: ExactArgs<T, FindOneArgs<S>>): Promise<FindResult<T, S> | null> {
       try {
-         const results: any = await this.find(args)
+         const results: any = await this.find({
+            ...args,
+            limit: {
+               take: 1,
+               skip: args?.limit?.skip || 0
+            }
+         })
          if (results?.length) {
             return results[0]
          }

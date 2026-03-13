@@ -1,6 +1,6 @@
 {
    "name": "xansql",
-   "version": "1.1.25",
+   "version": "1.1.26",
    "main": "./index.cjs",
    "module": "./index.js",
    "types": "./index.d.ts",

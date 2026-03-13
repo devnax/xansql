@@ -161,11 +161,22 @@ export type FindAggregateArgs<S extends SchemaShape> = Normalize<{
 // FIND ARGS
 export type FindDistinctArgs<S extends SchemaShape> = (keyof SchemaAllColumns<S>)[]
 
-export type FindArgs<S extends SchemaShape> = {
-   distinct?: FindDistinctArgs<S>;
+export type FindArgs<S extends SchemaShape> = Normalize<{
+   distinct?: Normalize<FindDistinctArgs<S>>;
+   where?: Normalize<WhereArgs<S>>
+   select?: Normalize<SelectArgs<S>>
+   limit?: LimitArgs
+   orderBy?: OrderByArgs<S>;
+   aggregate?: FindAggregateArgs<S>;
+   debug?: boolean
+}>
+
+
+export type FindOneArgs<S extends SchemaShape> = {
+   distinct?: Normalize<FindDistinctArgs<S>>;
    where?: Normalize<WhereArgs<S>>
    select?: SelectArgs<S>
-   limit?: LimitArgs
+   limit?: { skip: number }
    orderBy?: OrderByArgs<S>;
    aggregate?: FindAggregateArgs<S>;
    debug?: boolean
