@@ -97,9 +97,9 @@ export type WhereSubConditionArgs<F extends XqlField> =
 type InferWhereValue<F extends XVType<any>> = F extends { _type: infer R } ? R : never
 type WhereColumnArgs<F extends XqlField> = InferWhereValue<F> | WhereSubConditionArgs<F> | WhereSubConditionArgs<F>[];
 type WhereLogicalArgs<S extends SchemaShape> = {
-   OR?: WhereObject<S>[];
-   AND?: WhereObject<S>[];
-   NOT?: WhereObject<S>[];
+   OR?: WhereObject<S> | WhereObject<S>[];
+   AND?: WhereObject<S> | WhereObject<S>[];
+   NOT?: WhereObject<S> | WhereObject<S>[];
 }
 type WhereObject<S extends SchemaShape> = Normalize<{
    [C in keyof S]?:
