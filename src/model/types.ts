@@ -294,7 +294,7 @@ export type FindResultColumnMap<T extends FindArgs<any>, S extends SchemaShape> 
    never]: true
 }
 
-export type FindResultMap<T extends FindArgs<any>, S extends SchemaShape> = {
+export type FindResultMap<T extends FindArgs<any> | FindOneArgs<any>, S extends SchemaShape> = {
    [C in keyof S as S[C] extends XqlIDField ? C : never]: number
 } & {
    [K in keyof T['select'] & keyof S as T['select'][K] extends any ? K : never]: (
@@ -318,7 +318,7 @@ export type FindResultMap<T extends FindArgs<any>, S extends SchemaShape> = {
 
 
 
-type FindResultAggregate<T extends FindArgs<any>> =
+type FindResultAggregate<T extends FindArgs<any> | FindOneArgs<any>> =
    keyof T['aggregate'] extends never
    ? {}
    : {
@@ -336,7 +336,7 @@ type FindResultAggregate<T extends FindArgs<any>> =
       }
    };
 
-export type FindResult<T extends FindArgs<any>, S extends SchemaShape> =
+export type FindResult<T extends FindArgs<any> | FindOneArgs<any>, S extends SchemaShape> =
    Normalize<
       keyof T['select'] extends never
       ? Normalize<FindResultFullSchema<S> & FindResultAggregate<T>>

@@ -159,7 +159,7 @@ abstract class Model<S extends SchemaShape = SchemaShape> {
       }
    }
 
-   async findOne<T extends FindArgs<S>>(args: ExactArgs<T, FindOneArgs<S>>): Promise<FindResult<T, S> | null> {
+   async findOne<T extends FindOneArgs<S>>(args: ExactArgs<T, FindOneArgs<S>>): Promise<FindResult<T, S> | null> {
       try {
          const results: any = await this.find({
             ...args,
@@ -167,7 +167,7 @@ abstract class Model<S extends SchemaShape = SchemaShape> {
                take: 1,
                skip: args?.limit?.skip || 0
             }
-         })
+         } as any)
          if (results?.length) {
             return results[0]
          }

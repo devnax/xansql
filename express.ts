@@ -164,6 +164,11 @@ const server = async (app: Express) => {
 
    app.get('/find', async (req: any, res: any) => {
       const start = Date.now()
+      const resultss = await User.findOne({
+         where: {
+
+         }
+      })
       const results = await User.find({
          distinct: ['name'],
          aggregate: {
